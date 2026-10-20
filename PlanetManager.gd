@@ -48,7 +48,10 @@ func init_planet() -> void:
 func rebase_origin(offset: Vector3) -> void:
 	planet_center_offset -= offset
 	floating_origin_offset = planet_center_offset
-	global_position = planet_center_offset
+	if is_inside_tree():
+		global_position = planet_center_offset
+	else:
+		position = planet_center_offset
 
 ## Updates LOD across all 6 cube faces according to camera position relative to planet center.
 ## Strictly zero runtime allocation during update.

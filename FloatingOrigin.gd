@@ -24,7 +24,7 @@ func _physics_process(_delta: float) -> void:
 func check_rebase() -> bool:
 	if not is_instance_valid(player_node):
 		return false
-	var pos: Vector3 = player_node.global_position
+	var pos: Vector3 = player_node.global_position if player_node.is_inside_tree() else player_node.position
 	if pos.length_squared() > (rebase_threshold * rebase_threshold):
 		rebase(pos)
 		return true
@@ -64,7 +64,10 @@ func rebase(offset: Vector3) -> void:
 		elif "planet_center_offset" in planet_manager:
 			planet_manager.planet_center_offset -= offset
 			if "global_position" in planet_manager:
-				planet_manager.global_position = planet_manager.planet_center_offset
+				if planet_manager.is_inside_tree():
+					planet_manager.global_position = planet_manager.planet_center_offset
+				else:
+					planet_manager.position = planet_manager.planet_center_offset
 		elif planet_manager is Node3D:
 			_rebase_node(planet_manager as Node3D, offset)
 	
@@ -83,22 +86,29 @@ func _rebase_node(node: Node3D, offset: Vector3) -> void:
 		var w_saved: Vector3 = rb.angular_velocity
 		var was_sleeping: bool = rb.sleeping
 		
-		var t: Transform3D = rb.global_transform
+		var in_tree: bool = rb.is_inside_tree()
+		var t: Transform3D = rb.global_transform if in_tree else rb.transform
 		t.origin -= offset
 		
 		# Direct PhysicsServer3D state synchronization prevents artificial velocity impulses
-		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, t)
-		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, v_saved)
-		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, w_saved)
-		if was_sleeping:
-			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_SLEEPING, true)
+		if in_tree:
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, t)
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, v_saved)
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, w_saved)
+			if was_sleeping:
+				PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_SLEEPING, true)
+			rb.global_transform = t
+			if rb.has_method("reset_physics_interpolation"):
+				rb.reset_physics_interpolation()
+		else:
+			rb.transform = t
 		
-		rb.global_transform = t
 		rb.linear_velocity = v_saved
 		rb.angular_velocity = w_saved
-		if rb.has_method("reset_physics_interpolation"):
-			rb.reset_physics_interpolation()
 	else:
-		node.global_position -= offset
-		if node.has_method("reset_physics_interpolation"):
-			node.reset_physics_interpolation()
+		if node.is_inside_tree():
+			node.global_position -= offset
+			if node.has_method("reset_physics_interpolation"):
+				node.reset_physics_interpolation()
+		else:
+			node.position -= offset
