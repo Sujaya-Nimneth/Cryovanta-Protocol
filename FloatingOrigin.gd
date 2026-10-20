@@ -67,7 +67,8 @@ func rebase(offset: Vector3) -> void:
 	for i in range(entity_count):
 		var entity: Node3D = registered_entities[i]
 		if is_instance_valid(entity) and entity != player_node and entity != planet_manager:
-			_rebase_node(entity, offset)
+			if not _has_rebased_ancestor(entity):
+				_rebase_node(entity, offset)
 	
 	# 3. Rebase planet manager
 	if is_instance_valid(planet_manager):
@@ -86,9 +87,27 @@ func rebase(offset: Vector3) -> void:
 	# 4. Notify listeners
 	origin_rebased.emit(offset)
 
+## Checks whether any ancestor of the entity has already been rebased, preventing double-shifting child nodes.
+func _has_rebased_ancestor(entity: Node3D) -> bool:
+	if not is_instance_valid(entity):
+		return false
+	var parent: Node = entity.get_parent()
+	var root: Node = entity.get_tree().root if (entity.is_inside_tree() and entity.get_tree()) else null
+	while parent != null and parent != root:
+		if parent == player_node or parent == planet_manager:
+			return true
+		if parent is Node3D and registered_entities.has(parent):
+			return true
+		parent = parent.get_parent()
+	return false
+
 ## Repositions a Node3D or RigidBody3D while preserving velocity and clearing interpolation buffers.
 func _rebase_node(node: Node3D, offset: Vector3) -> void:
 	if not is_instance_valid(node):
+		return
+	
+	if node.has_method("rebase_origin"):
+		node.rebase_origin(offset)
 		return
 	
 	if node is RigidBody3D:

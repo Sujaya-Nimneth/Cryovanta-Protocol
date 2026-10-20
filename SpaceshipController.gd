@@ -47,6 +47,11 @@ var _drag_force: Vector3 = Vector3.ZERO
 var _net_force: Vector3 = Vector3.ZERO
 var _ship_vel: Vector3 = Vector3.ZERO
 
+# Double-Rebase Protection (Engine frame, offset, and result origin deduplication)
+var last_rebase_frame: int = -1
+var last_rebase_offset: Vector3 = Vector3.ZERO
+var _last_rebase_result_origin: Vector3 = Vector3(INF, INF, INF)
+
 func _ready() -> void:
 	# Disable global flat gravity; flight governed purely by thrusters and atmospheric drag
 	gravity_scale = 0.0
@@ -113,19 +118,34 @@ func set_thrust_input(val: Vector3) -> void:
 func set_torque_input(val: Vector3) -> void:
 	torque_input = val
 
-## Rebase origin handler preserving exact linear and angular velocities
+## Rebase origin handler preserving exact linear and angular velocities with double-rebase guard
 func rebase_origin(offset: Vector3) -> void:
+	if offset == Vector3.ZERO:
+		return
+	
+	var in_tree: bool = is_inside_tree()
+	var current_origin: Vector3 = global_position if in_tree else position
+	var current_frame: int = Engine.get_physics_frames()
+	if current_frame == last_rebase_frame and offset == last_rebase_offset and current_origin == _last_rebase_result_origin:
+		return
+	
+	last_rebase_frame = current_frame
+	last_rebase_offset = offset
+	
 	var v_saved: Vector3 = linear_velocity
 	var w_saved: Vector3 = angular_velocity
+	var was_sleeping: bool = sleeping
 	var rid: RID = get_rid()
-	var in_tree: bool = is_inside_tree()
 	var t: Transform3D = global_transform if in_tree else transform
 	t.origin -= offset
+	_last_rebase_result_origin = t.origin
 	
 	if in_tree:
 		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, t)
 		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, v_saved)
 		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, w_saved)
+		if was_sleeping:
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_SLEEPING, true)
 		global_transform = t
 		if has_method("reset_physics_interpolation"):
 			reset_physics_interpolation()
