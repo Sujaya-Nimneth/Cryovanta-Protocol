@@ -96,9 +96,8 @@ func init_node(p_face: int, p_lod: int, p_min: Vector2, p_max: Vector2, p_parent
 	is_leaf = true
 	mesh_id = -1
 	
-	var bounds: Dictionary = PlanetMath.get_chunk_bounds(face_index, uv_min, uv_max, radius)
-	center_pos = bounds["center"]
-	bounding_radius = bounds["radius"]
+	center_pos = PlanetMath.get_chunk_center(face_index, uv_min, uv_max, radius)
+	bounding_radius = PlanetMath.get_chunk_radius(face_index, uv_min, uv_max, center_pos, radius)
 
 # ==============================================================================
 # Subdivision & Merging
@@ -124,19 +123,31 @@ func split(pool: ChunkPoolManager, radius: float) -> bool:
 		return false
 	
 	var mid: Vector2 = (uv_min + uv_max) * 0.5
-	var rects: Array[Array] = [
-		[Vector2(uv_min.x, uv_min.y), Vector2(mid.x, mid.y)],
-		[Vector2(mid.x, uv_min.y), Vector2(uv_max.x, mid.y)],
-		[Vector2(uv_min.x, mid.y), Vector2(mid.x, uv_max.y)],
-		[Vector2(mid.x, mid.y), Vector2(uv_max.x, uv_max.y)]
-	]
-	
 	children.resize(4)
-	for i in range(4):
-		var child: QuadtreeNode = acquire_node()
-		child.init_node(face_index, lod_level + 1, rects[i][0], rects[i][1], self, radius)
-		child.mesh_id = pool.acquire_mesh(child)
-		children[i] = child
+	
+	# Quadrant 0: [uv_min, mid]
+	var c0: QuadtreeNode = acquire_node()
+	c0.init_node(face_index, lod_level + 1, uv_min, mid, self, radius)
+	c0.mesh_id = pool.acquire_mesh(c0)
+	children[0] = c0
+	
+	# Quadrant 1: [(mid.x, uv_min.y), (uv_max.x, mid.y)]
+	var c1: QuadtreeNode = acquire_node()
+	c1.init_node(face_index, lod_level + 1, Vector2(mid.x, uv_min.y), Vector2(uv_max.x, mid.y), self, radius)
+	c1.mesh_id = pool.acquire_mesh(c1)
+	children[1] = c1
+	
+	# Quadrant 2: [(uv_min.x, mid.y), (mid.x, uv_max.y)]
+	var c2: QuadtreeNode = acquire_node()
+	c2.init_node(face_index, lod_level + 1, Vector2(uv_min.x, mid.y), Vector2(mid.x, uv_max.y), self, radius)
+	c2.mesh_id = pool.acquire_mesh(c2)
+	children[2] = c2
+	
+	# Quadrant 3: [mid, uv_max]
+	var c3: QuadtreeNode = acquire_node()
+	c3.init_node(face_index, lod_level + 1, mid, uv_max, self, radius)
+	c3.mesh_id = pool.acquire_mesh(c3)
+	children[3] = c3
 	
 	if mesh_id != -1:
 		pool.release_mesh(mesh_id)
