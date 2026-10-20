@@ -14,10 +14,14 @@ extends Node3D
 @export var hysteresis: float = 1.35
 @export var origin_rebase_threshold: float = 2000.0
 
+const SECTOR_SIZE: float = 2000.0
+
 var chunk_pool: ChunkPoolManager = null
 var face_roots: Array[QuadtreeNode] = []
 var planet_center_offset: Vector3 = Vector3.ZERO
 var floating_origin_offset: Vector3 = Vector3.ZERO
+var planet_center_sector: Vector3i = Vector3i.ZERO
+var planet_center_local: Vector3 = Vector3.ZERO
 
 func _init() -> void:
 	init_planet()
@@ -29,6 +33,8 @@ func init_planet() -> void:
 	face_roots.resize(6)
 	planet_center_offset = Vector3.ZERO
 	floating_origin_offset = Vector3.ZERO
+	planet_center_sector = Vector3i.ZERO
+	planet_center_local = Vector3.ZERO
 	
 	# Initialize 6 cube face root nodes at LOD 0
 	for face_idx in range(6):
@@ -47,6 +53,15 @@ func init_planet() -> void:
 ## Rebases planet coordinates by subtracting the offset from planet_center_offset.
 func rebase_origin(offset: Vector3) -> void:
 	planet_center_offset -= offset
+	planet_center_local -= offset
+	var sx: int = int(floor(planet_center_local.x / SECTOR_SIZE))
+	var sy: int = int(floor(planet_center_local.y / SECTOR_SIZE))
+	var sz: int = int(floor(planet_center_local.z / SECTOR_SIZE))
+	if sx != 0 or sy != 0 or sz != 0:
+		var s_vec: Vector3i = Vector3i(sx, sy, sz)
+		planet_center_sector += s_vec
+		planet_center_local -= Vector3(s_vec) * SECTOR_SIZE
+	
 	floating_origin_offset = planet_center_offset
 	if is_inside_tree():
 		global_position = planet_center_offset
@@ -56,10 +71,6 @@ func rebase_origin(offset: Vector3) -> void:
 ## Updates LOD across all 6 cube faces according to camera position relative to planet center.
 ## Strictly zero runtime allocation during update.
 func update_camera(camera_pos: Vector3) -> void:
-	# Origin rebasing check per .antigravity/rules.md
-	if camera_pos.length() > origin_rebase_threshold:
-		floating_origin_offset = camera_pos
-	
 	var relative_cam_pos: Vector3 = camera_pos - planet_center_offset
 	for face_idx in range(6):
 		face_roots[face_idx].evaluate_lod(

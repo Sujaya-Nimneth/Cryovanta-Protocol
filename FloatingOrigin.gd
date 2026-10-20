@@ -10,12 +10,16 @@ extends Node
 
 signal origin_rebased(offset: Vector3)
 
+const SECTOR_SIZE: float = 2000.0
+
 @export var rebase_threshold: float = 2000.0
 @export var player_node: Node3D = null
 @export var planet_manager: Node = null
 
 var registered_entities: Array[Node3D] = []
 var accumulated_offset: Vector3 = Vector3.ZERO
+var origin_sector: Vector3i = Vector3i.ZERO
+var origin_local: Vector3 = Vector3.ZERO
 
 func _physics_process(_delta: float) -> void:
 	check_rebase()
@@ -45,6 +49,14 @@ func rebase(offset: Vector3) -> void:
 		return
 	
 	accumulated_offset += offset
+	origin_local += offset
+	var sx: int = int(floor(origin_local.x / SECTOR_SIZE))
+	var sy: int = int(floor(origin_local.y / SECTOR_SIZE))
+	var sz: int = int(floor(origin_local.z / SECTOR_SIZE))
+	if sx != 0 or sy != 0 or sz != 0:
+		var s_vec: Vector3i = Vector3i(sx, sy, sz)
+		origin_sector += s_vec
+		origin_local -= Vector3(s_vec) * SECTOR_SIZE
 	
 	# 1. Reposition player node
 	if is_instance_valid(player_node):
