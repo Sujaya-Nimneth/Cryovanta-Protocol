@@ -16,6 +16,7 @@ extends Node3D
 
 var chunk_pool: ChunkPoolManager = null
 var face_roots: Array[QuadtreeNode] = []
+var planet_center_offset: Vector3 = Vector3.ZERO
 var floating_origin_offset: Vector3 = Vector3.ZERO
 
 func _init() -> void:
@@ -26,6 +27,7 @@ func init_planet() -> void:
 	chunk_pool = ChunkPoolManager.new()
 	face_roots.clear()
 	face_roots.resize(6)
+	planet_center_offset = Vector3.ZERO
 	floating_origin_offset = Vector3.ZERO
 	
 	# Initialize 6 cube face root nodes at LOD 0
@@ -42,6 +44,12 @@ func init_planet() -> void:
 		root.mesh_id = chunk_pool.acquire_mesh(root)
 		face_roots[face_idx] = root
 
+## Rebases planet coordinates by subtracting the offset from planet_center_offset.
+func rebase_origin(offset: Vector3) -> void:
+	planet_center_offset -= offset
+	floating_origin_offset = planet_center_offset
+	global_position = planet_center_offset
+
 ## Updates LOD across all 6 cube faces according to camera position relative to planet center.
 ## Strictly zero runtime allocation during update.
 func update_camera(camera_pos: Vector3) -> void:
@@ -49,9 +57,10 @@ func update_camera(camera_pos: Vector3) -> void:
 	if camera_pos.length() > origin_rebase_threshold:
 		floating_origin_offset = camera_pos
 	
+	var relative_cam_pos: Vector3 = camera_pos - planet_center_offset
 	for face_idx in range(6):
 		face_roots[face_idx].evaluate_lod(
-			camera_pos,
+			relative_cam_pos,
 			chunk_pool,
 			max_lod,
 			planet_radius,
