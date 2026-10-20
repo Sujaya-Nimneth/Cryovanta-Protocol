@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://lcatdxsxhf17"
+path="res://.godot/imported/planet_chunk.glsl-840e3260017d7d4b9f4b157b47cee09b.res"
+
+[deps]
+
+source_file="res://planet_chunk.glsl"
+dest_files=["res://.godot/imported/planet_chunk.glsl-840e3260017d7d4b9f4b157b47cee09b.res"]
+
+[params]
+
