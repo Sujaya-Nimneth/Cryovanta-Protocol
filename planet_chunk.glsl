@@ -144,22 +144,20 @@ vec4 snoise(vec3 v, uint seed) {
     return vec4(32.0 * value, 32.0 * deriv);
 }
 
-// 4 octaves, amplitude 1.0 -> 0.125, derivative w.r.t. the input position.
+// 4 octaves, octave step 1013904223 (0x3c6ef35f), initial amp 0.5, lacunarity freq *= 2.02, unnormalized.
 vec4 fbm4(vec3 p, uint seed) {
     float value = 0.0;
     vec3 deriv = vec3(0.0);
-    float amp = 1.0;
+    float amp = 0.5;
     float freq = 1.0;
-    float norm = 0.0;
     for (int o = 0; o < 4; ++o) {
-        vec4 n = snoise(p * freq, seed + uint(o) * 0x9e3779b9u);
+        vec4 n = snoise(p * freq, seed + uint(o) * 1013904223u);
         value += amp * n.x;
         deriv += amp * freq * n.yzw;
-        norm += amp;
         amp *= 0.5;
-        freq *= 2.0;
+        freq *= 2.02;
     }
-    return vec4(value, deriv) / norm;
+    return vec4(value, deriv);
 }
 
 // Cube face -> unit sphere with tangential warp to equalise corner density.
