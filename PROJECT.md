@@ -40,6 +40,10 @@ The architecture decouples planetary terrain generation from local physics via c
 | F23 | Spaceship Planetary Gravity | Integration into SpaceshipController with zero velocity spikes across 2000m rebases | M10 | Phase 2 Follow-up R4 |
 | F24 | Automated Phase 2 Test Suite | Headless test runner test_phase2_terrain_gravity_headless.gd exiting code 0 | M11 | Phase 2 Follow-up R5 |
 | F25 | Full System Integrity & Hardening | Adversarial tests, line count checks (<=250), Phase 1 backward compatibility | M12 | Phase 2 Follow-up R5 |
+| F26 | Thread-Safe Per-Worker Scratch Buffers | Pre-allocated 4-worker scratch buffer sets (MAX_WORKERS = 4, slot_idx in [0..3]) preventing geometry data races | M13 | Phase 2 Hardening R1 |
+| F27 | Exact GLSL FBM Noise Parity | Strict parity with planet_chunk.glsl: octave step 1013904223, amp 0.5, freq *= 2.02, unnormalized | M13 | Phase 2 Hardening R1 |
+| F28 | Automatic Cancelled Slot Reclamation | Auto-reclaim of cancelled/completed slots during poll() and worker thread index tracking | M13 | Phase 2 Hardening R2 |
+| F29 | Chunk Collider Origin Alignment & Reset | set_collider_origin() positioning bodies at chunk sea origin and reset to Vector3.ZERO on release | M13 | Phase 2 Hardening R3 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -56,6 +60,7 @@ The architecture decouples planetary terrain generation from local physics via c
 | M10 | Radial Planetary Gravity | Update `AtmosphereMath.gd`, `SpaceshipController.gd` | None | DONE |
 | M11 | Phase 2 Headless Test Suite | `test_phase2_terrain_gravity_headless.gd` (Tiers 1-5) | M7, M8, M9, M10 | DONE |
 | M12 | System Hardening & Forensic Audit | Verification across all suites, script line counts, forensic audit | M1-M11 | DONE |
+| M13 | Phase 2 Hardening | Thread-Safe Buffers, GLSL FBM Parity, Cancelled Slot Reclamation, Collider Origin Alignment, Headless Tests | M7-M12 | DONE |
 
 ## Interface Contracts
 
@@ -66,17 +71,25 @@ The architecture decouples planetary terrain generation from local physics via c
   - `const VERTEX_COUNT: int = 1156`
   - `const INDEX_COUNT: int = 6534`
   - `const SKIRT_FRACTION: float = 0.05`
+  - `const MAX_WORKERS: int = 4`: Pre-allocates 4 independent scratch buffer sets (`_vertices_pool`, `_normals_pool`, `_uvs_pool`, `_mesh_arrays_pool`, `_faces_pool`) for race-free multi-threaded generation.
   - `pack_push_constants(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float) -> PackedByteArray`:
-    Returns exactly 48 bytes with three `vec4` (offsets 0, 16, 32).
-  - `build_mesh_cpu(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, target_mesh: ArrayMesh = null) -> ArrayMesh`:
-    Deterministic CPU generation with tangential warp, 4-octave 3D simplex FBM, and 5% skirt extrusion toward planet center.
+    Returns pre-allocated 48-byte buffer directly without heap allocations, matching `planet_chunk.glsl` std430 layout (three `vec4`).
+  - `fbm4(p: Vector3, seed_val: int) -> Vector4`:
+    Strict GLSL parity with 4 octaves, seed step `1013904223` (`0x3c6ef35f`), initial `amp = 0.5`, `freq *= 2.02`, and unnormalized accumulation.
+  - `build_mesh_cpu(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, target_mesh: ArrayMesh = null, chunk_local: bool = true, slot_idx: int = 0, skip_mesh: bool = false) -> ArrayMesh`:
+    Deterministic CPU generation with tangential warp, 4-octave 3D simplex FBM, and 5% skirt extrusion toward planet center. Uses `slot_idx` in `[0..3]`.
+  - `get_collider_faces(slot_idx: int = 0) -> PackedVector3Array`: Returns pre-allocated triangle face buffer for worker `slot_idx`.
+  - `build_collider_faces(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, slot_idx: int = 0, chunk_local: bool = true) -> PackedVector3Array`: Bakes collision geometry into worker scratch buffer `slot_idx`.
+  - `build_chunk_mesh(mesh: ArrayMesh, face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, slot_idx: int = 0) -> ArrayMesh`: Generates chunk mesh using worker scratch buffer `slot_idx`.
 
 ### `ColliderPoolManager` ↔ `PlanetManager` & `QuadtreeNode`
 - `ColliderPoolManager.gd`:
   - Extends `Node3D`.
   - `const POOL_SIZE: int = 64`
   - `func acquire_collider(owner_node: RefCounted) -> int`: Returns slot `[0..63]` or `-1` if exhausted in O(1).
-  - `func release_collider(collider_id: int) -> bool`: Releases slot in O(1).
+  - `func release_collider(collider_id: int) -> bool`: Releases slot in O(1), resets `bodies[collider_id].position = Vector3.ZERO`, and clears shape faces.
+  - `func set_collider_origin(collider_id: int, chunk_origin: Vector3) -> void`: Sets chunk-local origin position of the collider `StaticBody3D` relative to `PlanetManager`.
+  - `func get_collider_origin(collider_id: int) -> Vector3`: Returns current body position.
   - `func update_collider_faces(collider_id: int, faces: PackedVector3Array) -> void`: Updates `ConcavePolygonShape3D`.
   - `func has_available(count: int = 1) -> bool`: O(1) admission check.
   - `func verify_integrity() -> Dictionary`: Checks active + free == 64, zero duplicate entries.
@@ -91,11 +104,15 @@ The architecture decouples planetary terrain generation from local physics via c
   - Extends `Node`.
   - `const MAX_CONCURRENT_WORKERS: int = 4`
   - `const BUFFER_CAPACITY: int = 64`
+  - `static func get_current_worker_index() -> int` and `func get_worker_index() -> int`: Returns caller worker thread index `[0..3]`.
   - `func submit_job(callable: Callable, args: Array = []) -> int`: Submits background job in O(1).
   - `func is_job_completed(job_id: int) -> bool`
   - `func get_job_result(job_id: int) -> Variant`
-  - `func cancel_job(job_id: int) -> bool`
-  - `func poll() -> void`: Processes completed jobs on main thread with 0 heap allocations.
+  - `func cancel_job(job_id: int, auto_reclaim: bool = false) -> bool`: Cancels queued/running job and optionally marks for automatic reclamation.
+  - `func cancel_all_jobs() -> void`: Cancels all queued and running jobs with automatic slot reclamation.
+  - `func reclaim_job(job_id: int) -> bool`: Reclaims completed or cancelled slot back to free stack.
+  - `func reclaim_cancelled_jobs() -> int`: Reclaims all cancelled slots in ring buffer.
+  - `func poll() -> void`: Processes completed jobs and reclaims completed/cancelled slots marked with `_auto_reclaim` on main thread with 0 heap allocations.
   - `func shutdown() -> void`: Terminates worker threads cleanly.
 
 ### `AtmosphereMath` & `SpaceshipController` (Gravity)
@@ -130,3 +147,6 @@ The architecture decouples planetary terrain generation from local physics via c
   - `test_adversarial_challenger2.gd`: Adversarial verification harness.
   - `test_adversarial_edge_cases.gd`: In-tree scene-tree physics and edge-case harness.
   - `test_adversarial_empirical.gd`: Continuous flight and hypersonic velocity harness.
+  - `test_adversarial_m13_challenger1.gd`: Challenger 1 empirical concurrency, GLSL parity, and slot reclamation harness.
+  - `test_adversarial_m13_challenger2.gd`: Challenger 2 empirical collider churn, push constants memory delta, and FBM parity harness.
+  - `test_adversarial_m13_reviewer2.gd`: Reviewer 2 worker slot boundary clamping, auto-reclaim, and collider double release harness.
