@@ -73,10 +73,19 @@ func release_collider(collider_id: int) -> bool:
 	collision_shapes[collider_id].disabled = true
 	bodies[collider_id].collision_layer = 0
 	bodies[collider_id].collision_mask = 0
+	bodies[collider_id].position = Vector3.ZERO
 	shapes[collider_id].set_faces(EMPTY_FACES)
 	free_indices.push_back(collider_id)
 	active_count -= 1
 	return true
+
+## Sets the chunk-local origin position of the collider StaticBody3D.
+func set_collider_origin(collider_id: int, chunk_origin: Vector3) -> void:
+	if collider_id >= 0 and collider_id < POOL_SIZE and is_in_use[collider_id]:
+		bodies[collider_id].position = chunk_origin
+
+func get_collider_origin(collider_id: int) -> Vector3:
+	return bodies[collider_id].position if (collider_id >= 0 and collider_id < POOL_SIZE and is_in_use[collider_id]) else Vector3.ZERO
 
 ## Bakes terrain triangle faces into the pre-allocated ConcavePolygonShape3D.
 func update_collider_faces(collider_id: int, faces: PackedVector3Array) -> void:
