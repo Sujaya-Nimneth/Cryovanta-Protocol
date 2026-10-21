@@ -57,3 +57,32 @@ static func get_drag_force(
 	cross_sectional_area: float = 10.0
 ) -> Vector3:
 	return calculate_drag_force(velocity, air_density, drag_coefficient, cross_sectional_area)
+
+## Calculates radial inverse-square planetary gravity acceleration vector.
+## Formula: g(r) = -g_0 * (R / r_eff)^2 * (r_vec / r), directed toward planet_pos.
+## Clamped at r >= R (i.e. for r < planet_radius, r_eff = planet_radius so |g| is clamped at surface_gravity).
+## Returns Vector3.ZERO if distance to planet_pos is negligible (< 1e-6) or planet_radius <= 0.0.
+static func calculate_gravity_acceleration(
+	vessel_pos: Vector3,
+	planet_pos: Vector3,
+	planet_radius: float,
+	surface_gravity: float = 9.81
+) -> Vector3:
+	var r_vec: Vector3 = vessel_pos - planet_pos
+	var r: float = r_vec.length()
+	if r < 1e-6 or planet_radius <= 0.0:
+		return Vector3.ZERO
+	var r_eff: float = maxf(r, planet_radius)
+	var ratio: float = planet_radius / r_eff
+	var factor: float = surface_gravity * (ratio * ratio) / r
+	return -r_vec * factor
+
+## Alias for calculate_gravity_acceleration.
+static func get_gravity_acceleration(
+	vessel_pos: Vector3,
+	planet_pos: Vector3,
+	planet_radius: float,
+	surface_gravity: float = 9.81
+) -> Vector3:
+	return calculate_gravity_acceleration(vessel_pos, planet_pos, planet_radius, surface_gravity)
+

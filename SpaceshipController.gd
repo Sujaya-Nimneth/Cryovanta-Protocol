@@ -13,6 +13,8 @@ extends RigidBody3D
 @export var planet_radius: float = 100_000.0
 @export var atmosphere_ceiling: float = 10_000.0
 @export var surface_air_density: float = 1.225
+@export var enable_planetary_gravity: bool = false
+@export var surface_gravity: float = 9.81
 
 # Aerodynamics
 @export var drag_coefficient: float = 0.5
@@ -44,6 +46,7 @@ var _thrust_world: Vector3 = Vector3.ZERO
 var _torque_local: Vector3 = Vector3.ZERO
 var _torque_world: Vector3 = Vector3.ZERO
 var _drag_force: Vector3 = Vector3.ZERO
+var _gravity_force: Vector3 = Vector3.ZERO
 var _net_force: Vector3 = Vector3.ZERO
 var _ship_vel: Vector3 = Vector3.ZERO
 
@@ -78,16 +81,24 @@ func _apply_flight_forces() -> void:
 		_ship_vel, rho, drag_coefficient, cross_sectional_area
 	)
 	
+	if enable_planetary_gravity:
+		var grav_accel: Vector3 = AtmosphereMath.calculate_gravity_acceleration(
+			pos, center, radius, surface_gravity
+		)
+		_gravity_force = grav_accel * mass
+	else:
+		_gravity_force = Vector3.ZERO
+	
 	# Assemble local thrust forces
 	# Local forward is -Z in Godot right-handed space; reverse is +Z
 	_thrust_local.x = thrust_input.x * strafe_thrust
 	_thrust_local.y = thrust_input.y * vertical_thrust
 	_thrust_local.z = -thrust_input.z * (forward_thrust if thrust_input.z >= 0.0 else reverse_thrust)
 	
-	# Project thrust into world coordinates and apply net force (thrust + atmospheric drag)
+	# Project thrust into world coordinates and apply net force (thrust + atmospheric drag + gravity)
 	var ship_basis: Basis = global_transform.basis if is_inside_tree() else transform.basis
 	_thrust_world = ship_basis * _thrust_local
-	_net_force = _thrust_world + _drag_force
+	_net_force = _thrust_world + _drag_force + _gravity_force
 	apply_central_force(_net_force)
 	
 	# Assemble local torques (x: pitch, y: yaw, z: roll)
@@ -154,6 +165,9 @@ func rebase_origin(offset: Vector3) -> void:
 	
 	linear_velocity = v_saved
 	angular_velocity = w_saved
+	
+	if not is_instance_valid(planet_manager):
+		planet_position -= offset
 
 func get_planet_center() -> Vector3:
 	if is_instance_valid(planet_manager):
@@ -177,3 +191,10 @@ func get_current_density() -> float:
 
 func get_current_drag() -> Vector3:
 	return _drag_force
+
+func get_current_gravity() -> Vector3:
+	return _gravity_force
+
+func get_current_gravity_acceleration() -> Vector3:
+	return _gravity_force / mass if mass > 0.0 else Vector3.ZERO
+
