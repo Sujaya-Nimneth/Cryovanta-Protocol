@@ -542,7 +542,7 @@ func _count_lines(res_path: String) -> int:
 ## F10: Git commit history check (>= 5 tests)
 func _test_f10_git_commit_history() -> void:
 	var out: Array = []
-	var code: int = OS.execute("git", ["log", "--oneline", "-n", "20"], out)
+	var code: int = OS.execute("git", ["log", "--oneline", "-n", "100"], out)
 	_start_test("F10.1: Git execution succeeded and repository has commit history")
 	_assert(code == 0 and out.size() > 0, "Git command failed to retrieve log")
 	
