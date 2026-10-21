@@ -143,6 +143,8 @@ func _run_tier_1() -> void:
 	_test_1_3_winding_order_and_topology()
 	_test_1_4_skirt_extrusion_perimeter_vs_interior()
 	_test_1_5_zero_memory_growth_mesh_builds()
+	_test_1_6_fbm4_glsl_parity_and_constants()
+	_test_1_7_concurrent_worker_threads_determinism()
 
 func _test_1_1_push_constant_size_and_layout() -> void:
 	_start_test("Tier 1.1: 48-Byte std430 Push Constants Layout & Alignment")
@@ -342,6 +344,75 @@ func _test_1_5_zero_memory_growth_mesh_builds() -> void:
 	var mem_delta: int = mem_after - mem_before
 	_assert_int(mem_delta, 0, "Zero static heap growth across 100 mesh builds reusing target ArrayMesh")
 
+func _test_1_6_fbm4_glsl_parity_and_constants() -> void:
+	_start_test("Tier 1.6: FBM Noise Constants and Exact GLSL Shader Parity")
+	var glsl_file: FileAccess = FileAccess.open("res://planet_chunk.glsl", FileAccess.READ)
+	_assert(glsl_file != null, "planet_chunk.glsl opened successfully")
+	var glsl_text: String = glsl_file.get_as_text() if glsl_file != null else ""
+	if glsl_file != null: glsl_file.close()
+	
+	_assert(glsl_text.contains("1013904223u"), "GLSL fbm4 contains octave step constant 1013904223u")
+	_assert(glsl_text.contains("amp = 0.5"), "GLSL fbm4 initializes amp = 0.5")
+	_assert(glsl_text.contains("freq *= 2.02"), "GLSL fbm4 uses lacunarity freq *= 2.02")
+	_assert(glsl_text.contains("return vec4(value, deriv);"), "GLSL fbm4 returns unnormalized vec4")
+	
+	var gd_file: FileAccess = FileAccess.open("res://TerrainMeshBuilder.gd", FileAccess.READ)
+	_assert(gd_file != null, "TerrainMeshBuilder.gd opened successfully")
+	var gd_text: String = gd_file.get_as_text() if gd_file != null else ""
+	if gd_file != null: gd_file.close()
+	
+	_assert(gd_text.contains("1013904223"), "GDScript fbm4 contains octave step constant 1013904223")
+	_assert(gd_text.contains("amp: float = 0.5"), "GDScript fbm4 initializes amp = 0.5")
+	_assert(gd_text.contains("freq *= 2.02"), "GDScript fbm4 uses lacunarity freq *= 2.02")
+	_assert(gd_text.contains("return Vector4(val, deriv.x, deriv.y, deriv.z)"), "GDScript fbm4 returns unnormalized Vector4")
+	
+	var f0: Vector4 = TerrainMeshBuilderClass.fbm4(Vector3(1.23, -4.56, 7.89), 42)
+	_assert(!is_nan(f0.x) and !is_inf(f0.x), "fbm4 output x is finite")
+	_assert(!is_nan(f0.y) and !is_inf(f0.y), "fbm4 derivative y is finite")
+	_assert(!is_nan(f0.z) and !is_inf(f0.z), "fbm4 derivative z is finite")
+	_assert(!is_nan(f0.w) and !is_inf(f0.w), "fbm4 derivative w is finite")
+	
+	var f1: Vector4 = TerrainMeshBuilderClass.fbm4(Vector3(1.23, -4.56, 7.89), 42)
+	_assert_approx(f0.x, f1.x, 1e-6, "fbm4 is 100% deterministic")
+
+func _thread_mesh_worker(res_array: Array, slot_idx: int) -> void:
+	for iter in range(5):
+		var faces: PackedVector3Array = TerrainMeshBuilderClass.build_collider_faces(
+			0, 2, Vector2(-0.5, -0.5), Vector2(0.5, 0.5), 100_000.0, 1337, 0.001, 800.0, slot_idx, true
+		)
+		if iter == 4:
+			res_array[slot_idx] = faces.duplicate()
+
+func _test_1_7_concurrent_worker_threads_determinism() -> void:
+	_start_test("Tier 1.7: 4 Concurrent Worker Threads Zero Corruption & Parity")
+	TerrainMeshBuilderClass.init_builder()
+	
+	var baseline_faces: PackedVector3Array = TerrainMeshBuilderClass.build_collider_faces(
+		0, 2, Vector2(-0.5, -0.5), Vector2(0.5, 0.5), 100_000.0, 1337, 0.001, 800.0, 0, true
+	).duplicate()
+	_assert_int(baseline_faces.size(), TerrainMeshBuilderClass.INDEX_COUNT, "Baseline collider face vertex count == 6534")
+	
+	var thread_results: Array = [[], [], [], []]
+	var threads: Array[Thread] = []
+	threads.resize(4)
+	
+	for w in range(4):
+		var t: Thread = Thread.new()
+		threads[w] = t
+		t.start(Callable(self, "_thread_mesh_worker").bind(thread_results, w))
+	
+	for t in threads:
+		t.wait_to_finish()
+	
+	for w in range(4):
+		var t_faces: PackedVector3Array = thread_results[w]
+		_assert_int(t_faces.size(), TerrainMeshBuilderClass.INDEX_COUNT, "Worker %d collider face vertex count == 6534" % w)
+		var max_diff: float = 0.0
+		for i in range(TerrainMeshBuilderClass.INDEX_COUNT):
+			var diff: float = t_faces[i].distance_to(baseline_faces[i])
+			if diff > max_diff: max_diff = diff
+		_assert(max_diff < 1e-4, "Worker %d output identical to baseline (max diff %f)" % [w, max_diff])
+
 # ==============================================================================
 # Tier 2: 64-Slot Collider Pool & Quadtree Integration
 # ==============================================================================
@@ -351,6 +422,7 @@ func _run_tier_2() -> void:
 	_test_2_3_quadtree_collider_qualification()
 	_test_2_4_admission_gating_pool_overrun_protection()
 	_test_2_5_camera_movement_stress_and_zero_orphans()
+	_test_2_6_collider_origin_alignment_and_reset()
 
 func _test_2_1_collider_pool_lifecycle_and_invariants() -> void:
 	_start_test("Tier 2.1: ColliderPoolManager 64-Slot Pre-allocation & Invariants")
@@ -560,6 +632,37 @@ func _test_2_5_camera_movement_stress_and_zero_orphans() -> void:
 	root.remove_child(planet)
 	planet.free()
 
+func _test_2_6_collider_origin_alignment_and_reset() -> void:
+	_start_test("Tier 2.6: Chunk Collider Origin Alignment & Reset on Release")
+	var pool: Node3D = ColliderPoolManagerClass.new()
+	root.add_child(pool)
+	
+	var owner_mock: RefCounted = RefCounted.new()
+	var cid: int = pool.acquire_collider(owner_mock)
+	_assert(cid >= 0, "Acquired collider id %d" % cid)
+	
+	_assert_vec3_approx(pool.get_collider_origin(cid), Vector3.ZERO, 1e-6, "Initial collider position is Vector3.ZERO")
+	
+	var chunk_origin: Vector3 = TerrainMeshBuilderClass.get_chunk_origin(0, Vector2(-0.5, -0.5), 100_000.0)
+	pool.set_collider_origin(cid, chunk_origin)
+	_assert_vec3_approx(pool.get_collider_origin(cid), chunk_origin, 1e-4, "Collider position aligns with chunk origin")
+	_assert_vec3_approx(pool.get_body(cid).position, chunk_origin, 1e-4, "StaticBody3D.position matches chunk origin")
+	
+	pool.set_collider_origin(-1, Vector3(100.0, 200.0, 300.0))
+	pool.set_collider_origin(64, Vector3(100.0, 200.0, 300.0))
+	var other_id: int = (cid + 1) % 64
+	pool.set_collider_origin(other_id, Vector3(999.0, 999.0, 999.0))
+	_assert_vec3_approx(pool.get_collider_origin(other_id), Vector3.ZERO, 1e-6, "Inactive slot unaffected by set_collider_origin")
+	
+	var rel_ok: bool = pool.release_collider(cid)
+	_assert(rel_ok, "Released collider %d" % cid)
+	_assert_vec3_approx(pool.get_body(cid).position, Vector3.ZERO, 1e-6, "Collider StaticBody3D position reset to ZERO on release")
+	_assert_vec3_approx(pool.get_collider_origin(cid), Vector3.ZERO, 1e-6, "get_collider_origin returns ZERO after release")
+	
+	pool.clear()
+	root.remove_child(pool)
+	pool.free()
+
 # ==============================================================================
 # Tier 3: Bounded 4-Thread Task Scheduler
 # ==============================================================================
@@ -569,6 +672,7 @@ func _run_tier_3() -> void:
 	_test_3_3_job_cancellation_and_generation_tracking()
 	_test_3_4_zero_steady_state_heap_allocations_polling()
 	_test_3_5_thread_lifecycle_and_clean_shutdown()
+	_test_3_6_cancel_all_jobs_auto_reclamation_during_poll()
 
 func _task_compute_square(x: int) -> int:
 	return x * x
@@ -758,6 +862,50 @@ func _test_3_5_thread_lifecycle_and_clean_shutdown() -> void:
 	sched.shutdown()
 	_assert(!sched.is_running(), "Second shutdown call succeeded safely")
 	
+	root.remove_child(sched)
+	sched.free()
+
+func _test_3_6_cancel_all_jobs_auto_reclamation_during_poll() -> void:
+	_start_test("Tier 3.6: cancel_all_jobs() Auto Slot Reclamation During poll()")
+	var sched: Node = ChunkTaskSchedulerClass.new()
+	root.add_child(sched)
+	
+	_assert_int(sched.get_available_slots(), 64, "Initial available slots == 64")
+	
+	for i in range(64):
+		var jid: int = sched.submit_job(Callable(self, "_task_busy_work"), [50])
+		_assert(jid > 0, "Job %d submitted successfully with id %d" % [i, jid])
+	
+	_assert_int(sched.get_available_slots(), 0, "All 64 slots occupied (available == 0)")
+	_assert_int(sched.get_queue_count(), 60, "60 jobs queued in ring buffer")
+	
+	sched.cancel_all_jobs()
+	
+	var wait_timeout: int = 1000
+	while sched.get_active_worker_count() > 0 and wait_timeout > 0:
+		OS.delay_msec(10)
+		wait_timeout -= 10
+	_assert_int(sched.get_active_worker_count(), 0, "All workers drained to 0")
+	
+	sched.poll()
+	
+	_assert_int(sched.get_available_slots(), 64, "All 64 slots fully reclaimed and available after poll()")
+	_assert_int(sched.get_queue_count(), 0, "Queue count is 0 after cancel and poll")
+	
+	for i in range(64):
+		var jid2: int = sched.submit_job(Callable(self, "_task_busy_work"), [1])
+		_assert(jid2 > 0, "Re-submitted job %d successfully" % i)
+	_assert_int(sched.get_available_slots(), 0, "Successfully re-filled 64 slots")
+	
+	sched.cancel_all_jobs()
+	var wait_timeout2: int = 500
+	while sched.get_active_worker_count() > 0 and wait_timeout2 > 0:
+		OS.delay_msec(5)
+		wait_timeout2 -= 5
+	sched.poll()
+	_assert_int(sched.get_available_slots(), 64, "Re-reclaimed all 64 slots")
+	
+	sched.shutdown()
 	root.remove_child(sched)
 	sched.free()
 

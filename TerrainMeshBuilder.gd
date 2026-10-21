@@ -22,7 +22,6 @@ static var _normals_pool: Array[PackedVector3Array] = []
 static var _uvs_pool: Array[PackedVector2Array] = []
 static var _mesh_arrays_pool: Array[Array] = []
 static var _faces_pool: Array[PackedVector3Array] = []
-static var _scratch_meshes: Array[ArrayMesh] = []
 static var _push_buf: PackedByteArray
 static var _ready: bool = false
 
@@ -42,13 +41,12 @@ static func init_builder() -> void:
 			_indices[ptr + 3] = br; _indices[ptr + 4] = tr; _indices[ptr + 5] = tl
 			ptr += 6
 	_vertices_pool.resize(MAX_WORKERS); _normals_pool.resize(MAX_WORKERS); _uvs_pool.resize(MAX_WORKERS)
-	_mesh_arrays_pool.resize(MAX_WORKERS); _faces_pool.resize(MAX_WORKERS); _scratch_meshes.resize(MAX_WORKERS)
+	_mesh_arrays_pool.resize(MAX_WORKERS); _faces_pool.resize(MAX_WORKERS)
 	for w in range(MAX_WORKERS):
 		var v: PackedVector3Array = PackedVector3Array(); v.resize(VERTEX_COUNT); _vertices_pool[w] = v
 		var n: PackedVector3Array = PackedVector3Array(); n.resize(VERTEX_COUNT); _normals_pool[w] = n
 		var u: PackedVector2Array = PackedVector2Array(); u.resize(VERTEX_COUNT); _uvs_pool[w] = u
 		var f: PackedVector3Array = PackedVector3Array(); f.resize(INDEX_COUNT); _faces_pool[w] = f
-		_scratch_meshes[w] = ArrayMesh.new()
 		var arr: Array = []; arr.resize(Mesh.ARRAY_MAX)
 		arr[Mesh.ARRAY_VERTEX] = v; arr[Mesh.ARRAY_NORMAL] = n; arr[Mesh.ARRAY_TEX_UV] = u; arr[Mesh.ARRAY_INDEX] = _indices
 		_mesh_arrays_pool[w] = arr
@@ -151,7 +149,8 @@ static func fbm4(p: Vector3, seed_val: int) -> Vector4:
 static func build_mesh_cpu(
 	face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2,
 	planet_radius: float, seed_val: int, freq: float, amp: float,
-	target_mesh: ArrayMesh = null, chunk_local: bool = true, slot_idx: int = 0
+	target_mesh: ArrayMesh = null, chunk_local: bool = true, slot_idx: int = 0,
+	skip_mesh: bool = false
 ) -> ArrayMesh:
 	if not _ready:
 		init_builder()
@@ -187,9 +186,16 @@ static func build_mesh_cpu(
 			norms[idx] = nrm
 			uvs[idx] = Vector2(inner_x, inner_y)
 
+	_vertices_pool[slot] = verts
+	_normals_pool[slot] = norms
+	_uvs_pool[slot] = uvs
+	if skip_mesh:
+		return null
+	var arr: Array = _mesh_arrays_pool[slot]
+	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_TEX_UV] = uvs
 	var mesh: ArrayMesh = target_mesh if target_mesh != null else ArrayMesh.new()
 	mesh.clear_surfaces()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _mesh_arrays_pool[slot])
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	return mesh
 
 static func get_collider_faces(slot_idx: int = 0) -> PackedVector3Array:
@@ -200,6 +206,7 @@ static func get_collider_faces(slot_idx: int = 0) -> PackedVector3Array:
 	var faces: PackedVector3Array = _faces_pool[slot]
 	for i in range(INDEX_COUNT):
 		faces[i] = verts[_indices[i]]
+	_faces_pool[slot] = faces
 	return faces
 
 static func build_collider_faces(
@@ -208,7 +215,7 @@ static func build_collider_faces(
 	slot_idx: int = 0, chunk_local: bool = true
 ) -> PackedVector3Array:
 	var slot: int = clampi(slot_idx, 0, MAX_WORKERS - 1)
-	build_mesh_cpu(face_index, lod_level, uv_min, uv_max, planet_radius, seed_val, freq, amp, _scratch_meshes[slot], chunk_local, slot)
+	build_mesh_cpu(face_index, lod_level, uv_min, uv_max, planet_radius, seed_val, freq, amp, null, chunk_local, slot, true)
 	return get_collider_faces(slot)
 
 static func build_chunk_mesh(
