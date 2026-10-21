@@ -47,6 +47,7 @@ static func release_node(node: QuadtreeNode) -> void:
 	node.parent = null
 	node.children.clear()
 	node.mesh_id = -1
+	node.collider_id = -1
 	_free_stack.push_back(node)
 	_active_count -= 1
 
@@ -84,6 +85,7 @@ var parent: QuadtreeNode = null
 var children: Array[QuadtreeNode] = []
 var is_leaf: bool = true
 var mesh_id: int = -1
+var collider_id: int = -1
 var is_active: bool = false
 
 func init_node(p_face: int, p_lod: int, p_min: Vector2, p_max: Vector2, p_parent: QuadtreeNode, radius: float) -> void:
@@ -95,6 +97,7 @@ func init_node(p_face: int, p_lod: int, p_min: Vector2, p_max: Vector2, p_parent
 	children.clear()
 	is_leaf = true
 	mesh_id = -1
+	collider_id = -1
 	
 	center_pos = PlanetMath.get_chunk_center(face_index, uv_min, uv_max, radius)
 	bounding_radius = PlanetMath.get_chunk_radius(face_index, uv_min, uv_max, center_pos, radius)
@@ -102,84 +105,91 @@ func init_node(p_face: int, p_lod: int, p_min: Vector2, p_max: Vector2, p_parent
 # ==============================================================================
 # Subdivision & Merging
 # ==============================================================================
-func evaluate_lod(cam_pos: Vector3, pool: ChunkPoolManager, max_lod: int, radius: float, split_ratio: float, hysteresis: float) -> void:
+func evaluate_lod(cam_pos: Vector3, pool: ChunkPoolManager, max_lod: int, radius: float, split_ratio: float, hysteresis: float, col_pool: ColliderPoolManager = null) -> void:
 	var dist: float = cam_pos.distance_to(center_pos)
 	var split_dist: float = bounding_radius * split_ratio
 	
 	if is_leaf:
 		if lod_level < max_lod and dist < split_dist:
-			if pool.has_available(3) and get_pool_free_count() >= 4:
-				split(pool, radius)
+			var col_needed: int = 0
+			if col_pool != null and (lod_level + 1 >= max_lod - 1):
+				col_needed = 3 if (collider_id != -1) else 4
+			var can_col: bool = (col_pool == null or col_needed == 0 or col_pool.has_available(col_needed))
+			if pool.has_available(3) and get_pool_free_count() >= 4 and can_col:
+				split(pool, radius, col_pool, max_lod)
 	else:
 		var merge_dist: float = split_dist * hysteresis
 		if dist > merge_dist:
-			force_merge(pool)
+			force_merge(pool, col_pool, max_lod)
 		else:
 			for i in range(children.size()):
-				children[i].evaluate_lod(cam_pos, pool, max_lod, radius, split_ratio, hysteresis)
+				children[i].evaluate_lod(cam_pos, pool, max_lod, radius, split_ratio, hysteresis, col_pool)
 
-func split(pool: ChunkPoolManager, radius: float) -> bool:
+func split(pool: ChunkPoolManager, radius: float, col_pool: ColliderPoolManager = null, max_lod: int = 5) -> bool:
+	var col_needed: int = 0
+	if col_pool != null and (lod_level + 1 >= max_lod - 1):
+		col_needed = 3 if (collider_id != -1) else 4
 	if not is_leaf or not pool.has_available(3) or get_pool_free_count() < 4:
 		return false
+	if col_pool != null and col_needed > 0 and not col_pool.has_available(col_needed):
+		return false
+	
+	var old_mesh_id: int = mesh_id
+	mesh_id = -1
+	if old_mesh_id != -1:
+		pool.release_mesh(old_mesh_id)
+	var old_col_id: int = collider_id
+	collider_id = -1
+	if col_pool and old_col_id != -1:
+		col_pool.release_collider(old_col_id)
 	
 	var mid: Vector2 = (uv_min + uv_max) * 0.5
 	children.resize(4)
-	
-	# Quadrant 0: [uv_min, mid]
-	var c0: QuadtreeNode = acquire_node()
-	c0.init_node(face_index, lod_level + 1, uv_min, mid, self, radius)
-	c0.mesh_id = pool.acquire_mesh(c0)
-	children[0] = c0
-	
-	# Quadrant 1: [(mid.x, uv_min.y), (uv_max.x, mid.y)]
-	var c1: QuadtreeNode = acquire_node()
-	c1.init_node(face_index, lod_level + 1, Vector2(mid.x, uv_min.y), Vector2(uv_max.x, mid.y), self, radius)
-	c1.mesh_id = pool.acquire_mesh(c1)
-	children[1] = c1
-	
-	# Quadrant 2: [(uv_min.x, mid.y), (mid.x, uv_max.y)]
-	var c2: QuadtreeNode = acquire_node()
-	c2.init_node(face_index, lod_level + 1, Vector2(uv_min.x, mid.y), Vector2(mid.x, uv_max.y), self, radius)
-	c2.mesh_id = pool.acquire_mesh(c2)
-	children[2] = c2
-	
-	# Quadrant 3: [mid, uv_max]
-	var c3: QuadtreeNode = acquire_node()
-	c3.init_node(face_index, lod_level + 1, mid, uv_max, self, radius)
-	c3.mesh_id = pool.acquire_mesh(c3)
-	children[3] = c3
-	
-	if mesh_id != -1:
-		pool.release_mesh(mesh_id)
-		mesh_id = -1
+	_create_child(0, pool, radius, col_pool, max_lod, uv_min, mid)
+	_create_child(1, pool, radius, col_pool, max_lod, Vector2(mid.x, uv_min.y), Vector2(uv_max.x, mid.y))
+	_create_child(2, pool, radius, col_pool, max_lod, Vector2(uv_min.x, mid.y), Vector2(mid.x, uv_max.y))
+	_create_child(3, pool, radius, col_pool, max_lod, mid, uv_max)
 	
 	is_leaf = false
 	return true
 
-func merge(pool: ChunkPoolManager) -> bool:
+func _create_child(idx: int, pool: ChunkPoolManager, radius: float, col_pool: ColliderPoolManager, max_lod: int, c_min: Vector2, c_max: Vector2) -> void:
+	var c: QuadtreeNode = acquire_node()
+	c.init_node(face_index, lod_level + 1, c_min, c_max, self, radius)
+	c.mesh_id = pool.acquire_mesh(c)
+	if col_pool and (c.lod_level >= max_lod - 1):
+		c.collider_id = col_pool.acquire_collider(c)
+	children[idx] = c
+
+func merge(pool: ChunkPoolManager, col_pool: ColliderPoolManager = null, max_lod: int = 5) -> bool:
 	if is_leaf:
 		return false
 	
 	for child in children:
 		if not child.is_leaf:
-			child.force_merge(pool)
+			child.force_merge(pool, col_pool, max_lod)
 		if child.mesh_id != -1:
 			pool.release_mesh(child.mesh_id)
 			child.mesh_id = -1
+		if col_pool and child.collider_id != -1:
+			col_pool.release_collider(child.collider_id)
+			child.collider_id = -1
 		release_node(child)
 	
 	children.clear()
 	is_leaf = true
 	mesh_id = pool.acquire_mesh(self)
+	if col_pool and (lod_level >= max_lod - 1):
+		collider_id = col_pool.acquire_collider(self)
 	return true
 
-func force_merge(pool: ChunkPoolManager) -> void:
+func force_merge(pool: ChunkPoolManager, col_pool: ColliderPoolManager = null, max_lod: int = 5) -> void:
 	if is_leaf:
 		return
 	for child in children:
 		if not child.is_leaf:
-			child.force_merge(pool)
-	merge(pool)
+			child.force_merge(pool, col_pool, max_lod)
+	merge(pool, col_pool, max_lod)
 
 # ==============================================================================
 # Queries & Traversal

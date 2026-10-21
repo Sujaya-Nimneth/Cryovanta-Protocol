@@ -1,13 +1,16 @@
-# Project: Cryovanta Protocol - Floating Origin & 6-DOF Spaceship Physics
+# Project: Cryovanta Protocol - Terrain, Colliders, Threading, & Gravity (Phase 2)
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
 The architecture decouples planetary terrain generation from local physics via coordinate rebasing:
 - **Terrain Quadtree System**: `PlanetManager.gd`, `QuadtreeNode.gd`, `PlanetMath.gd`, `ChunkPoolManager.gd`, and compute shaders generate continuous spherical terrain with zero runtime heap allocations in split and bounds evaluation paths.
 - **Floating Origin System**: `FloatingOrigin.gd` monitors the player vessel. When $\|\vec{x}_{\text{player}}\| > 2000.0\text{ m}$, it subtracts the offset from player, registered entities (with ancestor hierarchy guards), and the planet center offset, preserving topological and visual quadtree continuity without physics velocity spikes ($\Delta v < 10^{-4}$). Dual 64-bit equivalent sector coordinates (`Vector3i` sector + `Vector3` wrapped local remainder) prevent float precision loss across astronomical distances.
-- **6-DOF Flight & Atmospheric Drag**: `SpaceshipController.gd` extends `RigidBody3D` with 6 degrees of freedom (surge, sway, heave, pitch, yaw, roll) with zero per-frame heap allocations and double-rebase deduplication guards.
-- **Pure Static Math Libraries**: `AtmosphereMath.gd` encapsulates barometric density and aerodynamic quadratic drag ($F_d = -0.5 \cdot \rho(h) \cdot C_d \cdot A \cdot |v| \cdot \vec{v}$) with strict zero vacuum drag. `PlanetMath.gd` precomputes cube-face basis tangents and provides primitive zero-allocation bounding math.
-- **Automated Verification**: 5 headless test suites validate end-to-end functionality, quadtree pool stability, adversarial stress scenarios, in-tree physics, and continuous flight.
+- **6-DOF Flight & Planetary Gravity**: `SpaceshipController.gd` extends `RigidBody3D` with 6 degrees of freedom (surge, sway, heave, pitch, yaw, roll) and radial inverse-square planetary gravity with zero per-frame heap allocations and double-rebase deduplication guards.
+- **Pure Static Math Libraries**: `AtmosphereMath.gd` encapsulates barometric density, quadratic aerodynamic drag, and inverse-square radial gravity acceleration. `PlanetMath.gd` precomputes cube-face basis tangents and provides primitive zero-allocation bounding math.
+- **Terrain Mesh & Skirt System**: `TerrainMeshBuilder.gd` emits exact 48-byte `std430` push constants matching `planet_chunk.glsl` and generates 34x34 vertex grids (32x32 interior + 1-vertex perimeter skirt, 1,156 vertices, 6,534 indices) with 5% skirt extrusion toward planet center and zero runtime heap allocations.
+- **Pre-Allocated Collider Pool**: `ColliderPoolManager.gd` pre-allocates 64 `StaticBody3D` / `ConcavePolygonShape3D` slots. Leaf quadtree chunks at `lod_level >= max_lod - 1` acquire/release colliders with admission gating to prevent pool exhaustion and guarantee zero orphan colliders.
+- **Worker Thread Scheduler**: `ChunkTaskScheduler.gd` bounds background worker threads to a strict concurrency ceiling of 4 (`MAX_CONCURRENT_WORKERS = 4`) using a fixed-capacity 64-slot ring buffer with zero steady-state heap allocations.
+- **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
@@ -27,6 +30,16 @@ The architecture decouples planetary terrain generation from local physics via c
 | F13 | 64-Bit Sector Coordinate Tracking | Dual Vector3i sector + Vector3 local offset representation for 2000m rebasing | M6 | Follow-up R2 |
 | F14 | Hierarchy & Double-Rebase Guards | Ancestor check preventing child double-shifts and frame rebase deduplication | M6 | Follow-up R3 |
 | F15 | Mobile Feature Configuration | Align project.godot features profile with Vulkan Mobile renderer target | M6 | Follow-up R4 |
+| F16 | 48-Byte std430 Push Constants | Exact 48-byte layout (3x vec4, 16-byte aligned) matching planet_chunk.glsl | M7 | Phase 2 Follow-up R1 |
+| F17 | 34x34 Skirted Chunk Mesh | 1,156 vertices, 6,534 indices, 5% radial skirt toward planet center | M7 | Phase 2 Follow-up R1 |
+| F18 | Zero-Allocation Mesh Buffers | Pre-allocated static index buffer & reused vertex/normal buffers | M7 | Phase 2 Follow-up R1 |
+| F19 | 64-Slot Terrain Collider Pool | Pre-allocated ring buffer with O(1) acquire/release of ConcavePolygonShape3D | M8 | Phase 2 Follow-up R2 |
+| F20 | Quadtree Collider Gating | Admission gating in split/merge for lod >= max_lod - 1, 0 orphan colliders | M8 | Phase 2 Follow-up R2 |
+| F21 | Max-4 Worker Task Scheduler | Bounded 4-thread scheduler with 64-slot ring buffer and 0 steady-state allocs | M9 | Phase 2 Follow-up R3 |
+| F22 | Radial Inverse-Square Gravity Math | $g(r) = -g_0 (R/r)^2 \hat{r}$ with $r \ge R$ clamping | M10 | Phase 2 Follow-up R4 |
+| F23 | Spaceship Planetary Gravity | Integration into SpaceshipController with zero velocity spikes across 2000m rebases | M10 | Phase 2 Follow-up R4 |
+| F24 | Automated Phase 2 Test Suite | Headless test runner test_phase2_terrain_gravity_headless.gd exiting code 0 | M11 | Phase 2 Follow-up R5 |
+| F25 | Full System Integrity & Hardening | Adversarial tests, line count checks (<=250), Phase 1 backward compatibility | M12 | Phase 2 Follow-up R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -37,58 +50,83 @@ The architecture decouples planetary terrain generation from local physics via c
 | M4 | Headless E2E Test Suite | `test_floating_origin_headless.gd` (Tiers 1-4) | M1, M2, M3 | DONE |
 | M5 | Final Verification & Hardening | Adversarial tests (Tier 5), Reviewer & Auditor gates | M1, M2, M3, M4 | DONE |
 | M6 | Phase 1 Hardening & Optimization | Zero-allocation math, 64-bit sector tracking, hierarchy guards, mobile profile | M1-M5 | DONE |
+| M7 | Skirted Mesh & Push Constants | `TerrainMeshBuilder.gd` (34x34 grid, std430 push constants, CPU generator) | None | DONE |
+| M8 | Terrain Collider Pool & Quadtree | `ColliderPoolManager.gd`, update `PlanetManager.gd`, `QuadtreeNode.gd` | M7 | DONE |
+| M9 | 4-Worker Task Scheduler | `ChunkTaskScheduler.gd` (max 4 threads, ring buffer, 0 allocs) | None | PLANNED |
+| M10 | Radial Planetary Gravity | Update `AtmosphereMath.gd`, `SpaceshipController.gd` | None | PLANNED |
+| M11 | Phase 2 Headless Test Suite | `test_phase2_terrain_gravity_headless.gd` (Tiers 1-5) | M7, M8, M9, M10 | PLANNED |
+| M12 | System Hardening & Forensic Audit | Verification across all suites, script line counts, forensic audit | M1-M11 | PLANNED |
 
 ## Interface Contracts
 
-### `PlanetMath` & `QuadtreeNode`
-- `PlanetMath.gd`:
-  - Constants: `FACE_NORMALS`, `FACE_TANGENTS`, `FACE_BITANGENTS` (Array[Vector3] precomputed).
-  - `face_uv_to_sphere_dir(face_index: int, uv: Vector2) -> Vector3`: Zero-allocation direction mapping.
-  - `get_chunk_center(face_index: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float) -> Vector3`: Primitive center point.
-  - `get_chunk_radius(face_index: int, uv_min: Vector2, uv_max: Vector2, center_pos: Vector3, planet_radius: float) -> float`: Primitive bounding radius.
-  - `get_chunk_bounds(face_index: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float) -> Dictionary`: Backward-compatible wrapper.
+### `TerrainMeshBuilder` ↔ Compute Shader & Engine
+- `TerrainMeshBuilder.gd`:
+  - `const GRID: int = 34`
+  - `const INTERIOR: int = 32`
+  - `const VERTEX_COUNT: int = 1156`
+  - `const INDEX_COUNT: int = 6534`
+  - `const SKIRT_FRACTION: float = 0.05`
+  - `pack_push_constants(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float) -> PackedByteArray`:
+    Returns exactly 48 bytes with three `vec4` (offsets 0, 16, 32).
+  - `build_mesh_cpu(face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, target_mesh: ArrayMesh = null) -> ArrayMesh`:
+    Deterministic CPU generation with tangential warp, 4-octave 3D simplex FBM, and 5% skirt extrusion toward planet center.
+
+### `ColliderPoolManager` ↔ `PlanetManager` & `QuadtreeNode`
+- `ColliderPoolManager.gd`:
+  - Extends `Node3D`.
+  - `const POOL_SIZE: int = 64`
+  - `func acquire_collider(owner_node: RefCounted) -> int`: Returns slot `[0..63]` or `-1` if exhausted in O(1).
+  - `func release_collider(collider_id: int) -> bool`: Releases slot in O(1).
+  - `func update_collider_faces(collider_id: int, faces: PackedVector3Array) -> void`: Updates `ConcavePolygonShape3D`.
+  - `func has_available(count: int = 1) -> bool`: O(1) admission check.
+  - `func verify_integrity() -> Dictionary`: Checks active + free == 64, zero duplicate entries.
+  - `func clear() -> void`: Resets all slots and releases node references.
 - `QuadtreeNode.gd`:
-  - `init_node(...)`: Calls `get_chunk_center` and `get_chunk_radius` directly (0 dictionary allocations).
-  - `split(pool, radius)`: Passes quadrant vectors directly into 4 child `init_node` calls (0 temporary array allocations).
+  - Leaf chunks at `lod_level >= max_lod - 1` acquire/release colliders.
+  - In `split()`: Admission check `col_pool.has_available(needed)` prevents overruns.
+  - In `merge()` / destroy: Colliders cleanly released back to pool.
 
-### `FloatingOrigin` ↔ `PlanetManager`
-- `PlanetManager.gd`:
-  - `const SECTOR_SIZE: float = 2000.0`
-  - `var planet_center_offset: Vector3 = Vector3.ZERO`
-  - `var planet_center_sector: Vector3i = Vector3i.ZERO`
-  - `var planet_center_local: Vector3 = Vector3.ZERO`
-  - `func rebase_origin(offset: Vector3) -> void`: Subtracts `offset` from `planet_center_offset` and updates sector counts.
-  - In `update_camera(camera_pos: Vector3)`: Evaluates quadtree LOD using relative camera vector `camera_pos - planet_center_offset` (conflicting camera_pos overwrite removed).
-- `FloatingOrigin.gd`:
-  - Properties: `SECTOR_SIZE: float = 2000.0`, `rebase_threshold: float = 2000.0`, `player_node: Node3D`, `planet_manager: Node`, `registered_entities: Array[Node3D]`.
-  - Sector tracking: `origin_sector: Vector3i = Vector3i.ZERO`, `origin_local: Vector3 = Vector3.ZERO`, `accumulated_offset: Vector3 = Vector3.ZERO`.
-  - Hierarchy protection: `_has_rebased_ancestor(entity: Node3D) -> bool` skips entities whose ancestor is already rebased.
-  - Methods: `register_entity(entity: Node3D)`, `unregister_entity(entity: Node3D)`, `rebase(offset: Vector3)`.
-  - Signal: `signal origin_rebased(offset: Vector3)`.
+### `ChunkTaskScheduler`
+- `ChunkTaskScheduler.gd`:
+  - Extends `Node`.
+  - `const MAX_CONCURRENT_WORKERS: int = 4`
+  - `const BUFFER_CAPACITY: int = 64`
+  - `func submit_job(callable: Callable, args: Array = []) -> int`: Submits background job in O(1).
+  - `func is_job_completed(job_id: int) -> bool`
+  - `func get_job_result(job_id: int) -> Variant`
+  - `func cancel_job(job_id: int) -> bool`
+  - `func poll() -> void`: Processes completed jobs on main thread with 0 heap allocations.
+  - `func shutdown() -> void`: Terminates worker threads cleanly.
 
-### `SpaceshipController` ↔ `AtmosphereMath`
+### `AtmosphereMath` & `SpaceshipController` (Gravity)
 - `AtmosphereMath.gd`:
-  - `static func get_altitude(vessel_pos: Vector3, planet_pos: Vector3, planet_radius: float) -> float`
-  - `static func get_air_density(altitude: float, atmosphere_ceiling: float, surface_density: float = 1.225) -> float`
-  - `static func calculate_drag_force(velocity: Vector3, air_density: float, drag_coefficient: float = 0.5, cross_sectional_area: float = 10.0) -> Vector3`
+  - `static func calculate_gravity_acceleration(vessel_pos: Vector3, planet_pos: Vector3, planet_radius: float, surface_gravity: float = 9.81) -> Vector3`:
+    Radial inverse-square gravity toward `planet_pos`:
+    $$\vec{g}(\vec{r}) = -g_0 \left(\frac{R}{\max(r, R)}\right)^2 \frac{\vec{r}}{r}$$
+    Returns `Vector3.ZERO` when $r < 10^{-6}$.
 - `SpaceshipController.gd`:
-  - Extends `RigidBody3D`.
-  - Direct input registers: `thrust_input: Vector3`, `torque_input: Vector3` (with `set_thrust_input`, `set_torque_input`).
-  - Double-rebase guards: `last_rebase_frame: int`, `last_rebase_offset: Vector3`, `_last_rebase_result_origin: Vector3`. Duplicate rebase calls in the same frame/event are ignored.
-  - Pre-allocated internal vectors for zero heap allocations.
-  - Origin rebase handler: updates position, resets interpolation, preserves linear and angular velocity.
+  - `@export var enable_planetary_gravity: bool = false`
+  - `@export var surface_gravity: float = 9.81`
+  - `var _gravity_force: Vector3 = Vector3.ZERO`
+  - In `_physics_process`: Adds `_gravity_force` to `_net_force` with zero heap allocations.
+  - In `rebase_origin(offset)`: Conserves orbital freefall velocity ($\Delta v < 10^{-4}$).
 
 ## Code Layout
-- `FloatingOrigin.gd`: Root project folder (145 lines).
-- `SpaceshipController.gd`: Root project folder (179 lines).
-- `AtmosphereMath.gd`: Root project folder (59 lines).
-- `PlanetManager.gd`: Root project folder (186 lines).
-- `PlanetMath.gd`: Root project folder (78 lines).
-- `QuadtreeNode.gd`: Root project folder (198 lines).
-- `ChunkPoolManager.gd`: Root project folder (111 lines).
+- `TerrainMeshBuilder.gd`: Root project folder (<= 250 lines).
+- `ColliderPoolManager.gd`: Root project folder (<= 250 lines).
+- `ChunkTaskScheduler.gd`: Root project folder (<= 250 lines).
+- `FloatingOrigin.gd`: Root project folder (<= 250 lines).
+- `SpaceshipController.gd`: Root project folder (<= 250 lines).
+- `AtmosphereMath.gd`: Root project folder (<= 250 lines).
+- `PlanetManager.gd`: Root project folder (<= 250 lines).
+- `PlanetMath.gd`: Root project folder (<= 250 lines).
+- `QuadtreeNode.gd`: Root project folder (<= 250 lines).
+- `ChunkPoolManager.gd`: Root project folder (<= 250 lines).
+- `planet_chunk.glsl`: Root project folder (Compute shader).
 - Headless Test Runners:
-  - `test_floating_origin_headless.gd`: E2E verification test suite (61 tests, 98 assertions).
-  - `test_quadtree_headless.gd`: Quadtree pool stress test (1,000 movements, 0 leaks/orphans).
-  - `test_adversarial_challenger2.gd`: Adversarial verification harness (1,348 assertions).
-  - `test_adversarial_edge_cases.gd`: In-tree scene-tree physics and edge-case harness (44 assertions).
-  - `test_adversarial_empirical.gd`: Continuous flight and hypersonic velocity harness (55 assertions).
+  - `test_phase2_terrain_gravity_headless.gd`: Phase 2 automated test suite (Tiers 1-5).
+  - `test_floating_origin_headless.gd`: Phase 1 E2E verification test suite.
+  - `test_quadtree_headless.gd`: Quadtree pool stress test.
+  - `test_adversarial_challenger2.gd`: Adversarial verification harness.
+  - `test_adversarial_edge_cases.gd`: In-tree scene-tree physics and edge-case harness.
+  - `test_adversarial_empirical.gd`: Continuous flight and hypersonic velocity harness.

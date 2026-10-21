@@ -1,12 +1,8 @@
 class_name PlanetManager
 extends Node3D
 
-## Coordinates 6 Cube-Face Quadtrees and manages pre-allocated ChunkPoolManager.
-## Follows .antigravity/rules.md:
-## - Script length < 250 lines
-## - Zero runtime allocation in update loops
-## - Rebase origin when camera exceeds 2,000m from (0,0,0)
-## - Adheres to 256 pre-allocated ArrayMesh pool
+## Coordinates 6 Cube-Face Quadtrees, ChunkPoolManager, and ColliderPoolManager.
+## Follows rules.md: script length <= 250 lines, 0 runtime allocation in update loops.
 
 @export var planet_radius: float = 100_000.0 # 100 km default radius
 @export var max_lod: int = 5
@@ -17,6 +13,7 @@ extends Node3D
 const SECTOR_SIZE: float = 2000.0
 
 var chunk_pool: ChunkPoolManager = null
+var collider_pool: ColliderPoolManager = null
 var face_roots: Array[QuadtreeNode] = []
 var planet_center_offset: Vector3 = Vector3.ZERO
 var floating_origin_offset: Vector3 = Vector3.ZERO
@@ -27,8 +24,19 @@ func _init() -> void:
 	init_planet()
 
 func init_planet() -> void:
+	if collider_pool:
+		collider_pool.clear()
+		if collider_pool.get_parent() == self:
+			remove_child(collider_pool)
+		collider_pool.free()
+		collider_pool = null
+	if chunk_pool:
+		chunk_pool.clear()
+		chunk_pool = null
 	QuadtreeNode.init_pool()
 	chunk_pool = ChunkPoolManager.new()
+	collider_pool = ColliderPoolManager.new()
+	add_child(collider_pool)
 	face_roots.clear()
 	face_roots.resize(6)
 	planet_center_offset = Vector3.ZERO
@@ -48,6 +56,8 @@ func init_planet() -> void:
 			planet_radius
 		)
 		root.mesh_id = chunk_pool.acquire_mesh(root)
+		if collider_pool and root.lod_level >= max_lod - 1:
+			root.collider_id = collider_pool.acquire_collider(root)
 		face_roots[face_idx] = root
 
 ## Rebases planet coordinates by subtracting the offset from planet_center_offset.
@@ -79,7 +89,8 @@ func update_camera(camera_pos: Vector3) -> void:
 			max_lod,
 			planet_radius,
 			split_ratio,
-			hysteresis
+			hysteresis,
+			collider_pool
 		)
 
 ## Collects all active leaf nodes across the entire planet
@@ -101,10 +112,12 @@ func get_total_active_nodes() -> int:
 ## 2. Verifies bidirectional parent-child integrity
 ## 3. Verifies exactly 1 mesh per active leaf and 0 meshes for non-leaves
 ## 4. Verifies pool active meshes == leaf node count
+## 5. Verifies active colliders == leaf chunks at lod >= max_lod - 1 and 0 orphan colliders
 func audit_system() -> Dictionary:
 	var errors: Array[String] = []
 	var visited_in_tree: Dictionary = {}
 	var leaf_count: int = 0
+	var expected_colliders: int = 0
 	
 	for face_idx in range(6):
 		var root: QuadtreeNode = face_roots[face_idx]
@@ -115,14 +128,42 @@ func audit_system() -> Dictionary:
 			leaf_count += 1
 			if node.mesh_id < 0 or node.mesh_id >= ChunkPoolManager.POOL_SIZE:
 				errors.append("Leaf node on face %d has invalid mesh_id: %d" % [node.face_index, node.mesh_id])
+			if node.lod_level >= max_lod - 1:
+				expected_colliders += 1
+				if collider_pool:
+					if node.collider_id < 0 or node.collider_id >= ColliderPoolManager.POOL_SIZE:
+						errors.append("Leaf node (face %d LOD %d) has invalid collider_id: %d" % [node.face_index, node.lod_level, node.collider_id])
+					elif not collider_pool.is_in_use[node.collider_id]:
+						errors.append("Leaf collider_id %d not marked in_use" % node.collider_id)
+					elif collider_pool.collider_owners[node.collider_id] != node:
+						errors.append("Leaf collider_id %d owner mismatch" % node.collider_id)
+			else:
+				if node.collider_id != -1:
+					errors.append("Low-LOD leaf (face %d LOD %d) holds collider_id: %d" % [node.face_index, node.lod_level, node.collider_id])
 		else:
 			if node.mesh_id != -1:
 				errors.append("Internal non-leaf node holds mesh_id: %d" % node.mesh_id)
+			if node.collider_id != -1:
+				errors.append("Internal non-leaf node holds collider_id: %d" % node.collider_id)
 	
 	if chunk_pool.get_active_count() != leaf_count:
 		errors.append("ChunkPool active (%d) != leaf count (%d)" % [
 			chunk_pool.get_active_count(), leaf_count
 		])
+	
+	if collider_pool:
+		if collider_pool.get_active_count() != expected_colliders:
+			errors.append("ColliderPool active (%d) != expected high-LOD leaves (%d)" % [
+				collider_pool.get_active_count(), expected_colliders
+			])
+		var col_audit: Dictionary = collider_pool.verify_integrity()
+		if not col_audit["is_valid"]:
+			errors.append("ColliderPool integrity errors: %s" % str(col_audit["errors"]))
+		for cid in range(ColliderPoolManager.POOL_SIZE):
+			if collider_pool.is_in_use[cid]:
+				var c_owner = collider_pool.collider_owners[cid]
+				if c_owner == null or not visited_in_tree.has(c_owner) or not c_owner.is_leaf or c_owner.collider_id != cid:
+					errors.append("Orphan collider slot %d detected!" % cid)
 	
 	var orphan_count: int = 0
 	var all_pool_nodes: Array[QuadtreeNode] = QuadtreeNode.get_all_pool_nodes()
@@ -140,6 +181,9 @@ func audit_system() -> Dictionary:
 				errors.append("Inactive node retains non-empty children!")
 			if pool_node.mesh_id != -1:
 				errors.append("Inactive node retains mesh_id: %d" % pool_node.mesh_id)
+			if pool_node.collider_id != -1:
+				orphan_count += 1
+				errors.append("Inactive node retains collider_id: %d" % pool_node.collider_id)
 	
 	return {
 		"is_valid": errors.is_empty() and orphan_count == 0,
@@ -148,6 +192,8 @@ func audit_system() -> Dictionary:
 		"leaf_nodes": leaf_count,
 		"active_meshes": chunk_pool.get_active_count(),
 		"free_meshes": chunk_pool.get_free_count(),
+		"active_colliders": collider_pool.get_active_count() if collider_pool else 0,
+		"free_colliders": collider_pool.get_free_count() if collider_pool else 0,
 		"errors": errors
 	}
 
@@ -173,14 +219,23 @@ func _audit_node_recursive(node: QuadtreeNode, expected_parent: QuadtreeNode, vi
 func destroy() -> void:
 	for face_idx in range(6):
 		if face_roots[face_idx]:
-			face_roots[face_idx].force_merge(chunk_pool)
+			face_roots[face_idx].force_merge(chunk_pool, collider_pool, max_lod)
 			if face_roots[face_idx].mesh_id != -1:
 				chunk_pool.release_mesh(face_roots[face_idx].mesh_id)
 				face_roots[face_idx].mesh_id = -1
+			if collider_pool and face_roots[face_idx].collider_id != -1:
+				collider_pool.release_collider(face_roots[face_idx].collider_id)
+				face_roots[face_idx].collider_id = -1
 			QuadtreeNode.release_node(face_roots[face_idx])
 			face_roots[face_idx] = null
 	face_roots.clear()
 	if chunk_pool:
 		chunk_pool.clear()
 		chunk_pool = null
+	if collider_pool:
+		collider_pool.clear()
+		if collider_pool.get_parent() == self:
+			remove_child(collider_pool)
+		collider_pool.free()
+		collider_pool = null
 	QuadtreeNode.clear_pool()
