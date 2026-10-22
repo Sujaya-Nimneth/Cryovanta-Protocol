@@ -50,6 +50,11 @@ func measure_radar_altitude(space_state: PhysicsDirectSpaceState3D, max_range: f
 	_radar_query.from = ship_pos
 	_radar_query.to = ship_pos + _radar_direction * max_range
 	_radar_query.collision_mask = terrain_collision_mask
+	# intersect_ray() may reset query parameters in headless physics; set all fields explicitly.
+	_radar_query.collide_with_bodies = true
+	_radar_query.collide_with_areas = false
+	_radar_query.hit_from_inside = true
+	_radar_query.hit_back_faces = true
 	var hit: Dictionary = space_state.intersect_ray(_radar_query)
 	if hit.is_empty():
 		return max_range
