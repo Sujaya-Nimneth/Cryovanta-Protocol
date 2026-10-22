@@ -1,4 +1,4 @@
-# Project: Cryovanta Protocol - Live Streaming, Projectiles, Compute & Radar (Phase 3)
+# Project: Cryovanta Protocol - Unified Planetary Simulation (Phase 4)
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
@@ -14,6 +14,10 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Fixed Projectile Ring Buffer**: `ProjectilePoolManager.gd` pre-allocates 128 projectile states and visual markers, supports O(1) acquisition/release, radial gravity, terrain ray impacts, and velocity-continuous origin rebasing.
 - **Compute Dispatcher & CPU Fallback**: `ComputeChunkDispatcher.gd` matches the `planet_chunk.glsl` `(5, 5, 1)` workgroup contract and exact 36,992-byte `std430` vertex buffer. Headless/dummy rendering deterministically falls back to `TerrainMeshBuilder.build_mesh_cpu()`.
 - **Weapon & Radar**: `SpaceshipWeaponSystem.gd` inherits ship velocity into pooled projectiles and measures surface altitude with one reused radial `PhysicsRayQueryParameters3D` against baked terrain colliders.
+- **Unified Simulation Root**: `PlanetarySimulation.gd` owns and wires the planet, streamer, floating origin, ship, projectile pool, weapon, guidance, telemetry, shared material, and protected ship-mounted camera. `step_simulation()` advances the complete runtime and `main.tscn` is the registered playable scene.
+- **6-DOF Guidance**: `FlightGuidanceSystem.gd` supplies zero-allocation SAS hold, radial-up, retrograde, hover, and soft-landing modes with radial gravity compensation.
+- **Shared Cryo Material**: `PlanetSurfaceMaterial.gd` creates one procedural spatial `ShaderMaterial` for all 256 terrain visuals and synchronizes planet-center uniforms on every rebase.
+- **Flight Telemetry**: `SimulationTelemetry.gd` samples flight, atmosphere, gravity, G-load, streamed pool counts, and 64-bit origin-sector registers in O(1).
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
@@ -53,6 +57,11 @@ The architecture decouples planetary terrain generation from local physics via c
 | F32 | Vulkan Compute Dispatcher Fallback | `(5, 5, 1)` dispatch contract, 36,992-byte std430 parity, RenderingDevice probe, deterministic CPU fallback | M16 | Phase 3 R3 |
 | F33 | Spaceship Weapon & Radar | Ship-relative muzzle velocity inheritance, origin-rebase continuity, radial terrain altimeter with one reused query | M17 | Phase 3 R4 |
 | F34 | Phase 3 Automated Verification | Five-tier headless suite plus hardening checks for 30-frame async convergence, rebase visual/collider alignment, class registration, memory, line counts, and regressions | M18 | Phase 3 R5, Hardening R4 |
+| F35 | Unified Planetary Simulation | Wires all runtime systems, ship collision sphere, camera hierarchy, one-frame rebase propagation, and teardown | M19 | Phase 4 R1 |
+| F36 | 6-DOF SAS & Soft-Landing Guidance | Zero-allocation SAS, radial-up, retrograde, hover, and radar-assisted soft landing modes | M20 | Phase 4 R2 |
+| F37 | Shared Cryo-Terrain Material | One `ShaderMaterial` across 256 visuals with rebase-synchronized planet uniforms | M21 | Phase 4 R3 |
+| F38 | Zero-Allocation Flight Telemetry | O(1) flight, atmosphere, gravity, G-load, pool, and origin-sector sampling | M22 | Phase 4 R4 |
+| F39 | Phase 4 Automated Verification | Unified-scene, guidance, shader, telemetry, line-count, memory, and all-suite regression gate | M23 | Phase 4 R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -75,6 +84,11 @@ The architecture decouples planetary terrain generation from local physics via c
 | M16 | Compute Dispatch Fallback | `ComputeChunkDispatcher.gd` Vulkan probe and std430 CPU parity | M7, M9 | DONE |
 | M17 | Weapon & Radar System | `SpaceshipWeaponSystem.gd` firing and radial surface altimetry | M2, M15, M14 | DONE |
 | M18 | Phase 3 Verification & Hardening | `test_phase3_streaming_projectiles_headless.gd` Tiers 1-5, async/rebase hardening, and all-suite regression | M14-M17 | DONE |
+| M19 | Unified Simulation Root | `PlanetarySimulation.gd`, `main.tscn`, and `project.godot` main-scene wiring | M14-M17 | DONE |
+| M20 | Flight Guidance | `FlightGuidanceSystem.gd` SAS, radial-up, retrograde, hover, and soft-land modes | M10, M17, M19 | DONE |
+| M21 | Shared Terrain Material | `PlanetSurfaceMaterial.gd` procedural shader and rebase uniform synchronization | M14, M19 | DONE |
+| M22 | Simulation Telemetry | `SimulationTelemetry.gd` zero-allocation flight and streaming registers | M19-M21 | DONE |
+| M23 | Phase 4 Verification | `test_phase4_simulation_autopilot_headless.gd` Tiers 1-5 and Phase 1-3 regression | M19-M22 | DONE |
 
 ## Interface Contracts
 
@@ -179,6 +193,30 @@ The architecture decouples planetary terrain generation from local physics via c
   - `measure_radar_altitude(space_state, max_range = 5000.0) -> float`: One reused radial query toward the planet center; returns the exact surface distance or `max_range` when no terrain is hit.
   - `get_radar_query() -> PhysicsRayQueryParameters3D`.
 
+### `PlanetarySimulation` & `main.tscn`
+- `PlanetarySimulation.gd`:
+  - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
+  - `step_simulation(delta, space_state = null) -> void`: Guidance -> flight forces -> rebase check -> projectile stepping -> streamer update -> telemetry.
+  - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
+  - The ship owns a radius-2.0 `SphereShape3D` on collision layer/mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
+  - `FloatingOrigin.origin_rebased` fans out to `PlanetStreamer.rebase_origin`, `ProjectilePoolManager.rebase_origin`, and the shared material's planet-center uniform refresh.
+- `main.tscn`: Root `PlanetarySimulation` scene. `project.godot` registers it as `application/run/main_scene`.
+
+### `FlightGuidanceSystem`
+- Modes: `MODE_MANUAL`, `MODE_SAS_HOLD`, `MODE_RADIAL_UP`, `MODE_RETROGRADE`, `MODE_HOVER`, `MODE_SOFT_LAND`.
+- `update_guidance(delta, space_state = null) -> void`: Zero-allocation mode dispatch into the ship's torque/thrust input registers.
+- SAS opposes local angular velocity; radial-up aligns local +Y to planetary radial up; retrograde aligns local -Z opposite velocity; hover and soft-land compensate radial gravity and damp tangential slip.
+- `_target_radial_speed` follows `-clampf(sqrt(2 * max_descent_decel * clearance), min_descent_speed, max_descent_speed)`.
+
+### `PlanetSurfaceMaterial`
+- Creates one `Shader` and `ShaderMaterial`; exposes `planet_center_offset`, `planet_radius`, `max_elevation`, `lowland_color`, `slope_color`, and `highland_ice_color`.
+- `apply_to_streamer(streamer) -> void`: Assigns the same material override to all 256 streamed visuals.
+- `update_planet_center(center) -> void` and `update_planet_center_From_manager(manager_or_offset, manager = null) -> void`: Refresh uniforms without allocation.
+
+### `SimulationTelemetry`
+- Pre-allocated registers: `altitude_asl`, `radar_altitude_agl`, `vertical_speed`, `horizontal_speed`, `total_speed`, `air_density`, `drag_magnitude`, `gravity_magnitude`, `g_load`, `active_leaves`, `active_visuals`, `active_colliders`, `active_projectiles`, `origin_sector`.
+- `sample(sim, space_state = null) -> void`: O(1) update from the unified simulation.
+
 ## Code Layout
 - `TerrainMeshBuilder.gd`: Root project folder (<= 250 lines).
 - `ColliderPoolManager.gd`: Root project folder (<= 250 lines).
@@ -194,6 +232,11 @@ The architecture decouples planetary terrain generation from local physics via c
 - `ProjectilePoolManager.gd`: Root project folder (159 lines).
 - `ComputeChunkDispatcher.gd`: Root project folder (214 lines).
 - `SpaceshipWeaponSystem.gd`: Root project folder (73 lines).
+- `PlanetarySimulation.gd`: Root project folder (<= 250 lines).
+- `FlightGuidanceSystem.gd`: Root project folder (<= 250 lines).
+- `PlanetSurfaceMaterial.gd`: Root project folder (<= 250 lines).
+- `SimulationTelemetry.gd`: Root project folder (<= 250 lines).
+- `main.tscn`: Playable root scene.
 - `planet_chunk.glsl`: Root project folder (Compute shader).
 - Headless Test Runners:
   - `test_phase2_terrain_gravity_headless.gd`: Phase 2 automated test suite (Tiers 1-5).
@@ -206,3 +249,4 @@ The architecture decouples planetary terrain generation from local physics via c
   - `test_adversarial_m13_challenger2.gd`: Challenger 2 empirical collider churn, push constants memory delta, and FBM parity harness.
   - `test_adversarial_m13_reviewer2.gd`: Reviewer 2 worker slot boundary clamping, auto-reclaim, and collider double release harness.
   - `test_phase3_streaming_projectiles_headless.gd`: Phase 3 streaming, projectile, compute, radar, memory, and regression suite (Tiers 1-5), plus 30-frame async convergence and rebase-alignment hardening checks.
+  - `test_phase4_simulation_autopilot_headless.gd`: Phase 4 unified-scene, guidance, material, telemetry, memory, and all-suite regression gate (Tiers 1-5).

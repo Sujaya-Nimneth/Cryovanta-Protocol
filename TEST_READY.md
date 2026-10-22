@@ -1,7 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
+## Phase 4 Readiness
+Phase 4 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The unified simulation suite passes at **380 / 380 assertions**, and the complete Phase 1–4 regression gate passes across **17 suites** with exit code 0.
+
+| Phase 4 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| :--- | ---: | ---: | ---: | :--- |
+| `test_phase4_simulation_autopilot_headless.gd` | 380 | 0 | 0 | `main.tscn` wiring, ship collider/camera hierarchy, one-frame visual/collider/projectile/shader rebase, SAS >95% spin reduction, radial-up, gravity-compensated hover, soft landing, 256 shared materials, telemetry, 1,000-tick memory stability, 18 class-name/line-count checks, 16 prior suites |
+
 ## Test Execution Overview
-All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 3 suite passes at **2,598 / 2,598 assertions**, including 30-frame non-blocking async convergence and floating-origin visual/collider alignment.
+All 17 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 3 suite passes at **2,606 / 2,606 assertions**, including 30-frame non-blocking async convergence and floating-origin visual/collider alignment; the Phase 4 gate passes at **380 / 380**.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -20,8 +27,9 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_adversarial_m12_challenger.gd` | 1,993 assertions | 0 | 0 | Deep LOD, collider, and scheduler stress | **PASS** |
 | `test_adversarial_m12_challenger2.gd` | 479 assertions | 0 | 0 | Cross-system Phase 2 adversarial checks | **PASS** |
 | `test_adversarial_m8_reviewer2.gd` | 1,677 assertions | 0 | 0 | Collider pool and quadtree reviewer checks | **PASS** |
-| `test_phase3_streaming_projectiles_headless.gd` | 2,598 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
-| **Total Test Coverage** | **> 25,300 tests & assertions across 16 suites** | **0** | **0** | **Comprehensive Phase 1-3 Integration & Hardening** | **100% PASS** |
+| `test_phase3_streaming_projectiles_headless.gd` | 2,606 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
+| `test_phase4_simulation_autopilot_headless.gd` | 380 assertions | 0 | 0 | Unified simulation, 6-DOF guidance, shared material, telemetry, memory, class/line guardrails, and all-suite regression | **PASS** |
+| **Total Test Coverage** | **> 25,700 tests & assertions across 17 suites** | **0** | **0** | **Comprehensive Phase 1-4 Integration & Hardening** | **100% PASS** |
 
 ---
 
@@ -62,7 +70,12 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F31** | 128-Slot Projectile Ring Buffer | Phase 3 R2 | `test_phase3_streaming_projectiles_headless.gd` (Tier 2) | O(1) exhaustion/reuse, zero-allocation stepping, raycast impact, 2,000 m rebase | **PASS** |
 | **F32** | Compute Dispatcher CPU Fallback | Phase 3 R3 | `test_phase3_streaming_projectiles_headless.gd` (Tier 3) | `(5, 5, 1)`, 36,992-byte std430 parity, pre-allocated readback buffers, 1,156-vertex fallback | **PASS** |
 | **F33** | Weapon & Radar System | Phase 3 R4 | `test_phase3_streaming_projectiles_headless.gd` (Tier 4) | Muzzle inheritance, rebase continuity, high-LOD radial altimetry, zero-allocation firing | **PASS** |
-| **F34** | Phase 3 Regression Gate | Phase 3 R5 + Hardening R4 | `test_phase3_streaming_projectiles_headless.gd` (Tier 5) | 14 production `class_name` declarations, strict line limits (PlanetStreamer <= 240), steady-state memory, all 15 prior suites | **PASS** |
+| **F34** | Phase 3 Regression Gate | Phase 3 R5 + Hardening R4 | `test_phase3_streaming_projectiles_headless.gd` (Tier 5) | 18 production `class_name` declarations, strict line limits (PlanetStreamer <= 240), steady-state memory, all 15 prior suites | **PASS** |
+| **F35** | Unified Simulation & Main Scene | Phase 4 R1 | `test_phase4_simulation_autopilot_headless.gd` (Tier 1) | `main.tscn` wiring, physical ship collider, protected camera, synchronized rebase | **PASS** |
+| **F36** | SAS, Hover & Soft Landing | Phase 4 R2 | `test_phase4_simulation_autopilot_headless.gd` (Tier 2) | >95% SAS spin reduction, radial-up, altitude hold, safe touchdown profile | **PASS** |
+| **F37** | Shared Cryo Material | Phase 4 R3 | `test_phase4_simulation_autopilot_headless.gd` (Tier 3) | 256 shared overrides and rebase-synchronized shader uniforms | **PASS** |
+| **F38** | Zero-Allocation Telemetry | Phase 4 R4 | `test_phase4_simulation_autopilot_headless.gd` (Tier 4) | Flight decomposition, G-load, pool counts, origin sector, 1,000-tick static memory delta | **PASS** |
+| **F39** | Phase 4 Regression Gate | Phase 4 R5 | `test_phase4_simulation_autopilot_headless.gd` (Tier 5) | 18 class names and line limits, all 16 Phase 1-3 suites | **PASS** |
 
 ---
 
@@ -84,7 +97,11 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `ProjectilePoolManager.gd` | 159 lines | 91 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
 | `SpaceshipWeaponSystem.gd` | 73 lines | 177 lines | **COMPLIANT** |
-| **Total Production Lines** | **2,398 lines** | **1,102 lines total headroom** | **100% COMPLIANT** |
+| `PlanetarySimulation.gd` | 165 lines | 85 lines | **COMPLIANT** |
+| `FlightGuidanceSystem.gd` | 165 lines | 85 lines | **COMPLIANT** |
+| `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
+| `SimulationTelemetry.gd` | 61 lines | 189 lines | **COMPLIANT** |
+| **Total Production Lines** | **2,882 lines** | **1,618 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
@@ -110,6 +127,7 @@ godot --headless -s test_adversarial_m12_challenger.gd
 godot --headless -s test_adversarial_m12_challenger2.gd
 godot --headless -s test_adversarial_m8_reviewer2.gd
 godot --headless -s test_phase3_streaming_projectiles_headless.gd
+godot --headless -s test_phase4_simulation_autopilot_headless.gd
 ```
 
 To verify production script line counts:
