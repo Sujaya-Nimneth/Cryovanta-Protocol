@@ -1,7 +1,7 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
 ## Test Execution Overview
-All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 3 suite passed five consecutive full runs at **2,526 / 2,526 assertions**.
+All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 3 suite passes at **2,598 / 2,598 assertions**, including 30-frame non-blocking async convergence and floating-origin visual/collider alignment.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -20,7 +20,7 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_adversarial_m12_challenger.gd` | 1,993 assertions | 0 | 0 | Deep LOD, collider, and scheduler stress | **PASS** |
 | `test_adversarial_m12_challenger2.gd` | 479 assertions | 0 | 0 | Cross-system Phase 2 adversarial checks | **PASS** |
 | `test_adversarial_m8_reviewer2.gd` | 1,677 assertions | 0 | 0 | Collider pool and quadtree reviewer checks | **PASS** |
-| `test_phase3_streaming_projectiles_headless.gd` | 2,526 assertions | 0 | 0 | 256-slot streaming, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
+| `test_phase3_streaming_projectiles_headless.gd` | 2,598 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
 | **Total Test Coverage** | **> 25,300 tests & assertions across 16 suites** | **0** | **0** | **Comprehensive Phase 1-3 Integration & Hardening** | **100% PASS** |
 
 ---
@@ -58,11 +58,11 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F27** | Exact GLSL FBM Noise Parity | Phase 2 Hardening R1 | `test_phase2_terrain_gravity_headless.gd` (Tier 1.6), `test_adversarial_m13_challenger1.gd`, `test_adversarial_m13_challenger2.gd` | 100 sample points + hash/grad parity | **PASS** |
 | **F28** | Automatic Cancelled Slot Reclamation | Phase 2 Hardening R2 | `test_phase2_terrain_gravity_headless.gd` (Tier 3.6), `test_adversarial_m13_challenger1.gd`, `test_adversarial_m13_reviewer2.gd` | 15 burst cycles + auto_reclaim checks | **PASS** |
 | **F29** | Chunk Collider Origin Alignment & Reset | Phase 2 Hardening R3 | `test_phase2_terrain_gravity_headless.gd` (Tier 2.6), `test_adversarial_m13_challenger1.gd`, `test_adversarial_m13_challenger2.gd` | 5,000 churn cycles + saturation checks | **PASS** |
-| **F30** | Live Quadtree Mesh & Collider Streaming | Phase 3 R1 | `test_phase3_streaming_projectiles_headless.gd` (Tier 1) | 256-slot preallocation, async completion, origin alignment, merge cancellation, zero orphans | **PASS** |
+| **F30** | Live Quadtree Mesh & Collider Streaming | Phase 3 R1-R2 | `test_phase3_streaming_projectiles_headless.gd` (Tier 1 + Hardening) | 256-slot preallocation, non-blocking 30-frame convergence, stable-job cancellation isolation, floating-origin visual/collider alignment, merge cancellation, zero orphans | **PASS** |
 | **F31** | 128-Slot Projectile Ring Buffer | Phase 3 R2 | `test_phase3_streaming_projectiles_headless.gd` (Tier 2) | O(1) exhaustion/reuse, zero-allocation stepping, raycast impact, 2,000 m rebase | **PASS** |
-| **F32** | Compute Dispatcher CPU Fallback | Phase 3 R3 | `test_phase3_streaming_projectiles_headless.gd` (Tier 3) | `(5, 5, 1)`, 36,992-byte std430 parity, 1,156-vertex fallback | **PASS** |
+| **F32** | Compute Dispatcher CPU Fallback | Phase 3 R3 | `test_phase3_streaming_projectiles_headless.gd` (Tier 3) | `(5, 5, 1)`, 36,992-byte std430 parity, pre-allocated readback buffers, 1,156-vertex fallback | **PASS** |
 | **F33** | Weapon & Radar System | Phase 3 R4 | `test_phase3_streaming_projectiles_headless.gd` (Tier 4) | Muzzle inheritance, rebase continuity, high-LOD radial altimetry, zero-allocation firing | **PASS** |
-| **F34** | Phase 3 Regression Gate | Phase 3 R5 | `test_phase3_streaming_projectiles_headless.gd` (Tier 5) | Production line limits, steady-state memory, all 15 prior suites | **PASS** |
+| **F34** | Phase 3 Regression Gate | Phase 3 R5 + Hardening R4 | `test_phase3_streaming_projectiles_headless.gd` (Tier 5) | 14 production `class_name` declarations, strict line limits (PlanetStreamer <= 240), steady-state memory, all 15 prior suites | **PASS** |
 
 ---
 
@@ -80,11 +80,11 @@ All 16 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `ColliderPoolManager.gd` | 168 lines | 82 lines | **COMPLIANT** |
 | `ChunkTaskScheduler.gd` | 248 lines | 2 lines | **COMPLIANT** |
 | `TerrainMeshBuilder.gd` | 225 lines | 25 lines | **COMPLIANT** |
-| `PlanetStreamer.gd` | 250 lines | 0 lines | **COMPLIANT** |
-| `ProjectilePoolManager.gd` | 158 lines | 92 lines | **COMPLIANT** |
-| `ComputeChunkDispatcher.gd` | 209 lines | 41 lines | **COMPLIANT** |
-| `SpaceshipWeaponSystem.gd` | 72 lines | 178 lines | **COMPLIANT** |
-| **Total Production Lines** | **2,401 lines** | **1,099 lines total headroom** | **100% COMPLIANT** |
+| `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
+| `ProjectilePoolManager.gd` | 159 lines | 91 lines | **COMPLIANT** |
+| `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
+| `SpaceshipWeaponSystem.gd` | 73 lines | 177 lines | **COMPLIANT** |
+| **Total Production Lines** | **2,398 lines** | **1,102 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
