@@ -35,6 +35,7 @@ var queued_job_count: int = 0
 var cancelled_job_count: int = 0
 var _chunk_pool: RefCounted = null
 var _collider_pool: Node3D = null
+
 func _init() -> void:
 	visuals.resize(VISUAL_POOL_SIZE); mesh_owners.resize(VISUAL_POOL_SIZE); mesh_state.resize(VISUAL_POOL_SIZE * 3)
 	job_state.resize(JOB_CAPACITY * 4); mesh_loaded.resize(VISUAL_POOL_SIZE); mesh_seen.resize(VISUAL_POOL_SIZE)
@@ -187,7 +188,7 @@ func _drain_jobs() -> void:
 		OS.delay_usec(100)
 	task_scheduler.poll()
 	for job_base in range(0, JOB_CAPACITY * 4, 4):
-		if job_state[job_base + JOB_STAGING] >= 0:
+		if job_state[job_base + JOB_ID] > 0 and job_state[job_base + JOB_STAGING] >= 0:
 			staging_free.push_back(job_state[job_base + JOB_STAGING])
 	job_state.fill(-1)
 	for i in range(VISUAL_POOL_SIZE):
@@ -245,6 +246,5 @@ func destroy() -> void:
 		visuals[i].free()
 	visuals.clear(); mesh_owners.clear(); mesh_state.clear(); mesh_loaded.clear()
 	mesh_seen.clear(); job_state.clear(); staging_meshes.clear(); staging_free.clear()
-	planet_manager = null
-	_chunk_pool = null
+	planet_manager = null; _chunk_pool = null
 	_collider_pool = null
