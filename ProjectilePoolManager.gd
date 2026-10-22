@@ -1,4 +1,3 @@
-class_name ProjectilePoolManager
 extends Node3D
 
 ## Pre-allocated 128-slot projectile ring buffer with O(1) allocation.
