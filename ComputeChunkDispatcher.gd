@@ -1,4 +1,3 @@
-class_name ComputeChunkDispatcher
 extends RefCounted
 
 ## Vulkan compute bridge for planet_chunk.glsl with deterministic CPU fallback.
