@@ -1,3 +1,4 @@
+class_name SpaceshipWeaponSystem
 extends Node3D
 
 ## Links the flight controller to the fixed projectile pool and terrain radar.

@@ -31,6 +31,7 @@ func _run_all() -> void:
 	await _run_tier_2()
 	_run_tier_3()
 	await _run_tier_4()
+	await _run_hardening()
 	_run_tier_5()
 	_print_summary()
 	quit(0 if failed_assertions == 0 else 1)
@@ -215,16 +216,10 @@ func _run_tier_1() -> void:
 	streamer = _make_streamer(planet, false)
 	var split_camera: Vector3 = Vector3(100_050.0, 1_000.0, 1_000.0)
 	for step in range(5):
-		planet.update_camera(split_camera)
+		streamer.update_streamer(split_camera)
 	_assert(planet.get_all_leaves().size() > 6, "Async fixture starts from a split quadtree")
 	var cancelled_before: int = streamer.cancelled_job_count
 	var queued_before: int = streamer.queued_job_count
-	var pending_scheduler_job: int = streamer.task_scheduler.submit_job(Callable(self, "_slow_job"))
-	streamer.job_state[0] = pending_scheduler_job
-	streamer.job_state[1] = 0
-	streamer.job_state[2] = 0
-	streamer.job_state[3] = 0
-	streamer.pending_jobs = 1
 	OS.delay_msec(20)
 	var queued_for_merge: bool = streamer.pending_jobs > 0
 	streamer.update_streamer(Vector3(10_000_000.0, 0.0, 0.0))
@@ -248,9 +243,6 @@ func _run_tier_1() -> void:
 	_assert_int(final_audit["active_meshes"], 6, "Post-merge active mesh count is six")
 	_assert_int(final_audit["active_colliders"], 0, "Post-merge collider count is zero")
 	_dispose_planet_fixture(planet, streamer)
-
-func _slow_job() -> void:
-	OS.delay_msec(500)
 
 func _configure_query(query: PhysicsRayQueryParameters3D, from: Vector3, to: Vector3) -> void:
 	query.from = from
@@ -422,6 +414,11 @@ func _run_tier_3() -> void:
 	_assert_int(dispatcher_bytes.size(), 36_992, "Packed buffer byte length")
 	_assert(dispatcher.unpack_std430_vertex_buffer(dispatcher_bytes, 2), "Unpack accepts the exact buffer size")
 	var bytes: PackedByteArray = dispatcher.last_vertex_buffer.duplicate()
+	var packing_before: int = OS.get_static_memory_usage()
+	for i in range(8):
+		dispatcher.unpack_std430_vertex_buffer(bytes, 2)
+	var packing_after: int = OS.get_static_memory_usage()
+	_assert(packing_after - packing_before <= 0, "std430 unpacking reuses pre-allocated readback buffers")
 	_assert(not dispatcher.unpack_std430_vertex_buffer(dispatcher_bytes.slice(0, 36_991), 2), "Unpack rejects a short buffer")
 	var parity_ok: bool = true
 	for i in range(1_156):
@@ -549,18 +546,21 @@ func _run_tier_4() -> void:
 
 func _run_tier_5() -> void:
 	print("\n--- Tier 5: Guardrails and Regression Suites ---")
-	_start_test("Tier 5.1: Production scripts are strictly <= 250 lines")
+	_start_test("Tier 5.1: Production class names and line limits")
 	var production_files: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
-	_assert(production_files.size() > 0, "Discovered production scripts")
+	_assert_int(production_files.size(), 14, "Discovered all 14 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = text.split("\n").size()
 		if text.ends_with("\n"):
 			line_count -= 1
 		_assert(line_count <= 250, "%s has %d lines (limit 250)" % [file, line_count])
+		_assert(text.begins_with("class_name "), "%s declares class_name" % file)
+		if file == "PlanetStreamer.gd":
+			_assert(line_count <= 240, "PlanetStreamer.gd has %d lines (limit 240)" % line_count)
 
 	_start_test("Tier 5.2: Steady-state projectile memory")
 	var pool: Node = ProjectilePoolManagerClass.new()
@@ -597,3 +597,48 @@ func _run_tier_5() -> void:
 		_assert_int(exit_code, 0, "%s exited successfully" % suite)
 		if exit_code != 0:
 			printerr("    [SUITE OUTPUT] %s" % str(output))
+
+func _run_hardening() -> void:
+	print("\n--- Phase 3 Hardening: Async Convergence and Rebase Alignment ---")
+	_start_test("Hardening 1: 30-frame non-blocking async convergence")
+	var planet: Node = _make_planet(1)
+	var streamer: Node = _make_streamer(planet, false)
+	var camera: Vector3 = Vector3(100_050.0, 1_000.0, 1_000.0)
+	var completed_in_30: bool = false
+	var stable_cancel: int = -1
+	for frame in range(30):
+		streamer.update_streamer(camera)
+		await process_frame
+		if streamer.pending_jobs == 0:
+			completed_in_30 = true
+			stable_cancel = streamer.cancelled_job_count
+			break
+	_assert(completed_in_30, "Async streaming completed within 30 non-blocking updates")
+	for frame in range(10):
+		streamer.update_streamer(camera)
+		await process_frame
+	_assert_int(streamer.cancelled_job_count, stable_cancel, "Stable leaves were not self-cancelled")
+	_assert(streamer.queued_job_count > 0, "Async updates queued chunk jobs")
+	_assert_int(streamer.pending_jobs, 0, "No jobs remained pending after convergence")
+	_assert_int(streamer.get_active_visual_count(), planet.get_all_leaves().size(), "Converged visuals equal active leaves")
+	for leaf in planet.get_all_leaves():
+		_assert(streamer.mesh_loaded[leaf.mesh_id] != 0, "Converged leaf mesh is loaded")
+	_assert_int(streamer.get_orphan_mesh_count(), 0, "Async convergence left zero orphan meshes")
+	_assert(planet.audit_system()["is_valid"], "Async convergence preserved quadtree/pool integrity")
+
+	_start_test("Hardening 2: FloatingOrigin visual/collider world alignment")
+	var floating_origin: Node = FloatingOrigin.new()
+	floating_origin.planet_manager = planet
+	get_root().add_child(floating_origin)
+	floating_origin.register_entity(streamer)
+	var offset: Vector3 = Vector3(2_000.0, 1_000.0, -500.0)
+	floating_origin.rebase(offset)
+	_assert_vec3(streamer.global_position, planet.planet_center_offset, 1e-4, "Streamer root follows planet center rebase")
+	for leaf in planet.get_all_leaves():
+		if leaf.collider_id != -1:
+			var visual: MeshInstance3D = streamer.visuals[leaf.mesh_id]
+			var body: StaticBody3D = planet.collider_pool.get_body(leaf.collider_id)
+			_assert_vec3(visual.global_position, body.global_position, 1e-4, "Visual and collider world origins align")
+	_dispose_planet_fixture(planet, streamer)
+	get_root().remove_child(floating_origin)
+	floating_origin.free()

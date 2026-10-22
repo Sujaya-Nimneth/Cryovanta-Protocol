@@ -1,3 +1,4 @@
+class_name ComputeChunkDispatcher
 extends RefCounted
 
 ## Vulkan compute bridge for planet_chunk.glsl with deterministic CPU fallback.
@@ -26,11 +27,19 @@ var fallback_reason: String = ""
 var last_vertex_buffer: PackedByteArray = PackedByteArray()
 var last_vertices: PackedVector4Array = PackedVector4Array()
 var last_normals: PackedVector4Array = PackedVector4Array()
+var _gpu_vertices: PackedVector3Array = PackedVector3Array()
+var _gpu_normals: PackedVector3Array = PackedVector3Array()
+var _gpu_uvs: PackedVector2Array = PackedVector2Array()
+var _gpu_mesh_arrays: Array = []
 
 func _init(force_headless: bool = false) -> void:
 	last_vertex_buffer.resize(STORAGE_BUFFER_SIZE_BYTES)
 	last_vertices.resize(VERTEX_COUNT)
 	last_normals.resize(VERTEX_COUNT)
+	_gpu_vertices.resize(VERTEX_COUNT)
+	_gpu_normals.resize(VERTEX_COUNT)
+	_gpu_uvs.resize(VERTEX_COUNT)
+	_gpu_mesh_arrays.resize(4)
 	is_headless = force_headless or DisplayServer.get_name() == "headless"
 	_initialize_compute()
 
@@ -117,22 +126,18 @@ func _dispatch_gpu(
 	return true
 
 func _upload_vertex_buffer_to_mesh(target_mesh: ArrayMesh) -> void:
-	var vertices: PackedVector3Array = PackedVector3Array()
-	var normals: PackedVector3Array = PackedVector3Array()
-	var uvs: PackedVector2Array = PackedVector2Array()
-	vertices.resize(VERTEX_COUNT)
-	normals.resize(VERTEX_COUNT)
-	uvs.resize(VERTEX_COUNT)
 	for i in range(VERTEX_COUNT):
 		var p: Vector4 = last_vertices[i]
 		var n: Vector4 = last_normals[i]
-		vertices[i] = Vector3(p.x, p.y, p.z)
-		normals[i] = Vector3(n.x, n.y, n.z)
-		uvs[i] = Vector2(p.w, n.w)
+		_gpu_vertices[i] = Vector3(p.x, p.y, p.z)
+		_gpu_normals[i] = Vector3(n.x, n.y, n.z)
+		_gpu_uvs[i] = Vector2(p.w, n.w)
+	_gpu_mesh_arrays[0] = _gpu_vertices
+	_gpu_mesh_arrays[1] = _gpu_normals
+	_gpu_mesh_arrays[2] = _gpu_uvs
+	_gpu_mesh_arrays[3] = TerrainMeshBuilder._indices
 	target_mesh.clear_surfaces()
-	target_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, [
-		vertices, normals, uvs, TerrainMeshBuilder._indices
-	])
+	target_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _gpu_mesh_arrays)
 
 ## Reconstructs PlanetVertex[] from the exact std430 byte layout.
 func unpack_std430_vertex_buffer(raw_bytes: PackedByteArray, slot_idx: int = 0) -> bool:
@@ -179,7 +184,7 @@ func pack_std430_vertex_buffer(slot_idx: int = 0) -> PackedByteArray:
 		last_vertices[i] = Vector4(p.x, p.y, p.z, uv.x)
 		last_normals[i] = Vector4(n.x, n.y, n.z, uv.y)
 		offset += VERTEX_STRIDE_BYTES
-	return last_vertex_buffer.duplicate()
+	return last_vertex_buffer
 
 func get_dispatch_group_count() -> Vector3i:
 	return Vector3i(WORKGROUP_X, WORKGROUP_Y, WORKGROUP_Z)
