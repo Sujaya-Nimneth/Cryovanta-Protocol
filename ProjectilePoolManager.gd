@@ -15,9 +15,9 @@ var free_indices: Array[int] = []
 var markers: Array[Node3D] = []
 var active_count: int = 0
 var _ray_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
-var _step_gravity: Vector3 = Vector3.ZERO
 var _step_from: Vector3 = Vector3.ZERO
 var _step_to: Vector3 = Vector3.ZERO
+var _gravity_accel: Vector3 = Vector3.ZERO
 
 func _init() -> void:
 	positions.resize(POOL_SIZE)
@@ -88,10 +88,10 @@ func step_projectiles(
 		_step_from = positions[id]
 		_step_to = _step_from + velocities[id] * dt
 		if use_gravity:
-			_step_gravity = AtmosphereMath.calculate_gravity_acceleration(
+			_gravity_accel = AtmosphereMath.calculate_gravity_acceleration(
 				_step_from, planet_center, planet_radius, surface_gravity
 			)
-			velocities[id] += _step_gravity * dt
+			velocities[id] += _gravity_accel * dt
 			_step_to = _step_from + velocities[id] * dt
 		if space_state != null and dt > 0.0:
 			_ray_query.from = _step_from
