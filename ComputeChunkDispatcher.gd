@@ -139,6 +139,7 @@ func unpack_std430_vertex_buffer(raw_bytes: PackedByteArray, slot_idx: int = 0) 
 	var slot: int = clampi(slot_idx, 0, TerrainMeshBuilder.MAX_WORKERS - 1)
 	if raw_bytes.size() != STORAGE_BUFFER_SIZE_BYTES:
 		return false
+	last_vertex_buffer = raw_bytes
 	var offset: int = 0
 	for i in range(VERTEX_COUNT):
 		var px: float = raw_bytes.decode_float(offset)
@@ -178,7 +179,7 @@ func pack_std430_vertex_buffer(slot_idx: int = 0) -> PackedByteArray:
 		last_vertices[i] = Vector4(p.x, p.y, p.z, uv.x)
 		last_normals[i] = Vector4(n.x, n.y, n.z, uv.y)
 		offset += VERTEX_STRIDE_BYTES
-	return last_vertex_buffer
+	return last_vertex_buffer.duplicate()
 
 func get_dispatch_group_count() -> Vector3i:
 	return Vector3i(WORKGROUP_X, WORKGROUP_Y, WORKGROUP_Z)

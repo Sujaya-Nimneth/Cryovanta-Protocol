@@ -147,6 +147,7 @@ func verify_integrity() -> Dictionary:
 	}
 
 func clear() -> void:
+	free_indices.resize(POOL_SIZE)
 	for id in range(POOL_SIZE):
 		positions[id] = Vector3.ZERO
 		velocities[id] = Vector3.ZERO
