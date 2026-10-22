@@ -1,0 +1,165 @@
+class_name PlanetarySimulation
+extends Node3D
+
+## Unified Phase 4 simulation root. Builds and wires all runtime systems once.
+
+@export var synchronous_streaming: bool = false
+@export var auto_step: bool = true
+@export var camera_local_offset: Vector3 = Vector3(0.0, 3.0, 8.0)
+
+var planet_manager: PlanetManager = null
+var planet_streamer: PlanetStreamer = null
+var floating_origin: FloatingOrigin = null
+var ship: SpaceshipController = null
+var projectile_pool: ProjectilePoolManager = null
+var weapon_system: SpaceshipWeaponSystem = null
+var guidance: FlightGuidanceSystem = null
+var telemetry: SimulationTelemetry = null
+var surface_material: PlanetSurfaceMaterial = null
+var camera: Camera3D = null
+var is_setup: bool = false
+
+var _ship_collision_shape: CollisionShape3D = null
+var _ship_sphere: SphereShape3D = null
+var _space_state: PhysicsDirectSpaceState3D = null
+
+func _ready() -> void:
+	if not is_setup:
+		setup_simulation(synchronous_streaming)
+
+func _physics_process(delta: float) -> void:
+	if auto_step and is_setup:
+		step_simulation(delta, _get_space_state())
+
+func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
+	if is_setup:
+		return
+	synchronous_streaming = synchronous_streaming_mode
+	planet_manager = PlanetManager.new()
+	planet_manager.name = "PlanetManager"
+	add_child(planet_manager)
+
+	planet_streamer = PlanetStreamer.new()
+	planet_streamer.name = "PlanetStreamer"
+	add_child(planet_streamer)
+	planet_streamer.setup(planet_manager, null, synchronous_streaming)
+	surface_material = PlanetSurfaceMaterial.new()
+	surface_material.update_planet_center_From_manager(planet_manager)
+	surface_material.apply_to_streamer(planet_streamer)
+
+	ship = SpaceshipController.new()
+	ship.name = "Spaceship"
+	ship.planet_manager = planet_manager
+	ship.enable_planetary_gravity = true
+	ship.collision_layer = 1
+	ship.collision_mask = 1
+	ship.position = Vector3(0.0, 0.0, 0.0)
+	ship.set_physics_process(false)
+	add_child(ship)
+	_ship_sphere = SphereShape3D.new()
+	_ship_sphere.radius = 2.0
+	_ship_collision_shape = CollisionShape3D.new()
+	_ship_collision_shape.name = "ShipCollision"
+	_ship_collision_shape.shape = _ship_sphere
+	ship.add_child(_ship_collision_shape)
+
+	camera = Camera3D.new()
+	camera.name = "FlightCamera"
+	camera.position = camera_local_offset
+	camera.current = true
+	ship.add_child(camera)
+
+	projectile_pool = ProjectilePoolManager.new()
+	projectile_pool.name = "ProjectilePool"
+	add_child(projectile_pool)
+
+	weapon_system = SpaceshipWeaponSystem.new()
+	weapon_system.name = "WeaponSystem"
+	weapon_system.ship = ship
+	weapon_system.projectile_pool = projectile_pool
+	weapon_system.planet_manager = planet_manager
+	add_child(weapon_system)
+
+	guidance = FlightGuidanceSystem.new()
+	guidance.name = "FlightGuidance"
+	guidance.ship = ship
+	guidance.weapon_system = weapon_system
+	guidance.planet_manager = planet_manager
+	add_child(guidance)
+
+	telemetry = SimulationTelemetry.new()
+	floating_origin = FloatingOrigin.new()
+	floating_origin.name = "FloatingOrigin"
+	floating_origin.player_node = ship
+	floating_origin.planet_manager = planet_manager
+	floating_origin.set_physics_process(false)
+	add_child(floating_origin)
+	floating_origin.origin_rebased.connect(planet_streamer.rebase_origin)
+	floating_origin.origin_rebased.connect(projectile_pool.rebase_origin)
+	floating_origin.origin_rebased.connect(
+		Callable(surface_material, "update_planet_center_From_manager").bind(planet_manager)
+	)
+	is_setup = true
+
+func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
+	if not is_setup:
+		return
+	guidance.update_guidance(delta, space_state)
+	ship._apply_flight_forces()
+	floating_origin.check_rebase()
+	projectile_pool.step_projectiles(
+		delta,
+		space_state,
+		planet_manager.planet_center_offset,
+		planet_manager.planet_radius,
+		ship.surface_gravity
+	)
+	planet_streamer.update_streamer(camera.global_position)
+	telemetry.sample(self, space_state)
+
+func _get_space_state() -> PhysicsDirectSpaceState3D:
+	if is_inside_tree():
+		_space_state = get_world_3d().direct_space_state
+	return _space_state
+
+func destroy() -> void:
+	if not is_setup:
+		return
+	is_setup = false
+	if floating_origin != null:
+		if floating_origin.origin_rebased.is_connected(planet_streamer.rebase_origin):
+			floating_origin.origin_rebased.disconnect(planet_streamer.rebase_origin)
+		if floating_origin.origin_rebased.is_connected(projectile_pool.rebase_origin):
+			floating_origin.origin_rebased.disconnect(projectile_pool.rebase_origin)
+	if planet_streamer != null:
+		planet_streamer.destroy()
+	if projectile_pool != null:
+		projectile_pool.clear()
+	_free_owned_node(guidance)
+	guidance = null
+	_free_owned_node(weapon_system)
+	weapon_system = null
+	_free_owned_node(floating_origin)
+	floating_origin = null
+	_free_owned_node(projectile_pool)
+	projectile_pool = null
+	_free_owned_node(planet_streamer)
+	planet_streamer = null
+	_free_owned_node(ship)
+	ship = null
+	camera = null
+	_ship_collision_shape = null
+	_ship_sphere = null
+	if planet_manager != null:
+		planet_manager.destroy()
+		_free_owned_node(planet_manager)
+	planet_manager = null
+	telemetry = null
+	surface_material = null
+
+func _free_owned_node(node: Node) -> void:
+	if node == null:
+		return
+	if node.get_parent() == self:
+		remove_child(node)
+	node.free()

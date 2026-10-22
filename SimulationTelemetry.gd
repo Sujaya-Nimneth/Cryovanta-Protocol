@@ -1,0 +1,61 @@
+class_name SimulationTelemetry
+extends RefCounted
+
+## Zero-allocation flight and streaming telemetry sampled once per simulation tick.
+
+var altitude_asl: float = 0.0
+var radar_altitude_agl: float = 0.0
+var vertical_speed: float = 0.0
+var horizontal_speed: float = 0.0
+var total_speed: float = 0.0
+var air_density: float = 0.0
+var drag_magnitude: float = 0.0
+var gravity_magnitude: float = 0.0
+var g_load: float = 0.0
+var active_leaves: int = 0
+var active_visuals: int = 0
+var active_colliders: int = 0
+var active_projectiles: int = 0
+var origin_sector: Vector3i = Vector3i.ZERO
+
+var _radial_up: Vector3 = Vector3.UP
+var _tangential_velocity: Vector3 = Vector3.ZERO
+var _ship_position: Vector3 = Vector3.ZERO
+var _planet_center: Vector3 = Vector3.ZERO
+var _gravity_accel: Vector3 = Vector3.ZERO
+var _net_force: Vector3 = Vector3.ZERO
+var _origin_sector: Vector3i = Vector3i.ZERO
+
+func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = null) -> void:
+	if sim == null or not is_instance_valid(sim.ship) or not is_instance_valid(sim.planet_manager):
+		return
+	_origin_sector = sim.floating_origin.origin_sector
+	var ship: SpaceshipController = sim.ship
+	_ship_position = ship.global_position if ship.is_inside_tree() else ship.position
+	_planet_center = ship.get_planet_center()
+	_radial_up = _ship_position - _planet_center
+	if _radial_up.length_squared() > 1e-12:
+		_radial_up = _radial_up.normalized()
+	else:
+		_radial_up = Vector3.UP
+	altitude_asl = ship.get_current_altitude()
+	total_speed = ship.linear_velocity.length()
+	vertical_speed = ship.linear_velocity.dot(_radial_up)
+	_tangential_velocity = ship.linear_velocity - _radial_up * vertical_speed
+	horizontal_speed = _tangential_velocity.length()
+	air_density = ship.get_current_density()
+	drag_magnitude = ship.get_current_drag().length()
+	_gravity_accel = ship.get_current_gravity() / maxf(ship.mass, 0.001)
+	gravity_magnitude = _gravity_accel.length()
+	_net_force = ship.get_current_net_force()
+	g_load = _net_force.length() / maxf(ship.mass * 9.80665, 0.001)
+	if space_state != null and is_instance_valid(sim.weapon_system):
+		radar_altitude_agl = sim.weapon_system.measure_radar_altitude(space_state, 5_000.0)
+	else:
+		radar_altitude_agl = altitude_asl
+	active_leaves = sim.planet_manager.chunk_pool.active_count
+	active_visuals = sim.planet_streamer.get_active_visual_count()
+	active_colliders = sim.planet_manager.collider_pool.active_count
+	active_projectiles = sim.projectile_pool.active_count
+	origin_sector = _origin_sector
+

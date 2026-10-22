@@ -198,3 +198,6 @@ func get_current_gravity() -> Vector3:
 func get_current_gravity_acceleration() -> Vector3:
 	return _gravity_force / mass if mass > 0.0 else Vector3.ZERO
 
+func get_current_net_force() -> Vector3:
+	return _net_force
+
