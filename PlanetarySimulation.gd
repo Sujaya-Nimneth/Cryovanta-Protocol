@@ -140,7 +140,7 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 		return
 	if ship.process_user_input:
 		if Input.is_action_just_pressed(&"cycle_guidance_mode"):
-			guidance.set_mode((guidance.mode + 1) % 8)
+			guidance.set_mode((guidance.mode + 1) % 9)
 		if guidance.mode == FlightGuidanceSystem.MODE_MANUAL:
 			if touch_controller.enabled:
 				touch_controller.apply_to_ship(ship)

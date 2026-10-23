@@ -11,6 +11,7 @@ const MODE_HOVER: int = 4
 const MODE_SOFT_LAND: int = 5
 const MODE_PROGRADE: int = 6
 const MODE_ORBIT_CIRCULARIZE: int = 7
+const MODE_WAYPOINT_INTERCEPT: int = 8
 @export var ship: RigidBody3D = null
 @export var weapon_system: Node = null
 @export var planet_manager: Node = null
@@ -28,6 +29,10 @@ const MODE_ORBIT_CIRCULARIZE: int = 7
 @export var touchdown_margin: float = 2.0
 @export var circularize_gain: float = 0.08
 @export var circularize_tolerance: float = 0.05
+@export var waypoint_cruise_speed: float = 120.0
+@export var waypoint_arrival_gain: float = 0.35
+var waypoint_target_active: bool = false
+var waypoint_target_pos: Vector3 = Vector3.ZERO
 
 var _ship_position: Vector3 = Vector3.ZERO
 var _planet_center: Vector3 = Vector3.ZERO
@@ -90,13 +95,19 @@ func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null
 			_apply_prograde()
 		MODE_ORBIT_CIRCULARIZE:
 			_apply_orbit_circularize()
+		MODE_WAYPOINT_INTERCEPT:
+			_apply_waypoint_intercept()
 
 func set_mode(new_mode: int) -> void:
-	var clamped_mode: int = clampi(new_mode, MODE_MANUAL, MODE_ORBIT_CIRCULARIZE)
+	var clamped_mode: int = clampi(new_mode, MODE_MANUAL, MODE_WAYPOINT_INTERCEPT)
 	if clamped_mode == MODE_MANUAL and mode != MODE_MANUAL and is_instance_valid(ship):
 		ship.set_thrust_input(Vector3.ZERO)
 		ship.set_torque_input(Vector3.ZERO)
 	mode = clamped_mode
+
+func set_waypoint_target(active: bool, pos: Vector3 = Vector3.ZERO) -> void:
+	waypoint_target_active = active
+	waypoint_target_pos = pos
 
 func _apply_sas_hold() -> void:
 	_torque_command = -_angular_local * sas_gain
@@ -137,6 +148,26 @@ func _apply_orbit_circularize() -> void:
 	))
 	if command_scale > 1.0:
 		_thrust_command /= command_scale
+	ship.set_thrust_input(_thrust_command)
+
+func _apply_waypoint_intercept() -> void:
+	if not waypoint_target_active:
+		_apply_sas_hold()
+		return
+	_delta_v = waypoint_target_pos - _ship_position
+	var dist: float = _delta_v.length()
+	if dist <= 1.0:
+		_clear_commands()
+		return
+	var direction: Vector3 = _delta_v / dist
+	var desired_vel: Vector3 = direction * minf(waypoint_cruise_speed, dist * waypoint_arrival_gain)
+	var vel_err: Vector3 = desired_vel - ship.linear_velocity - _gravity_accel * 0.25
+	_apply_attitude_target(Vector3.FORWARD, direction)
+	var local_accel: Vector3 = (_basis_inv * vel_err) * _mass * 2.0
+	_thrust_command.x = clampf(local_accel.x / maxf(ship.strafe_thrust, 0.001), -1.0, 1.0)
+	_thrust_command.y = clampf(local_accel.y / maxf(ship.vertical_thrust, 0.001), -1.0, 1.0)
+	var longitudinal_thrust: float = ship.forward_thrust if local_accel.z <= 0.0 else ship.reverse_thrust
+	_thrust_command.z = clampf(-local_accel.z / maxf(longitudinal_thrust, 0.001), -1.0, 1.0)
 	ship.set_thrust_input(_thrust_command)
 
 func _apply_attitude(world_target: Vector3) -> void:
