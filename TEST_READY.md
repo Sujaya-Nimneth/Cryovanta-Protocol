@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
 ## Phase 5 Readiness
-Phase 5 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The Phase 5 suite passes at **286 / 286 assertions**, and its complete Phase 1–4 regression gate passes across **17 suites** with exit code 0.
+Phase 5 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The hardened Phase 5 suite passes at **256 / 256 assertions**, and its complete Phase 1–4 regression gate passes across **17 suites** with exit code 0.
 
 | Phase 5 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase5_orbital_hud_environment_headless.gd` | 286 | 0 | 0 | Keplerian mechanics and fixed-buffer prediction, prograde/circularization guidance across a 2,000 m rebase, surface-to-vacuum environment, InputMap/HUD/rebase synchronization, 1,000-tick memory stability, 22 production class-name/line checks, 17 prior suites |
+| `test_phase5_orbital_hud_environment_headless.gd` | 256 | 0 | 0 | Keplerian mechanics with zero-tangent fallback and Velocity-Verlet prediction, manual-input preservation, prograde/circularization guidance across a 2,000 m rebase, surface-to-vacuum environment, InputMap/HUD/rebase synchronization, 1,000-tick memory stability, 22 production class-name/line checks, 17 prior suites |
 
 ## Test Execution Overview
-All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 5 suite passes at **286 / 286 assertions**, including its 17-suite Phase 1–4 regression gate; the Phase 4 suite passes at **405 / 405**, and the Phase 3 suite passes at **2,616 / 2,616**.
+All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 5 suite passes at **256 / 256 assertions**, including its 17-suite Phase 1–4 regression gate; the Phase 4 suite passes at **405 / 405**, and the Phase 3 suite passes at **2,616 / 2,616**.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -29,7 +29,7 @@ All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_adversarial_m8_reviewer2.gd` | 1,677 assertions | 0 | 0 | Collider pool and quadtree reviewer checks | **PASS** |
 | `test_phase3_streaming_projectiles_headless.gd` | 2,616 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
 | `test_phase4_simulation_autopilot_headless.gd` | 405 assertions | 0 | 0 | Unified simulation, collision isolation, 6-DOF guidance, shared material, telemetry, HUD/environment integration, memory, class/line guardrails, and all-suite regression | **PASS** |
-| `test_phase5_orbital_hud_environment_headless.gd` | 286 assertions | 0 | 0 | Keplerian mechanics, 64-point prediction, prograde/circularization guidance, environment transition, input/HUD rebase, memory, and 17-suite regression gate | **PASS** |
+| `test_phase5_orbital_hud_environment_headless.gd` | 256 assertions | 0 | 0 | Keplerian mechanics, zero-tangent fallback, 64-point Velocity-Verlet prediction, manual-input preservation, prograde/circularization guidance, environment transition, input/HUD rebase, memory, and 17-suite regression gate | **PASS** |
 | **Total Test Coverage** | **> 25,900 tests & assertions across 18 suites** | **0** | **0** | **Comprehensive Phase 1-5 Integration & Hardening** | **100% PASS** |
 
 ---
@@ -77,12 +77,12 @@ All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F37** | Shared Cryo Material | Phase 4 R3 | `test_phase4_simulation_autopilot_headless.gd` (Tier 3) | 256 shared overrides and rebase-synchronized shader uniforms | **PASS** |
 | **F38** | Zero-Allocation Telemetry | Phase 4 R4 | `test_phase4_simulation_autopilot_headless.gd` (Tier 4) | Flight decomposition, G-load, pool counts, origin sector, 1,000-tick static memory delta | **PASS** |
 | **F39** | Phase 4 Regression Gate | Phase 4 R5 | `test_phase4_simulation_autopilot_headless.gd` (Tier 5) | 18 class names and line limits, all 16 Phase 1-3 suites | **PASS** |
-| **F40** | Keplerian Orbital Mechanics | Phase 5 R1 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 1) | Circular/escape speed, energy, eccentricity, apsides, circularization delta-v, 64-point prediction, zero static memory growth | **PASS** |
+| **F40** | Keplerian Orbital Mechanics | Phase 5 R1 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 1) | Circular/escape speed, energy, eccentricity, apsides, zero-tangent circularization fallback, 64-point Velocity-Verlet prediction within 1 m, zero static memory growth | **PASS** |
 | **F41** | Prograde & Circularization Guidance | Phase 5 R2 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 2) | Prograde alignment/cutoff, elliptical burn `e > 0.15` to `e < 0.01`, delta-v convergence, thrust cutoff, 2,000 m rebase | **PASS** |
 | **F42** | Orbital Telemetry Registers | Phase 5 R2 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | Circular/escape speed, eccentricity, apsides, specific orbital energy, HUD register synchronization | **PASS** |
 | **F43** | Surface-to-Vacuum Environment | Phase 5 R3 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 3) | Surface factor 1.0, monotonic decay, exact vacuum factor/fog at and above ceiling, sky/fog transition, zero static growth | **PASS** |
 | **F44** | Zero-Allocation Cockpit HUD | Phase 5 R4 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | 64-point fixed buffer, telemetry copy, trajectory advancement, rebase shift, 1,000-tick static memory delta | **PASS** |
-| **F45** | InputMap Cockpit Wiring | Phase 5 R4 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | All 14 actions present and idempotently registered | **PASS** |
+| **F45** | Live Cockpit Input Wiring | Phase 5 R4 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | All 14 actions idempotently registered; manual thrust survives `step_simulation()` and produces forward force | **PASS** |
 | **F46** | Phase 5 Regression Gate | Phase 5 R5 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 5) | 22 production `class_name` declarations, 250-line limits, all 17 Phase 1-4 suites | **PASS** |
 
 ---
@@ -105,15 +105,15 @@ All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `ProjectilePoolManager.gd` | 159 lines | 91 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
 | `SpaceshipWeaponSystem.gd` | 76 lines | 174 lines | **COMPLIANT** |
-| `PlanetarySimulation.gd` | 194 lines | 56 lines | **COMPLIANT** |
-| `FlightGuidanceSystem.gd` | 210 lines | 40 lines | **COMPLIANT** |
+| `PlanetarySimulation.gd` | 201 lines | 49 lines | **COMPLIANT** |
+| `FlightGuidanceSystem.gd` | 214 lines | 36 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
 | `SimulationTelemetry.gd` | 89 lines | 161 lines | **COMPLIANT** |
-| `OrbitalMechanics.gd` | 122 lines | 128 lines | **COMPLIANT** |
+| `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
 | `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
 | `CockpitHUD.gd` | 135 lines | 115 lines | **COMPLIANT** |
 | `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
-| **Total Production Lines** | **3,363 lines** | **2,137 lines total headroom** | **100% COMPLIANT** |
+| **Total Production Lines** | **3,381 lines** | **2,119 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 

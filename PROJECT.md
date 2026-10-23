@@ -16,13 +16,13 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Weapon & Radar**: `SpaceshipWeaponSystem.gd` inherits ship velocity into pooled projectiles and measures surface altitude with one reused radial `PhysicsRayQueryParameters3D` against baked terrain colliders.
 - **Unified Simulation Root**: `PlanetarySimulation.gd` owns and wires the planet, streamer, floating origin, ship, projectile pool, weapon, guidance, telemetry, shared material, and protected ship-mounted camera. `step_simulation()` advances the complete runtime and `main.tscn` is the registered playable scene.
 - **Collision Isolation & Startup Placement**: The ship uses collision layer 2 and mask 1, terrain occupies layer 1, and radar queries exclude the ship RID. The planet center starts below the local origin so the vessel begins at `initial_altitude` above the `+Y` surface. Terrain colliders enable concave back-face collision for reliable surface rays.
-- **6-DOF Guidance**: `FlightGuidanceSystem.gd` supplies zero-allocation SAS hold, radial-up, retrograde, hover, and monotonic soft-landing modes with radial gravity compensation and asymmetric forward/reverse damping.
-- **Keplerian Orbital Mechanics**: `OrbitalMechanics.gd` is a pure static `RefCounted` math library for gravitational parameters, circular/escape speeds, specific orbital energy, eccentricity, apsides, local-horizontal circularization delta-v, and fixed-buffer ballistic prediction.
+- **6-DOF Guidance**: `FlightGuidanceSystem.gd` supplies zero-allocation SAS hold, radial-up, retrograde, hover, and monotonic soft-landing modes with radial gravity compensation and asymmetric forward/reverse damping. Manual mode leaves caller-supplied thrust and torque registers untouched; entering manual from an autopilot clears both once.
+- **Keplerian Orbital Mechanics**: `OrbitalMechanics.gd` is a pure static `RefCounted` math library for gravitational parameters, circular/escape speeds, specific orbital energy, eccentricity, apsides, local-horizontal circularization delta-v, and fixed-buffer symplectic Velocity-Verlet prediction.
 - **Prograde & Circularization Autopilot**: Guidance modes 6 and 7 align local `-Z` with prograde or the circularization burn vector and drive the three-axis thrust register from the world-space delta-v, normalized by each axis's thrust limit.
 - **Shared Cryo Material**: `PlanetSurfaceMaterial.gd` creates one procedural spatial `ShaderMaterial` for all 256 terrain visuals and synchronizes planet-center uniforms on every rebase.
 - **Flight Telemetry**: `SimulationTelemetry.gd` samples flight, atmosphere, gravity, G-load, streamed pool counts, 64-bit origin-sector registers, and orbital speed/eccentricity/apsides/energy in O(1).
 - **Surface-to-Vacuum Environment**: `PlanetaryEnvironment.gd` owns a pre-built sun, procedural sky, fog, and `WorldEnvironment`, smoothly interpolating atmospheric lighting and fog to exact vacuum values at the ceiling.
-- **Cockpit HUD & Input Wiring**: `CockpitHUD.gd` mirrors telemetry into fixed scalar registers and draws a 64-point orbital trajectory from a pre-allocated buffer. `FlightInputBindings.gd` idempotently registers all 14 cockpit actions.
+- **Cockpit HUD & Input Wiring**: `CockpitHUD.gd` mirrors telemetry into fixed scalar registers and draws a 64-point orbital trajectory from a pre-allocated buffer. `FlightInputBindings.gd` idempotently registers all 14 cockpit actions. `PlanetarySimulation.step_simulation()` polls mode cycling, manual flight, and weapon fire when `process_user_input` is enabled.
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
@@ -67,12 +67,12 @@ The architecture decouples planetary terrain generation from local physics via c
 | F37 | Shared Cryo-Terrain Material | One `ShaderMaterial` across 256 visuals with rebase-synchronized planet uniforms | M21 | Phase 4 R3 |
 | F38 | Zero-Allocation Flight Telemetry | O(1) flight, atmosphere, gravity, G-load, pool, and origin-sector sampling | M22 | Phase 4 R4 |
 | F39 | Phase 4 Automated Verification | Unified-scene, guidance, shader, telemetry, line-count, memory, and all-suite regression gate | M23 | Phase 4 R5 |
-| F40 | Keplerian Orbital Mechanics | Zero-allocation circular/escape speed, energy, eccentricity, apsides, circularization delta-v, and trajectory prediction | M24 | Phase 5 R1 |
+| F40 | Keplerian Orbital Mechanics | Zero-allocation circular/escape speed, energy, eccentricity, apsides, circularization delta-v with deterministic tangent fallback, and symplectic Velocity-Verlet prediction | M24 | Phase 5 R1 |
 | F41 | Prograde & Circularization Guidance | Prograde attitude hold and closed-loop three-axis circularization burn | M25 | Phase 5 R2 |
 | F42 | Orbital Telemetry Registers | Circular speed, escape speed, eccentricity, apsides, and specific orbital energy in O(1) | M25 | Phase 5 R2 |
 | F43 | Surface-to-Vacuum Environment | Pre-allocated sun, sky, fog, and atmosphere-factor lighting transitions | M26 | Phase 5 R3 |
 | F44 | Zero-Allocation Cockpit HUD | Fixed telemetry registers, 64-point trajectory buffer, and rebase-aware projection | M27 | Phase 5 R4 |
-| F45 | InputMap Cockpit Wiring | Idempotent registration of 14 flight, weapon, and guidance actions | M27 | Phase 5 R4 |
+| F45 | Live Cockpit Input Wiring | Idempotent 14-action registration, manual-mode input preservation, mode cycling, and weapon polling | M27 | Phase 5 R4 |
 | F46 | Phase 5 Automated Verification | Five-tier orbital, guidance, environment, HUD, input, memory, and all-suite regression gate | M28 | Phase 5 R5 |
 
 ## Milestones
@@ -214,7 +214,7 @@ The architecture decouples planetary terrain generation from local physics via c
 ### `PlanetarySimulation` & `main.tscn`
 - `PlanetarySimulation.gd`:
   - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
-  - `step_simulation(delta, space_state = null) -> void`: Guidance -> flight forces -> rebase check -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
+  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, manual input sampling, weapon fire) -> guidance -> flight forces -> rebase check -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
   - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
   - The ship owns a radius-2.0 `SphereShape3D` on collision layer 2 / mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
   - `initial_altitude` defaults to 1000 m; startup rebases the planet center to `(0, -(planet_radius + initial_altitude), 0)` before streamer/material synchronization.
@@ -225,6 +225,7 @@ The architecture decouples planetary terrain generation from local physics via c
 ### `FlightGuidanceSystem`
 - Modes: `MODE_MANUAL`, `MODE_SAS_HOLD`, `MODE_RADIAL_UP`, `MODE_RETROGRADE`, `MODE_HOVER`, `MODE_SOFT_LAND`, `MODE_PROGRADE`, `MODE_ORBIT_CIRCULARIZE`.
 - `update_guidance(delta, space_state = null) -> void`: Zero-allocation mode dispatch into the ship's torque/thrust input registers.
+- `MODE_MANUAL` returns immediately without touching thrust or torque, preserving manual/caller inputs. `set_mode(MODE_MANUAL)` clears both registers once when leaving an active autopilot mode.
 - SAS opposes local angular velocity; radial-up aligns local +Y to planetary radial up; retrograde aligns local -Z opposite velocity; hover and soft-land compensate radial gravity and damp tangential slip.
 - Prograde aligns local -Z with positive velocity when speed exceeds 0.2 m/s; circularization maps world-space delta-v into local strafe/vertical/longitudinal thrust, accounting for Godot's -Z forward convention and asymmetric reverse thrust.
 - `set_mode(new_mode)` clamps to `[MODE_MANUAL, MODE_ORBIT_CIRCULARIZE]`.
@@ -237,8 +238,8 @@ The architecture decouples planetary terrain generation from local physics via c
 - `static func get_specific_orbital_energy(...) -> float`: Returns `0.5 * |v|^2 - mu / max(r, planet_radius)`.
 - `static func get_eccentricity_vector(...) -> Vector3`: Computes `v x (r x v) / mu - r_hat`.
 - `static func get_apsides_altitudes(...) -> Vector2`: Returns `(periapsis, apoapsis)` altitudes, with `INF` apoapsis for `e >= 1` or `energy >= 0`.
-- `static func calculate_circularization_dv(...) -> Vector3`: Returns the local-horizontal prograde target velocity minus current velocity.
-- `static func predict_trajectory(..., out_points: PackedVector3Array) -> int`: Writes at most `min(steps, out_points.size())` semi-implicit points into the caller's fixed buffer, stopping before a surface impact.
+- `static func calculate_circularization_dv(...) -> Vector3`: Returns the local-horizontal prograde target velocity minus current velocity. For zero tangential speed, it selects `radial.cross(Vector3.UP)` (or `Vector3.RIGHT` near the poles) to produce a deterministic horizontal burn of circular-speed magnitude.
+- `static func predict_trajectory(..., out_points: PackedVector3Array) -> int`: Symplectic Velocity-Verlet integration into the caller's fixed buffer, recomputing gravity at the predicted position and averaging both accelerations for the velocity update. Stops before a surface impact.
 
 ### `PlanetaryEnvironment`, `CockpitHUD`, and `FlightInputBindings`
 - `PlanetaryEnvironment.gd`: pre-allocates `sun_light`, `world_environment`, `environment`, `sky_material`, and the `Sky` wrapper in `_init()`. `update_environment(...)` normalizes air density by surface density, sets exact zero fog/factor at or above the ceiling, and updates ambient, fog, and sky energy in O(1).
@@ -273,7 +274,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `FlightGuidanceSystem.gd`: Root project folder (<= 250 lines).
 - `PlanetSurfaceMaterial.gd`: Root project folder (<= 250 lines).
 - `SimulationTelemetry.gd`: Root project folder (<= 250 lines).
-- `OrbitalMechanics.gd`: Root project folder (122 lines).
+- `OrbitalMechanics.gd`: Root project folder (129 lines).
 - `PlanetaryEnvironment.gd`: Root project folder (80 lines).
 - `CockpitHUD.gd`: Root project folder (135 lines).
 - `FlightInputBindings.gd`: Root project folder (38 lines).
