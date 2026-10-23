@@ -37,6 +37,8 @@ var targets_destroyed: int = 0
 var combat_score: int = 0
 var weapon_heat: float = 0.0
 var weapon_overheated: bool = false
+var mission_stage: int = 0
+var recorded_samples: int = 0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO
