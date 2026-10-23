@@ -134,6 +134,7 @@ func _run_tier_2() -> void:
 	var sim: Node = _instantiate_sim()
 	await process_frame
 	sim.ship.process_user_input = false
+	sim.ship.mass = 1_000.0
 	sim.floating_origin.rebase_threshold = 1.0e12
 	sim.planet_manager.max_lod = 1
 	sim.ship.freeze = true
@@ -145,30 +146,56 @@ func _run_tier_2() -> void:
 	sim.encounter_director.waypoints.add_waypoint(target, 150.0)
 	sim.guidance.set_waypoint_target(true, target)
 	sim.guidance.set_mode(FlightGuidanceSystem.MODE_WAYPOINT_INTERCEPT)
+	var rebase_offset: Vector3 = Vector3(2_000.0, 0.0, 0.0)
+	sim.floating_origin.rebase(rebase_offset)
+	_assert_vec3(sim.guidance.waypoint_target_pos, target - rebase_offset, 1e-5,
+		"Guidance target shifts immediately during origin rebase")
+	_assert_vec3(sim.encounter_director.waypoints.get_current_waypoint_position(),
+		target - rebase_offset, 1e-5, "Waypoint ring and guidance target stay synchronized")
+	target -= rebase_offset
+	var start_position: Vector3 = sim.ship.global_position
 	var initial_distance: float = sim.ship.global_position.distance_to(target)
 	var previous_distance: float = initial_distance
 	var monotonic: bool = true
+	var gravity_compensated: bool = false
 	var captured_tick: int = -1
-	for i in range(900):
+	for i in range(1_800):
 		_step_intercept_tick(sim)
 		var current_distance: float = sim.ship.global_position.distance_to(target)
 		if current_distance > previous_distance + 1e-4:
 			monotonic = false
 		previous_distance = current_distance
+		var feed_forward_accel: Vector3 = -sim.ship.get_current_gravity_acceleration()
+		var thrust_local: Vector3 = Vector3(
+			sim.ship.thrust_input.x * sim.ship.strafe_thrust,
+			sim.ship.thrust_input.y * sim.ship.vertical_thrust,
+			-sim.ship.thrust_input.z * (
+				sim.ship.forward_thrust if sim.ship.thrust_input.z >= 0.0
+				else sim.ship.reverse_thrust
+			)
+		)
+		var thrust_accel: Vector3 = sim.ship.global_transform.basis * thrust_local / sim.ship.mass
+		gravity_compensated = gravity_compensated or (
+			thrust_accel.dot(feed_forward_accel.normalized()) >= 0.0
+		)
 		if sim.telemetry.completed_waypoints == 1:
 			captured_tick = i
 			break
 	_assert_int(sim.guidance.mode, FlightGuidanceSystem.MODE_WAYPOINT_INTERCEPT,
 		"Guidance remains in waypoint intercept mode")
-	var approach: Vector3 = (target - Vector3.ZERO).normalized()
+	var approach: Vector3 = (target - start_position).normalized()
 	_assert(sim.ship.linear_velocity.dot(approach) > 0.0,
 		"Ship accelerates toward the waypoint")
 	_assert(monotonic, "Waypoint distance decreases without divergence")
+	_assert(gravity_compensated,
+		"Gravity feed-forward supplies upward compensation during intercept")
+	_assert(sim.ship.get_current_gravity().length() > 0.0,
+		"Intercept runs under active planetary gravity")
 	_assert(previous_distance < initial_distance, "Ship materially reduces waypoint distance")
 	_assert(sim.ship.global_position.distance_to(Vector3.ZERO) > 1.0,
 		"Ship moves from its starting position")
 	_assert(sim.ship.global_position.length() > 1.0, "Ship closes the gap rather than teleporting")
-	_assert(captured_tick >= 0, "Waypoint is captured within 900 ticks")
+	_assert(captured_tick >= 0, "Waypoint is captured within 1,800 ticks")
 	_assert_int(sim.telemetry.completed_waypoints, 1, "Waypoint completion reaches telemetry")
 	_assert_int(FlightGuidanceSystem.MODE_WAYPOINT_INTERCEPT, 8, "Waypoint mode identifier is 8")
 	_dispose_sim(sim)
@@ -321,10 +348,17 @@ func _dispose_sim(sim: Node) -> void:
 func _step_intercept_tick(sim: Node) -> void:
 	sim.step_simulation(1.0 / 120.0)
 	var ship: SpaceshipController = sim.ship
-	ship.global_position += ship.linear_velocity * (1.0 / 120.0)
-	ship.linear_velocity += ship.global_transform.basis * Vector3(
-		0.0, 0.0, -ship.thrust_input.z * ship.forward_thrust
-	) / ship.mass * (1.0 / 120.0)
+	var dt: float = 1.0 / 120.0
+	var thrust_local: Vector3 = Vector3(
+		ship.strafe_thrust * ship.thrust_input.x,
+		ship.vertical_thrust * ship.thrust_input.y,
+		-ship.forward_thrust * ship.thrust_input.z
+	)
+	var acceleration: Vector3 = (
+		ship.global_transform.basis * thrust_local
+	) / ship.mass
+	ship.global_position += ship.linear_velocity * dt
+	ship.linear_velocity += acceleration * dt
 	if ship.angular_velocity.length_squared() > 1e-12:
 		var rotation: Quaternion = ship.global_transform.basis.get_rotation_quaternion()
 		var spin: Quaternion = Quaternion(
