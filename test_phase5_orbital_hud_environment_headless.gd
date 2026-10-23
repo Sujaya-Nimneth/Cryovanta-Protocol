@@ -191,6 +191,15 @@ func _run_tier_1() -> void:
 	_assert_approx(dv.dot(tangent), -dv.length(), 1e-7, "Delta-v is local horizontal")
 	_assert_approx(dv.dot((ellipse[0] - PLANET_CENTER).normalized()), 0.0, 1e-7,
 		"Delta-v is local horizontal")
+	var radial: Vector3 = (ellipse[0] - PLANET_CENTER).normalized()
+	var stationary_dv: Vector3 = OrbitalMechanics.calculate_circularization_dv(
+		ellipse[0], Vector3.ZERO, PLANET_CENTER, PLANET_RADIUS, SURFACE_GRAVITY
+	)
+	_assert(stationary_dv.length() > 0.0, "Stationary vessel receives a circularization burn")
+	_assert_approx(stationary_dv.length(), circular, 1e-5,
+		"Stationary circularization delta-v equals circular speed")
+	_assert_approx(stationary_dv.dot(radial), 0.0, 1e-9,
+		"Stationary circularization delta-v is horizontal")
 
 	_start_test("Tier 1.3: 64-point fixed-buffer trajectory prediction")
 	var trajectory: PackedVector3Array = PackedVector3Array()
@@ -204,7 +213,7 @@ func _run_tier_1() -> void:
 	for i in range(1, count):
 		_assert(trajectory[i].distance_to(trajectory[i - 1]) > 0.0, "Trajectory point %d advances" % i)
 	_assert_approx(AtmosphereMath.get_altitude(trajectory[63], PLANET_CENTER, PLANET_RADIUS),
-		500.0, 60.0, "Circular prediction remains near orbit altitude")
+		500.0, 1.0, "Velocity-Verlet prediction preserves orbit altitude")
 	var small: PackedVector3Array = PackedVector3Array()
 	small.resize(8)
 	_assert_int(OrbitalMechanics.predict_trajectory(
@@ -435,6 +444,21 @@ func _run_tier_4() -> void:
 	_assert_approx(sim.hud.displayed_eccentricity, sim.telemetry.orbital_eccentricity, 1e-9,
 		"HUD eccentricity follows telemetry")
 	_assert_int(sim.hud.displayed_mode, sim.guidance.mode, "HUD guidance mode follows autopilot")
+
+	_start_test("Tier 4.2b: Manual input survives simulation stepping")
+	sim.ship.global_position = Vector3.ZERO
+	sim.ship.global_transform.basis = Basis.IDENTITY
+	sim.ship.linear_velocity = Vector3.ZERO
+	sim.ship.angular_velocity = Vector3.ZERO
+	sim.guidance.set_mode(FlightGuidanceSystem.MODE_MANUAL)
+	sim.ship.set_thrust_input(Vector3(0.0, 0.0, 1.0))
+	sim.step_simulation(DT)
+	_assert_vec3(sim.ship.thrust_input, Vector3(0.0, 0.0, 1.0), 1e-9,
+		"Manual thrust survives step_simulation")
+	_assert(sim.ship.get_current_net_force().dot(-sim.ship.global_transform.basis.z) > 0.0,
+		"Manual forward thrust accelerates the vessel")
+	_assert(sim.hud.displayed_mode == FlightGuidanceSystem.MODE_MANUAL,
+		"HUD reports manual guidance mode")
 	_assert(sim.hud.trajectory_count > 1, "HUD populated the orbital trajectory")
 	var previous_point: Vector3 = sim.hud.trajectory_points[0]
 	var monotonic: bool = true

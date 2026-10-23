@@ -56,6 +56,8 @@ var _thrust_axis_limit: Vector3 = Vector3.ONE
 func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if not is_instance_valid(ship):
 		return
+	if mode == MODE_MANUAL:
+		return
 	_ship_position = ship.global_position if ship.is_inside_tree() else ship.position
 	_planet_center = _get_planet_center()
 	_radial_up = _ship_position - _planet_center
@@ -88,11 +90,13 @@ func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null
 			_apply_prograde()
 		MODE_ORBIT_CIRCULARIZE:
 			_apply_orbit_circularize()
-		_:
-			_clear_commands()
 
 func set_mode(new_mode: int) -> void:
-	mode = clampi(new_mode, MODE_MANUAL, MODE_ORBIT_CIRCULARIZE)
+	var clamped_mode: int = clampi(new_mode, MODE_MANUAL, MODE_ORBIT_CIRCULARIZE)
+	if clamped_mode == MODE_MANUAL and mode != MODE_MANUAL and is_instance_valid(ship):
+		ship.set_thrust_input(Vector3.ZERO)
+		ship.set_torque_input(Vector3.ZERO)
+	mode = clamped_mode
 
 func _apply_sas_hold() -> void:
 	_torque_command = -_angular_local * sas_gain

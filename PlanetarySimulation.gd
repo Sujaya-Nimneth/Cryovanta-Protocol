@@ -119,6 +119,13 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if not is_setup:
 		return
+	if ship.process_user_input:
+		if Input.is_action_just_pressed(&"cycle_guidance_mode"):
+			guidance.set_mode((guidance.mode + 1) % 8)
+		if guidance.mode == FlightGuidanceSystem.MODE_MANUAL:
+			ship._sample_user_input()
+		if Input.is_action_just_pressed(&"fire_weapon"):
+			weapon_system.fire_projectile()
 	guidance.update_guidance(delta, space_state)
 	ship._apply_flight_forces()
 	floating_origin.check_rebase()
