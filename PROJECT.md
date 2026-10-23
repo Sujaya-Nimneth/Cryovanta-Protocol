@@ -15,7 +15,8 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Compute Dispatcher & CPU Fallback**: `ComputeChunkDispatcher.gd` matches the `planet_chunk.glsl` `(5, 5, 1)` workgroup contract and exact 36,992-byte `std430` vertex buffer. Headless/dummy rendering deterministically falls back to `TerrainMeshBuilder.build_mesh_cpu()`.
 - **Weapon & Radar**: `SpaceshipWeaponSystem.gd` inherits ship velocity into pooled projectiles and measures surface altitude with one reused radial `PhysicsRayQueryParameters3D` against baked terrain colliders.
 - **Unified Simulation Root**: `PlanetarySimulation.gd` owns and wires the planet, streamer, floating origin, ship, projectile pool, weapon, guidance, telemetry, shared material, and protected ship-mounted camera. `step_simulation()` advances the complete runtime and `main.tscn` is the registered playable scene.
-- **6-DOF Guidance**: `FlightGuidanceSystem.gd` supplies zero-allocation SAS hold, radial-up, retrograde, hover, and soft-landing modes with radial gravity compensation.
+- **Collision Isolation & Startup Placement**: The ship uses collision layer 2 and mask 1, terrain occupies layer 1, and radar queries exclude the ship RID. The planet center starts below the local origin so the vessel begins at `initial_altitude` above the `+Y` surface. Terrain colliders enable concave back-face collision for reliable surface rays.
+- **6-DOF Guidance**: `FlightGuidanceSystem.gd` supplies zero-allocation SAS hold, radial-up, retrograde, hover, and monotonic soft-landing modes with radial gravity compensation and asymmetric forward/reverse damping.
 - **Shared Cryo Material**: `PlanetSurfaceMaterial.gd` creates one procedural spatial `ShaderMaterial` for all 256 terrain visuals and synchronizes planet-center uniforms on every rebase.
 - **Flight Telemetry**: `SimulationTelemetry.gd` samples flight, atmosphere, gravity, G-load, streamed pool counts, and 64-bit origin-sector registers in O(1).
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
@@ -118,6 +119,7 @@ The architecture decouples planetary terrain generation from local physics via c
   - `func release_collider(collider_id: int) -> bool`: Releases slot in O(1), resets `bodies[collider_id].position = Vector3.ZERO`, and clears shape faces.
   - `func set_collider_origin(collider_id: int, chunk_origin: Vector3) -> void`: Sets chunk-local origin position of the collider `StaticBody3D` relative to `PlanetManager`.
   - `func get_collider_origin(collider_id: int) -> Vector3`: Returns current body position.
+  - Terrain `ConcavePolygonShape3D` resources enable `backface_collision` so radial surface rays reliably hit downward-facing terrain triangles.
   - `func update_collider_faces(collider_id: int, faces: PackedVector3Array) -> void`: Updates `ConcavePolygonShape3D`.
   - `func has_available(count: int = 1) -> bool`: O(1) admission check.
   - `func verify_integrity() -> Dictionary`: Checks active + free == 64, zero duplicate entries.
@@ -190,7 +192,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `SpaceshipWeaponSystem.gd`:
   - Extends `Node3D`; links `ship`, `projectile_pool`, `planet_manager`, and `terrain_collision_mask`.
   - `fire_projectile(muzzle_local_offset = Vector3(0, 0, -2), muzzle_speed = 800.0, lifetime = 5.0) -> int`: Uses the ship transform and `linear_velocity + forward * muzzle_speed`.
-  - `measure_radar_altitude(space_state, max_range = 5000.0) -> float`: One reused radial query toward the planet center; returns the exact surface distance or `max_range` when no terrain is hit.
+  - `measure_radar_altitude(space_state, max_range = 5000.0) -> float`: One reused radial query toward the planet center; excludes the ship RID and returns the exact surface distance or `max_range` when no terrain is hit.
   - `get_radar_query() -> PhysicsRayQueryParameters3D`.
 
 ### `PlanetarySimulation` & `main.tscn`
@@ -198,7 +200,8 @@ The architecture decouples planetary terrain generation from local physics via c
   - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
   - `step_simulation(delta, space_state = null) -> void`: Guidance -> flight forces -> rebase check -> projectile stepping -> streamer update -> telemetry.
   - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
-  - The ship owns a radius-2.0 `SphereShape3D` on collision layer/mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
+  - The ship owns a radius-2.0 `SphereShape3D` on collision layer 2 / mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
+  - `initial_altitude` defaults to 1000 m; startup rebases the planet center to `(0, -(planet_radius + initial_altitude), 0)` before streamer/material synchronization.
   - `FloatingOrigin.origin_rebased` fans out to `PlanetStreamer.rebase_origin`, `ProjectilePoolManager.rebase_origin`, and the shared material's planet-center uniform refresh.
 - `main.tscn`: Root `PlanetarySimulation` scene. `project.godot` registers it as `application/run/main_scene`.
 
@@ -206,7 +209,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - Modes: `MODE_MANUAL`, `MODE_SAS_HOLD`, `MODE_RADIAL_UP`, `MODE_RETROGRADE`, `MODE_HOVER`, `MODE_SOFT_LAND`.
 - `update_guidance(delta, space_state = null) -> void`: Zero-allocation mode dispatch into the ship's torque/thrust input registers.
 - SAS opposes local angular velocity; radial-up aligns local +Y to planetary radial up; retrograde aligns local -Z opposite velocity; hover and soft-land compensate radial gravity and damp tangential slip.
-- `_target_radial_speed` follows `-clampf(sqrt(2 * max_descent_decel * clearance), min_descent_speed, max_descent_speed)`.
+- `_target_radial_speed` follows `-clampf(sqrt(2 * max_descent_decel * clearance), min_descent_speed, max_descent_speed)` above the touchdown margin and reaches zero inside it, without an upward thrust floor.
 
 ### `PlanetSurfaceMaterial`
 - Creates one `Shader` and `ShaderMaterial`; exposes `planet_center_offset`, `planet_radius`, `max_elevation`, `lowland_color`, `slope_color`, and `highland_ice_color`.
@@ -231,7 +234,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `PlanetStreamer.gd`: Root project folder (240 lines).
 - `ProjectilePoolManager.gd`: Root project folder (159 lines).
 - `ComputeChunkDispatcher.gd`: Root project folder (214 lines).
-- `SpaceshipWeaponSystem.gd`: Root project folder (73 lines).
+- `SpaceshipWeaponSystem.gd`: Root project folder (76 lines).
 - `PlanetarySimulation.gd`: Root project folder (<= 250 lines).
 - `FlightGuidanceSystem.gd`: Root project folder (<= 250 lines).
 - `PlanetSurfaceMaterial.gd`: Root project folder (<= 250 lines).
