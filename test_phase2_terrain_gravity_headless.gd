@@ -1141,6 +1141,9 @@ func _test_5_1_production_script_line_count_audit() -> void:
 			_assert(line_count <= 250, "%s has %d lines (strictly <= 250 lines)" % [script_path.get_file(), line_count])
 
 func _test_5_2_phase1_regression_suite() -> void:
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1 regression gate (direct Phase 9 orchestration)")
+		return
 	_start_test("Tier 5.2: Phase 1 Regression (All 5 Existing Headless Suites Pass)")
 	var phase1_suites: Array[String] = [
 		"res://test_floating_origin_headless.gd",

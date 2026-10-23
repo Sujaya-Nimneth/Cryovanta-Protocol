@@ -478,6 +478,9 @@ func _run_tier_5() -> void:
 		if file == "PlanetStreamer.gd":
 			_assert(line_count <= 240, "PlanetStreamer.gd has %d lines (limit 240)" % line_count)
 
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1-3 regression gate (direct Phase 9 orchestration)")
+		return
 	_start_test("Tier 5.2: All 16 prior headless suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):

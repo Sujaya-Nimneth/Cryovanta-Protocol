@@ -579,6 +579,9 @@ func _run_tier_5() -> void:
 	pool.free()
 
 	_start_test("Tier 5.3: Existing Phase 1 and Phase 2 suites")
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1-2 regression gate (direct Phase 9 orchestration)")
+		return
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.begins_with("test_") and file.ends_with(".gd") \

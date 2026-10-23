@@ -471,6 +471,9 @@ func _run_tier_5() -> void:
 	]:
 		_assert(production_files.has(required), "%s is a production script" % required)
 
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1-5 regression gate (direct Phase 9 orchestration)")
+		return
 	_start_test("Tier 5.2: All 18 prior Phase 1-5 suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):

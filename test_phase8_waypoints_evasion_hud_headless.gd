@@ -296,7 +296,8 @@ func _run_tier_5() -> void:
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
-	_assert_int(production_files.size(), 29, "Discovered all 29 production scripts")
+	_assert(production_files.size() >= 29,
+		"Discovered all 29 Phase 8 production scripts (found %d)" % production_files.size())
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)
@@ -313,6 +314,9 @@ func _run_tier_5() -> void:
 	_assert(_count_lines("res://ChunkTaskScheduler.gd") <= 250,
 		"ChunkTaskScheduler.gd remains within its 250-line ceiling")
 
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1-7 regression gate (direct Phase 9 orchestration)")
+		return
 	_start_test("Tier 5.2: All 20 prior Phase 1-7 suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):

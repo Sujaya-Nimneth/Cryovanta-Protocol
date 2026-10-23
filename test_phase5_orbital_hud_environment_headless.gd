@@ -527,6 +527,9 @@ func _run_tier_5() -> void:
 	_assert(production_files.has("FlightInputBindings.gd"),
 		"FlightInputBindings is a production script")
 
+	if OS.get_cmdline_user_args().has("--direct-regression"):
+		print("  [SKIP] Nested Phase 1-4 regression gate (direct Phase 9 orchestration)")
+		return
 	_start_test("Tier 5.2: All 17 existing Phase 1-4 suites pass")
 	var suites: Array[String] = [
 		"test_adversarial_challenger2.gd",
