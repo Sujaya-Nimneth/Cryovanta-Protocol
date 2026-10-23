@@ -106,12 +106,17 @@ func _update_target_lock(sim: PlanetarySimulation) -> void:
 	if target_id >= pool.positions.size() or not pool.is_in_use[target_id]:
 		return
 	locked_target_id = target_id
-	locked_target_pos = pool.positions[target_id]
+	locked_target_pos = pool.get_target_position(target_id) if pool.has_method(
+		"get_target_position"
+	) else pool.positions[target_id]
+	var target_velocity: Vector3 = pool.get_target_velocity(target_id) if pool.has_method(
+		"get_target_velocity"
+	) else pool.velocities[target_id]
 	locked_lead_pos = SpaceshipWeaponSystem.calculate_lead_position(
 		_ship_position,
 		_ship_velocity,
 		locked_target_pos,
-		pool.velocities[target_id]
+		target_velocity
 	)
 
 func _draw_cockpit() -> void:

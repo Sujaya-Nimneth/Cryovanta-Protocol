@@ -28,8 +28,8 @@ func set_virtual_sticks(
 		return
 	left_stick = _apply_radial_deadzone(left)
 	right_stick = _apply_radial_deadzone(right)
-	vertical_axis = clampf(vertical, -1.0, 1.0)
-	roll_axis = clampf(roll, -1.0, 1.0)
+	vertical_axis = _filter_axis(vertical)
+	roll_axis = _filter_axis(roll)
 	thrust_output = Vector3(left_stick.x, vertical_axis, left_stick.y)
 	torque_output = Vector3(right_stick.y, right_stick.x, roll_axis)
 
@@ -45,3 +45,10 @@ func _apply_radial_deadzone(input: Vector2) -> Vector2:
 		return Vector2.ZERO
 	var filtered: float = (magnitude - deadzone) / maxf(1.0 - deadzone, 0.001)
 	return input * (minf(filtered, 1.0) / magnitude)
+
+func _filter_axis(input: float) -> float:
+	var magnitude: float = absf(input)
+	if magnitude <= deadzone:
+		return 0.0
+	var filtered: float = (magnitude - deadzone) / maxf(1.0 - deadzone, 0.001)
+	return signf(input) * minf(filtered, 1.0)

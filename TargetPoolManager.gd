@@ -40,6 +40,7 @@ func _create_target_slot(id: int) -> void:
 	body.name = "TargetBody_%d" % id
 	body.collision_layer = target_collision_layer
 	body.collision_mask = target_collision_mask
+	body.input_ray_pickable = false
 	var sphere: SphereShape3D = SphereShape3D.new()
 	sphere.radius = DEFAULT_TARGET_RADIUS
 	var shape: CollisionShape3D = CollisionShape3D.new()
@@ -97,6 +98,16 @@ func step_targets(delta: float) -> void:
 		positions[id] += velocities[id] * dt
 		bodies[id].position = positions[id]
 		markers[id].position = positions[id]
+
+func get_target_position(target_id: int) -> Vector3:
+	if target_id < 0 or target_id >= POOL_SIZE or not is_in_use[target_id]:
+		return Vector3.ZERO
+	return positions[target_id]
+
+func get_target_velocity(target_id: int) -> Vector3:
+	if target_id < 0 or target_id >= POOL_SIZE or not is_in_use[target_id]:
+		return Vector3.ZERO
+	return velocities[target_id]
 
 func find_target_by_collider(collider: Object) -> int:
 	if not is_instance_valid(collider):

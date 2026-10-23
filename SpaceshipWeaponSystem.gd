@@ -65,12 +65,14 @@ func acquire_nearest_target(override_pool: Node = null) -> int:
 	var nearest_id: int = -1
 	var nearest_distance_sq: float = INF
 	var active: Array = pool.is_in_use
-	var target_positions: PackedVector3Array = pool.positions
-	var count: int = mini(active.size(), target_positions.size())
+	var count: int = active.size()
 	for id in range(count):
 		if not active[id]:
 			continue
-		var distance_sq: float = ship_pos.distance_squared_to(target_positions[id])
+		var target_pos: Vector3 = pool.get_target_position(id) if pool.has_method(
+			"get_target_position"
+		) else pool.positions[id]
+		var distance_sq: float = ship_pos.distance_squared_to(target_pos)
 		if distance_sq < nearest_distance_sq:
 			nearest_distance_sq = distance_sq
 			nearest_id = id
