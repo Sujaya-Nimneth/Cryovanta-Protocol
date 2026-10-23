@@ -26,6 +26,8 @@ var last_drawn_thermal_bars: int = 0
 var active_waypoint_id: int = -1
 var active_waypoint_pos: Vector3 = Vector3.ZERO
 var displayed_waypoint_distance: float = 0.0
+var displayed_weapon_heat: float = 0.0
+var displayed_combat_score: int = 0
 var last_drawn_waypoint_markers: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
@@ -74,6 +76,8 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_eccentricity = telemetry.orbital_eccentricity
 	displayed_mode = sim.guidance.mode if is_instance_valid(sim.guidance) else 0
 	displayed_waypoint_distance = telemetry.waypoint_distance
+	displayed_weapon_heat = telemetry.weapon_heat
+	displayed_combat_score = telemetry.combat_score
 	if sim.encounter_director != null and sim.encounter_director.waypoints.current_waypoint_id >= 0:
 		active_waypoint_id = sim.encounter_director.waypoints.current_waypoint_id
 		active_waypoint_pos = sim.encounter_director.waypoints.get_current_waypoint_position()
@@ -167,11 +171,14 @@ func _draw_cockpit() -> void:
 	_draw_bar(Vector2(margin + 18.0 + status_width, margin + 127.0), status_width, 8.0,
 		clampf(displayed_hull_integrity / 100.0, 0.0, 1.0), _line_color)
 	last_drawn_thermal_bars += 1
-	var mode_slot: int = clampi(displayed_mode, 0, 7)
+	var mode_slot: int = clampi(displayed_mode, 0, 8)
 	_surface.draw_rect(
 		Rect2(Vector2(margin + 14.0 + mode_slot * 20.0, margin + 145.0), Vector2(12.0, 12.0)),
 		_line_color
 	)
+	_draw_bar(Vector2(margin + 14.0 + 9.0 * 20.0, margin + 145.0), 34.0, 12.0,
+		clampf(displayed_weapon_heat, 0.0, 1.0),
+		_warning_color if displayed_weapon_heat >= 1.0 else _trajectory_color)
 	_draw_trajectory()
 	_draw_target_reticles()
 	last_drawn_waypoint_markers = 0

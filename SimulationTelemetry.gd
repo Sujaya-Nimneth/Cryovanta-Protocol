@@ -33,6 +33,10 @@ var governor_split_scale: float = 2.0
 var active_waypoints: int = 0
 var completed_waypoints: int = 0
 var waypoint_distance: float = 0.0
+var targets_destroyed: int = 0
+var combat_score: int = 0
+var weapon_heat: float = 0.0
+var weapon_overheated: bool = false
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO

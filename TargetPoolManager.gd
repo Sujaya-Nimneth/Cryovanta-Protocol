@@ -18,6 +18,7 @@ var health: PackedFloat32Array = PackedFloat32Array()
 var is_in_use: Array[bool] = []
 var free_indices: Array[int] = []
 var active_count: int = 0
+var destroyed_count: int = 0
 var target_collision_layer: int = TARGET_COLLISION_LAYER
 var target_collision_mask: int = 0
 
@@ -127,6 +128,7 @@ func apply_damage(target_id: int, amount: float) -> bool:
 		return false
 	health[target_id] = maxf(health[target_id] - maxf(amount, 0.0), 0.0)
 	if health[target_id] <= 0.0:
+		destroyed_count += 1
 		release_target(target_id)
 		return true
 	return false
@@ -204,3 +206,4 @@ func clear() -> void:
 		shapes[id].disabled = true
 		free_indices[id] = POOL_SIZE - 1 - id
 	active_count = 0
+	destroyed_count = 0

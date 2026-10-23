@@ -16,6 +16,9 @@ var evasion_enabled: bool = false
 var evasion_amplitude: float = 18.0
 var evasion_frequency: float = 2.4
 var elapsed_time: float = 0.0
+var points_per_kill: int = 100
+var points_per_waypoint: int = 250
+var combat_score: int = 0
 var _rebase_connected: bool = false
 
 func setup_director(sim: PlanetarySimulation) -> void:
@@ -78,6 +81,8 @@ func spawn_drone_ring(
 func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	if sim == null or sim.telemetry == null:
 		return
+	if is_instance_valid(sim.weapon_system):
+		sim.weapon_system.step_weapon(delta)
 	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):
 		if sim.target_pool.active_count == 0:
 			spawn_drone_ring(
@@ -96,6 +101,10 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			sim.target_pool
 		)
 		waypoints.step_waypoints(sim.ship.global_position)
+		if is_instance_valid(sim.guidance):
+			sim.guidance.set_waypoint_target(
+				waypoints.current_waypoint_id >= 0, waypoints.get_current_waypoint_position()
+			)
 	sim.telemetry.active_waypoints = waypoints.active_count
 	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
 	sim.telemetry.waypoint_distance = waypoints.distance_to_current
@@ -111,6 +120,14 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	governor.sample_frame_time(delta * 1000.0, sim.planet_manager)
 	sim.telemetry.ema_frame_ms = governor.ema_frame_ms
 	sim.telemetry.governor_split_scale = governor.recommended_split_scale
+	var kills: int = sim.target_pool.destroyed_count if is_instance_valid(sim.target_pool) else 0
+	combat_score = kills * points_per_kill + waypoints.completed_waypoints * points_per_waypoint
+	sim.telemetry.targets_destroyed = kills
+	sim.telemetry.combat_score = combat_score
+	sim.telemetry.weapon_heat = sim.weapon_system.capacitor.get_normalized_heat() \
+		if is_instance_valid(sim.weapon_system) else 0.0
+	sim.telemetry.weapon_overheated = sim.weapon_system.capacitor.overheated \
+		if is_instance_valid(sim.weapon_system) else false
 
 func rebase_origin(offset: Vector3) -> void:
 	waypoints.rebase_origin(offset)
