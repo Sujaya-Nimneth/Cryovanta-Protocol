@@ -10,6 +10,7 @@ extends Node3D
 @export var terrain_collision_mask: int = 1
 var target_pool: Node = null
 var locked_target_id: int = -1
+var capacitor: WeaponHeatCapacitor = WeaponHeatCapacitor.new()
 
 var _radar_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
 var _muzzle_world: Vector3 = Vector3.ZERO
@@ -35,11 +36,19 @@ func fire_projectile(
 ) -> int:
 	if not is_instance_valid(ship) or not is_instance_valid(projectile_pool):
 		return -1
+	if not capacitor.can_fire():
+		return -1
 	_ship_velocity = ship.linear_velocity
 	_ship_forward = -ship.global_transform.basis.z
 	_muzzle_world = ship.global_transform * muzzle_local_offset
 	_muzzle_velocity = _ship_velocity + _ship_forward * muzzle_speed
-	return projectile_pool.spawn_projectile(_muzzle_world, _muzzle_velocity, lifetime)
+	var id: int = projectile_pool.spawn_projectile(_muzzle_world, _muzzle_velocity, lifetime)
+	if id >= 0:
+		capacitor.consume_shot()
+	return id
+
+func step_weapon(delta: float) -> void:
+	capacitor.step_capacitor(delta)
 
 static func calculate_lead_position(
 	shooter_pos: Vector3,
