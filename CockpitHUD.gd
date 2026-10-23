@@ -10,6 +10,8 @@ var displayed_radar_altitude: float = 0.0
 var displayed_vertical_speed: float = 0.0
 var displayed_horizontal_speed: float = 0.0
 var displayed_g_load: float = 0.0
+var displayed_heat_load: float = 0.0
+var displayed_hull_integrity: float = 100.0
 var displayed_apoapsis: float = 0.0
 var displayed_periapsis: float = 0.0
 var displayed_eccentricity: float = 0.0
@@ -20,6 +22,7 @@ var locked_target_id: int = -1
 var locked_target_pos: Vector3 = Vector3.ZERO
 var locked_lead_pos: Vector3 = Vector3.ZERO
 var last_drawn_target_reticles: int = 0
+var last_drawn_thermal_bars: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
 
@@ -60,6 +63,8 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_vertical_speed = telemetry.vertical_speed
 	displayed_horizontal_speed = telemetry.horizontal_speed
 	displayed_g_load = telemetry.g_load
+	displayed_heat_load = telemetry.heat_shield_load
+	displayed_hull_integrity = telemetry.hull_integrity
 	displayed_apoapsis = telemetry.apoapsis_altitude
 	displayed_periapsis = telemetry.periapsis_altitude
 	displayed_eccentricity = telemetry.orbital_eccentricity
@@ -128,7 +133,7 @@ func _draw_cockpit() -> void:
 	var margin: float = 22.0
 	var panel_width: float = minf(300.0, _viewport_size.x * 0.42)
 	_surface.draw_rect(
-		Rect2(Vector2(margin, margin), Vector2(panel_width, 154.0)), _panel_color
+		Rect2(Vector2(margin, margin), Vector2(panel_width, 172.0)), _panel_color
 	)
 	_surface.draw_line(
 		Vector2(margin, margin), Vector2(margin + panel_width, margin), _line_color, 2.0
@@ -143,9 +148,16 @@ func _draw_cockpit() -> void:
 		clampf(displayed_horizontal_speed / 2_000.0, 0.0, 1.0), _line_color)
 	_draw_bar(Vector2(margin + 14.0, margin + 106.0), panel_width - 28.0, 9.0,
 		clampf(displayed_g_load / 10.0, 0.0, 1.0), _warning_color)
+	var status_width: float = (panel_width - 32.0) * 0.5
+	_draw_bar(Vector2(margin + 14.0, margin + 127.0), status_width, 8.0,
+		clampf(displayed_heat_load, 0.0, 1.0), _warning_color)
+	last_drawn_thermal_bars = 1
+	_draw_bar(Vector2(margin + 18.0 + status_width, margin + 127.0), status_width, 8.0,
+		clampf(displayed_hull_integrity / 100.0, 0.0, 1.0), _line_color)
+	last_drawn_thermal_bars += 1
 	var mode_slot: int = clampi(displayed_mode, 0, 7)
 	_surface.draw_rect(
-		Rect2(Vector2(margin + 14.0 + mode_slot * 20.0, margin + 127.0), Vector2(12.0, 12.0)),
+		Rect2(Vector2(margin + 14.0 + mode_slot * 20.0, margin + 145.0), Vector2(12.0, 12.0)),
 		_line_color
 	)
 	_draw_trajectory()

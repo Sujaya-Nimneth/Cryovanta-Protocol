@@ -7,6 +7,7 @@ extends Node3D
 @export var planet_radius: float = 100_000.0 # 100 km default radius
 @export var max_lod: int = 5
 @export var split_ratio: float = 2.2
+@export var lod_split_scale: float = 2.0
 @export var hysteresis: float = 1.35
 @export var origin_rebase_threshold: float = 2000.0
 
@@ -88,7 +89,7 @@ func update_camera(camera_pos: Vector3) -> void:
 			chunk_pool,
 			max_lod,
 			planet_radius,
-			split_ratio,
+			split_ratio * lod_split_scale * 0.5,
 			hysteresis,
 			collider_pool
 		)

@@ -25,6 +25,11 @@ var orbital_eccentricity: float = 0.0
 var periapsis_altitude: float = 0.0
 var apoapsis_altitude: float = 0.0
 var specific_orbital_energy: float = 0.0
+var surface_temperature_k: float = 250.0
+var heat_shield_load: float = 0.0
+var hull_integrity: float = 100.0
+var ema_frame_ms: float = 8.0
+var governor_split_scale: float = 2.0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO

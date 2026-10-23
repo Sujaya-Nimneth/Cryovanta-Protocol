@@ -19,6 +19,7 @@ var touch_controller: MobileTouchController = null
 var weapon_system: SpaceshipWeaponSystem = null
 var guidance: FlightGuidanceSystem = null
 var telemetry: SimulationTelemetry = null
+var encounter_director: EncounterDirector = null
 var surface_material: PlanetSurfaceMaterial = null
 var environment: PlanetaryEnvironment = null
 var hud: CockpitHUD = null
@@ -117,6 +118,8 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	add_child(hud)
 
 	telemetry = SimulationTelemetry.new()
+	encounter_director = EncounterDirector.new()
+	encounter_director.governor.reset(planet_manager.lod_split_scale)
 	floating_origin = FloatingOrigin.new()
 	floating_origin.name = "FloatingOrigin"
 	floating_origin.player_node = ship
@@ -173,6 +176,8 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 		ship.atmosphere_ceiling,
 		ship.surface_air_density
 	)
+	if encounter_director != null:
+		encounter_director.step_director(self, delta)
 	hud.update_hud(self)
 
 func _get_space_state() -> PhysicsDirectSpaceState3D:
@@ -231,6 +236,7 @@ func destroy() -> void:
 		_free_owned_node(planet_manager)
 	planet_manager = null
 	telemetry = null
+	encounter_director = null
 	surface_material = null
 	touch_controller = null
 
