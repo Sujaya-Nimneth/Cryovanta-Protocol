@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
-## Phase 4 Readiness
-Phase 4 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The hardened unified simulation suite passes at **395 / 395 assertions**, and the complete Phase 1–4 regression gate passes across **17 suites** with exit code 0.
+## Phase 5 Readiness
+Phase 5 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The Phase 5 suite passes at **286 / 286 assertions**, and its complete Phase 1–4 regression gate passes across **17 suites** with exit code 0.
 
-| Phase 4 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| Phase 5 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase4_simulation_autopilot_headless.gd` | 395 | 0 | 0 | `main.tscn` wiring, layer-isolated ship/terrain radar, startup altitude, one-frame rebase, SAS >95% spin reduction, radial-up, hover, monotonic soft landing, 256 shared materials, telemetry, 1,000-tick memory stability, 18 class-name/line-count checks, 16 prior suites |
+| `test_phase5_orbital_hud_environment_headless.gd` | 286 | 0 | 0 | Keplerian mechanics and fixed-buffer prediction, prograde/circularization guidance across a 2,000 m rebase, surface-to-vacuum environment, InputMap/HUD/rebase synchronization, 1,000-tick memory stability, 22 production class-name/line checks, 17 prior suites |
 
 ## Test Execution Overview
-All 17 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 3 suite passes at **2,606 / 2,606 assertions**, including 30-frame non-blocking async convergence and floating-origin visual/collider alignment; the Phase 4 gate passes at **395 / 395**.
+All 18 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 5 suite passes at **286 / 286 assertions**, including its 17-suite Phase 1–4 regression gate; the Phase 4 suite passes at **405 / 405**, and the Phase 3 suite passes at **2,616 / 2,616**.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -27,9 +27,10 @@ All 17 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_adversarial_m12_challenger.gd` | 1,993 assertions | 0 | 0 | Deep LOD, collider, and scheduler stress | **PASS** |
 | `test_adversarial_m12_challenger2.gd` | 479 assertions | 0 | 0 | Cross-system Phase 2 adversarial checks | **PASS** |
 | `test_adversarial_m8_reviewer2.gd` | 1,677 assertions | 0 | 0 | Collider pool and quadtree reviewer checks | **PASS** |
-| `test_phase3_streaming_projectiles_headless.gd` | 2,606 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
-| `test_phase4_simulation_autopilot_headless.gd` | 395 assertions | 0 | 0 | Unified simulation, collision isolation, 6-DOF guidance, shared material, telemetry, memory, class/line guardrails, and all-suite regression | **PASS** |
-| **Total Test Coverage** | **> 25,700 tests & assertions across 17 suites** | **0** | **0** | **Comprehensive Phase 1-4 Integration & Hardening** | **100% PASS** |
+| `test_phase3_streaming_projectiles_headless.gd` | 2,616 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
+| `test_phase4_simulation_autopilot_headless.gd` | 405 assertions | 0 | 0 | Unified simulation, collision isolation, 6-DOF guidance, shared material, telemetry, HUD/environment integration, memory, class/line guardrails, and all-suite regression | **PASS** |
+| `test_phase5_orbital_hud_environment_headless.gd` | 286 assertions | 0 | 0 | Keplerian mechanics, 64-point prediction, prograde/circularization guidance, environment transition, input/HUD rebase, memory, and 17-suite regression gate | **PASS** |
+| **Total Test Coverage** | **> 25,900 tests & assertions across 18 suites** | **0** | **0** | **Comprehensive Phase 1-5 Integration & Hardening** | **100% PASS** |
 
 ---
 
@@ -76,6 +77,13 @@ All 17 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F37** | Shared Cryo Material | Phase 4 R3 | `test_phase4_simulation_autopilot_headless.gd` (Tier 3) | 256 shared overrides and rebase-synchronized shader uniforms | **PASS** |
 | **F38** | Zero-Allocation Telemetry | Phase 4 R4 | `test_phase4_simulation_autopilot_headless.gd` (Tier 4) | Flight decomposition, G-load, pool counts, origin sector, 1,000-tick static memory delta | **PASS** |
 | **F39** | Phase 4 Regression Gate | Phase 4 R5 | `test_phase4_simulation_autopilot_headless.gd` (Tier 5) | 18 class names and line limits, all 16 Phase 1-3 suites | **PASS** |
+| **F40** | Keplerian Orbital Mechanics | Phase 5 R1 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 1) | Circular/escape speed, energy, eccentricity, apsides, circularization delta-v, 64-point prediction, zero static memory growth | **PASS** |
+| **F41** | Prograde & Circularization Guidance | Phase 5 R2 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 2) | Prograde alignment/cutoff, elliptical burn `e > 0.15` to `e < 0.01`, delta-v convergence, thrust cutoff, 2,000 m rebase | **PASS** |
+| **F42** | Orbital Telemetry Registers | Phase 5 R2 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | Circular/escape speed, eccentricity, apsides, specific orbital energy, HUD register synchronization | **PASS** |
+| **F43** | Surface-to-Vacuum Environment | Phase 5 R3 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 3) | Surface factor 1.0, monotonic decay, exact vacuum factor/fog at and above ceiling, sky/fog transition, zero static growth | **PASS** |
+| **F44** | Zero-Allocation Cockpit HUD | Phase 5 R4 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | 64-point fixed buffer, telemetry copy, trajectory advancement, rebase shift, 1,000-tick static memory delta | **PASS** |
+| **F45** | InputMap Cockpit Wiring | Phase 5 R4 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 4) | All 14 actions present and idempotently registered | **PASS** |
+| **F46** | Phase 5 Regression Gate | Phase 5 R5 | `test_phase5_orbital_hud_environment_headless.gd` (Tier 5) | 22 production `class_name` declarations, 250-line limits, all 17 Phase 1-4 suites | **PASS** |
 
 ---
 
@@ -84,32 +92,36 @@ All 17 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | Script File | Verified Line Count | Headroom to 250 Limit | Status |
 | :--- | :---: | :---: | :---: |
 | `AtmosphereMath.gd` | 88 lines | 162 lines | **COMPLIANT** |
-| `SpaceshipController.gd` | 200 lines | 50 lines | **COMPLIANT** |
+| `SpaceshipController.gd` | 203 lines | 47 lines | **COMPLIANT** |
 | `FloatingOrigin.gd` | 145 lines | 105 lines | **COMPLIANT** |
 | `PlanetManager.gd` | 241 lines | 9 lines | **COMPLIANT** |
 | `PlanetMath.gd` | 78 lines | 172 lines | **COMPLIANT** |
 | `QuadtreeNode.gd` | 208 lines | 42 lines | **COMPLIANT** |
 | `ChunkPoolManager.gd` | 111 lines | 139 lines | **COMPLIANT** |
-| `ColliderPoolManager.gd` | 168 lines | 82 lines | **COMPLIANT** |
+| `ColliderPoolManager.gd` | 169 lines | 81 lines | **COMPLIANT** |
 | `ChunkTaskScheduler.gd` | 248 lines | 2 lines | **COMPLIANT** |
 | `TerrainMeshBuilder.gd` | 225 lines | 25 lines | **COMPLIANT** |
 | `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
 | `ProjectilePoolManager.gd` | 159 lines | 91 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
 | `SpaceshipWeaponSystem.gd` | 76 lines | 174 lines | **COMPLIANT** |
-| `PlanetarySimulation.gd` | 168 lines | 82 lines | **COMPLIANT** |
-| `FlightGuidanceSystem.gd` | 168 lines | 82 lines | **COMPLIANT** |
+| `PlanetarySimulation.gd` | 194 lines | 56 lines | **COMPLIANT** |
+| `FlightGuidanceSystem.gd` | 210 lines | 40 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
-| `SimulationTelemetry.gd` | 61 lines | 189 lines | **COMPLIANT** |
-| **Total Production Lines** | **2,892 lines** | **1,608 lines total headroom** | **100% COMPLIANT** |
+| `SimulationTelemetry.gd` | 89 lines | 161 lines | **COMPLIANT** |
+| `OrbitalMechanics.gd` | 122 lines | 128 lines | **COMPLIANT** |
+| `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
+| `CockpitHUD.gd` | 135 lines | 115 lines | **COMPLIANT** |
+| `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
+| **Total Production Lines** | **3,363 lines** | **2,137 lines total headroom** | **100% COMPLIANT** |
 
-*Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
+*Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
 ---
 
 ## Verification Execution Commands
 
-To execute and verify all 16 headless test suites:
+To execute and verify all 18 headless test suites:
 ```bash
 godot --headless -s test_phase2_terrain_gravity_headless.gd
 godot --headless -s test_adversarial_m13_challenger1.gd
@@ -128,9 +140,10 @@ godot --headless -s test_adversarial_m12_challenger2.gd
 godot --headless -s test_adversarial_m8_reviewer2.gd
 godot --headless -s test_phase3_streaming_projectiles_headless.gd
 godot --headless -s test_phase4_simulation_autopilot_headless.gd
+godot --headless -s test_phase5_orbital_hud_environment_headless.gd
 ```
 
 To verify production script line counts:
 ```bash
-wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd FloatingOrigin.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd ProjectilePoolManager.gd QuadtreeNode.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TerrainMeshBuilder.gd
+wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd FlightGuidanceSystem.gd FlightInputBindings.gd FloatingOrigin.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd ProjectilePoolManager.gd QuadtreeNode.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TerrainMeshBuilder.gd
 ```
