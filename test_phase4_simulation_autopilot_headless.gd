@@ -106,10 +106,17 @@ func _instantiate_main() -> Node:
 
 func _prepare_stream(sim: Node) -> void:
 	sim.planet_manager.max_lod = 4
-	var low_orbit: Vector3 = Vector3(100_050.0, -100_000.0, 0.0)
-	for i in range(3):
-		sim.planet_manager.update_camera(low_orbit)
-	sim.planet_streamer.update_streamer(low_orbit)
+	var camera_position: Vector3 = sim.camera.global_position
+	for i in range(6):
+		sim.planet_manager.update_camera(camera_position)
+	sim.planet_streamer.update_streamer(camera_position)
+
+func _settle_terrain_physics(sim: Node) -> void:
+	for leaf in sim.planet_manager.get_all_leaves():
+		if leaf.collider_id != -1:
+			sim.planet_manager.collider_pool.get_body(leaf.collider_id).force_update_transform()
+	await physics_frame
+	await physics_frame
 
 func _dispose_sim(sim: Node) -> void:
 	if sim == null:
@@ -130,8 +137,12 @@ func _run_tier_1() -> void:
 	_assert(sim.floating_origin.player_node == sim.ship, "FloatingOrigin tracks the ship")
 	_assert(sim.ship.planet_manager == sim.planet_manager, "Ship uses the shared planet manager")
 	_assert(sim.ship.enable_planetary_gravity, "Planetary gravity is enabled")
-	_assert_int(sim.ship.collision_layer, 1, "Ship collision layer")
+	_assert_int(sim.ship.collision_layer, 2, "Ship collision layer")
 	_assert_int(sim.ship.collision_mask, 1, "Ship collision mask")
+	_assert_vec3(sim.ship.global_position, Vector3.ZERO, 0.01, "Ship starts at the world origin")
+	var startup_center := Vector3(0.0, -(sim.planet_manager.planet_radius + sim.initial_altitude), 0.0)
+	_assert_vec3(sim.planet_manager.planet_center_offset, startup_center, 1e-4, "Planet center starts below the vessel")
+	_assert_approx(sim.ship.get_current_altitude(), sim.initial_altitude, 0.01, "Ship starts at the configured altitude")
 	var collision_shape: CollisionShape3D = sim.ship.get_node("ShipCollision")
 	_assert(collision_shape.shape is SphereShape3D, "Ship has a sphere collider")
 	if collision_shape.shape is SphereShape3D:
@@ -177,7 +188,7 @@ func _run_tier_1() -> void:
 	_assert_vec3(sim.ship.global_position, ship_pos - offset, 1e-4, "Ship shifted by the origin rebase")
 	_assert_vec3(sim.ship.linear_velocity, ship_vel, 1e-5, "Ship linear velocity is continuous")
 	_assert_vec3(sim.ship.angular_velocity, ship_spin, 1e-5, "Ship angular velocity is continuous")
-	_assert_vec3(sim.planet_manager.planet_center_offset, -offset, 1e-4, "Planet center offset shifted")
+	_assert_vec3(sim.planet_manager.planet_center_offset, startup_center - offset, 1e-4, "Planet center offset shifted")
 	_assert_vec3(sim.planet_streamer.global_position, sim.planet_manager.planet_center_offset, 1e-4, "Streamer root follows planet center")
 	_assert_vec3(visual.global_position, visual_pos - offset, 1e-4, "Visual chunk shifted with the planet")
 	_assert_vec3(body.global_position, body_pos - offset, 1e-4, "Collider body shifted with the planet")
@@ -187,6 +198,48 @@ func _run_tier_1() -> void:
 	_assert_vec3(sim.surface_material.planet_center_offset, sim.planet_manager.planet_center_offset, 1e-4, "Shader center uniform follows rebase")
 	_assert_vec3(sim.camera.global_position, sim.ship.global_position + sim.camera.position, 1e-4, "Camera follows the rebased ship")
 	_assert(sim.planet_manager.audit_system()["is_valid"], "Simulation preserved quadtree and collider integrity")
+
+	_start_test("Tier 1.3: Radar and projectile exclude the layer-2 ship collider")
+	sim.ship.global_position = Vector3(100.0, 0.0, 100.0)
+	_prepare_stream(sim)
+	await _settle_terrain_physics(sim)
+	var space_state: PhysicsDirectSpaceState3D = get_root().get_world_3d().direct_space_state
+	var oracle: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
+	var excluded: Array[RID] = [sim.ship.get_rid()]
+	oracle.from = sim.ship.global_position
+	var oracle_radial: Vector3 = (
+		sim.ship.global_position - sim.planet_manager.planet_center_offset
+	).normalized()
+	oracle.to = sim.ship.global_position - oracle_radial * 5_000.0
+	oracle.collision_mask = 1
+	oracle.exclude = excluded
+	oracle.collide_with_bodies = true
+	oracle.collide_with_areas = false
+	oracle.hit_from_inside = true
+	oracle.hit_back_faces = true
+	var oracle_hit: Dictionary = space_state.intersect_ray(oracle)
+	_assert(not oracle_hit.is_empty(), "Physics oracle found terrain below the ship")
+	var measured_altitude: float = sim.weapon_system.measure_radar_altitude(space_state, 5_000.0)
+	_assert(measured_altitude > 0.0 and measured_altitude < 5_000.0, "Radar measured live terrain below the ship")
+	if not oracle_hit.is_empty():
+		var oracle_distance: float = sim.ship.global_position.distance_to(oracle_hit["position"])
+		_assert_approx(measured_altitude, oracle_distance, 1e-3, "Radar matches the live terrain oracle")
+		_assert(oracle_hit["collider"] != sim.ship, "Oracle terrain hit is not the ship")
+	_assert(sim.weapon_system.get_radar_query().exclude[0] == sim.ship.get_rid(), "Radar query excludes the ship RID")
+	sim.weapon_system.terrain_collision_mask = 3
+	var overlap_altitude: float = sim.weapon_system.measure_radar_altitude(space_state, 5_000.0)
+	_assert(overlap_altitude > 0.0 and overlap_altitude < 5_000.0, "Radar exclusion prevents a ship self-hit on overlapping layers")
+	sim.weapon_system.terrain_collision_mask = 1
+	sim.ship.linear_velocity = -sim.ship.global_transform.basis.z * 100.0
+	sim.projectile_pool.clear()
+	var fired_projectile_id: int = sim.weapon_system.fire_projectile()
+	_assert(fired_projectile_id >= 0, "Weapon fired from the live simulation ship")
+	var impacts: int = sim.projectile_pool.step_projectiles(1.0 / 120.0, space_state)
+	_assert_int(impacts, 0, "Projectile did not self-impact the ship on launch")
+	_assert_int(sim.projectile_pool.active_count, 1, "Projectile remains active after launch")
+	if fired_projectile_id >= 0:
+		sim.projectile_pool.release_projectile(fired_projectile_id)
+	sim.ship.linear_velocity = Vector3.ZERO
 	_dispose_sim(sim)
 
 func _make_guidance_fixture() -> Array:
@@ -242,10 +295,11 @@ func _step_vertical_flight(ship: SpaceshipController, guidance: FlightGuidanceSy
 	for i in range(steps):
 		ship._apply_flight_forces()
 		guidance.update_guidance(dt)
+		var longitudinal_thrust: float = ship.forward_thrust if ship.thrust_input.z >= 0.0 else ship.reverse_thrust
 		var thrust_local: Vector3 = Vector3(
 			ship.thrust_input.x * ship.strafe_thrust,
 			ship.thrust_input.y * ship.vertical_thrust,
-			-ship.thrust_input.z * ship.forward_thrust
+			-ship.thrust_input.z * longitudinal_thrust
 		)
 		var accel: Vector3 = ship.get_current_gravity() / ship.mass
 		accel += (ship.global_transform.basis * thrust_local) / ship.mass
@@ -296,6 +350,8 @@ func _run_tier_2() -> void:
 	var profile_ok: bool = true
 	var touchdown_speed: float = 0.0
 	var touchdown_horizontal: float = 0.0
+	var monotonic_descent: bool = true
+	var previous_altitude: float = ship.get_current_altitude()
 	for i in range(1_800):
 		_step_vertical_flight(ship, guidance, 1, 1.0 / 120.0)
 		if guidance._target_radial_speed > -guidance.min_descent_speed - 1e-6:
@@ -307,14 +363,38 @@ func _run_tier_2() -> void:
 			planet.rebase_origin(rebase)
 			_assert_vec3(ship.linear_velocity, velocity_before, 1e-5, "Soft-land velocity is continuous across rebase")
 		var altitude: float = ship.get_current_altitude()
+		if altitude > previous_altitude + 1e-6 or ship.linear_velocity.dot(Vector3.UP) > 1e-6:
+			monotonic_descent = false
+		previous_altitude = altitude
 		if altitude <= guidance.touchdown_margin:
 			touchdown_speed = -ship.linear_velocity.dot(Vector3.UP)
 			var horizontal: Vector3 = ship.linear_velocity - Vector3.UP * ship.linear_velocity.dot(Vector3.UP)
 			touchdown_horizontal = horizontal.length()
 			break
 	_assert(profile_ok, "Soft-land descent profile stayed within speed bounds")
+	_assert(monotonic_descent, "Soft landing descended monotonically without bouncing")
 	_assert(touchdown_speed >= -0.01 and touchdown_speed <= 1.5, "Soft landing touchdown vertical speed is safe (got %.4f)" % touchdown_speed)
 	_assert(touchdown_horizontal < 0.5, "Soft landing zeroed horizontal slip (got %.4f)" % touchdown_horizontal)
+
+	_start_test("Tier 2.5: Low-altitude soft landing without upward thrust bounce")
+	ship.global_transform.basis = Basis.IDENTITY
+	ship.global_position = planet.planet_center_offset + Vector3(0.0, planet.planet_radius + 8.0, 0.0)
+	ship.linear_velocity = Vector3(0.0, -1.5, 0.0)
+	guidance.mode = FlightGuidanceSystem.MODE_SOFT_LAND
+	previous_altitude = 8.0
+	monotonic_descent = true
+	var low_landing_reached: bool = false
+	for i in range(600):
+		_step_vertical_flight(ship, guidance, 1, 1.0 / 120.0)
+		var altitude: float = ship.get_current_altitude()
+		if altitude > previous_altitude + 1e-6 or ship.linear_velocity.dot(Vector3.UP) > 1e-6:
+			monotonic_descent = false
+		previous_altitude = altitude
+		if altitude <= guidance.touchdown_margin + 0.05:
+			low_landing_reached = true
+			break
+	_assert(low_landing_reached, "Low-altitude landing reached the touchdown margin")
+	_assert(monotonic_descent, "Low-altitude landing never bounced upward")
 	_dispose_guidance_fixture(fixture)
 
 func _run_tier_3() -> void:
@@ -344,8 +424,8 @@ func _run_tier_4() -> void:
 	_start_test("Tier 4.1: Flight, pool, and sector telemetry")
 	var sim: Node = _instantiate_main()
 	sim.planet_manager.max_lod = 1
-	sim.ship.global_position = Vector3(sim.planet_manager.planet_radius + 1_000.0, 0.0, 0.0)
-	sim.ship.linear_velocity = Vector3(30.0, 40.0, 12.0)
+	sim.ship.global_position = Vector3.ZERO
+	sim.ship.linear_velocity = Vector3(40.0, 30.0, 12.0)
 	sim.ship.angular_velocity = Vector3.ZERO
 	sim.projectile_pool.spawn_projectile(sim.ship.global_position, Vector3.RIGHT * 100.0, 100.0)
 	sim.projectile_pool.spawn_projectile(sim.ship.global_position, Vector3.LEFT * 100.0, 100.0)
@@ -398,14 +478,14 @@ func _run_tier_5() -> void:
 		if file == "PlanetStreamer.gd":
 			_assert(line_count <= 240, "PlanetStreamer.gd has %d lines (limit 240)" % line_count)
 
-	_start_test("Tier 5.2: All 16 Phase 1-3 suites pass")
+	_start_test("Tier 5.2: All 17 headless suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.begins_with("test_") and file.ends_with(".gd") \
 				and file != "test_phase4_simulation_autopilot_headless.gd":
 			suites.append(file)
 	suites.sort()
-	_assert_int(suites.size(), 16, "Discovered all Phase 1-3 headless suites")
+	_assert_int(suites.size(), 16, "Discovered all 16 prior headless suites")
 	var executable: String = OS.get_executable_path()
 	for suite in suites:
 		var output: Array = []
