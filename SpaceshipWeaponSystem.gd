@@ -17,6 +17,7 @@ var _radar_direction: Vector3 = Vector3.ZERO
 var _planet_center: Vector3 = Vector3.ZERO
 var _ship_velocity: Vector3 = Vector3.ZERO
 var _muzzle_velocity: Vector3 = Vector3.ZERO
+var _excluded_rids: Array[RID] = [RID()]
 
 func _init() -> void:
 	_radar_query.collision_mask = terrain_collision_mask
@@ -50,6 +51,8 @@ func measure_radar_altitude(space_state: PhysicsDirectSpaceState3D, max_range: f
 	_radar_direction = -_radial_dir.normalized()
 	_radar_query.from = ship_pos
 	_radar_query.to = ship_pos + _radar_direction * max_range
+	_excluded_rids[0] = ship.get_rid()
+	_radar_query.exclude = _excluded_rids
 	_radar_query.collision_mask = terrain_collision_mask
 	# intersect_ray() may reset query parameters in headless physics; set all fields explicitly.
 	_radar_query.collide_with_bodies = true

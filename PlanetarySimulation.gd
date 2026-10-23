@@ -6,6 +6,7 @@ extends Node3D
 @export var synchronous_streaming: bool = false
 @export var auto_step: bool = true
 @export var camera_local_offset: Vector3 = Vector3(0.0, 3.0, 8.0)
+@export var initial_altitude: float = 1000.0
 
 var planet_manager: PlanetManager = null
 var planet_streamer: PlanetStreamer = null
@@ -38,6 +39,8 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	planet_manager = PlanetManager.new()
 	planet_manager.name = "PlanetManager"
 	add_child(planet_manager)
+	var startup_offset := Vector3(0.0, planet_manager.planet_radius + initial_altitude, 0.0)
+	planet_manager.rebase_origin(startup_offset)
 
 	planet_streamer = PlanetStreamer.new()
 	planet_streamer.name = "PlanetStreamer"
@@ -51,11 +54,11 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	ship.name = "Spaceship"
 	ship.planet_manager = planet_manager
 	ship.enable_planetary_gravity = true
-	ship.collision_layer = 1
+	ship.collision_layer = 2
 	ship.collision_mask = 1
 	ship.position = Vector3(0.0, 0.0, 0.0)
-	ship.set_physics_process(false)
 	add_child(ship)
+	ship.set_physics_process(false)
 	_ship_sphere = SphereShape3D.new()
 	_ship_sphere.radius = 2.0
 	_ship_collision_shape = CollisionShape3D.new()
