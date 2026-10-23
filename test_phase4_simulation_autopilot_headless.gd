@@ -481,9 +481,9 @@ func _run_tier_5() -> void:
 	_start_test("Tier 5.2: All 17 headless suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
-			if file.begins_with("test_") and file.ends_with(".gd") \
-					and file != "test_phase4_simulation_autopilot_headless.gd" \
-					and file != "test_phase5_orbital_hud_environment_headless.gd":
+		if file.begins_with("test_") and file.ends_with(".gd") \
+			and file != "test_phase4_simulation_autopilot_headless.gd" \
+			and file != "test_phase5_orbital_hud_environment_headless.gd":
 			suites.append(file)
 	suites.sort()
 	_assert_int(suites.size(), 16, "Discovered all 16 prior headless suites")

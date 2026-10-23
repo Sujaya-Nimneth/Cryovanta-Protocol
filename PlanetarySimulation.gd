@@ -17,6 +17,8 @@ var weapon_system: SpaceshipWeaponSystem = null
 var guidance: FlightGuidanceSystem = null
 var telemetry: SimulationTelemetry = null
 var surface_material: PlanetSurfaceMaterial = null
+var environment: PlanetaryEnvironment = null
+var hud: CockpitHUD = null
 var camera: Camera3D = null
 var is_setup: bool = false
 
@@ -36,6 +38,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	if is_setup:
 		return
 	synchronous_streaming = synchronous_streaming_mode
+	FlightInputBindings.ensure_default_actions()
 	planet_manager = PlanetManager.new()
 	planet_manager.name = "PlanetManager"
 	add_child(planet_manager)
@@ -90,6 +93,14 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	guidance.planet_manager = planet_manager
 	add_child(guidance)
 
+	environment = PlanetaryEnvironment.new()
+	environment.name = "PlanetaryEnvironment"
+	add_child(environment)
+
+	hud = CockpitHUD.new()
+	hud.name = "CockpitHUD"
+	add_child(hud)
+
 	telemetry = SimulationTelemetry.new()
 	floating_origin = FloatingOrigin.new()
 	floating_origin.name = "FloatingOrigin"
@@ -99,6 +110,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	add_child(floating_origin)
 	floating_origin.origin_rebased.connect(planet_streamer.rebase_origin)
 	floating_origin.origin_rebased.connect(projectile_pool.rebase_origin)
+	floating_origin.origin_rebased.connect(hud.rebase_origin)
 	floating_origin.origin_rebased.connect(
 		Callable(surface_material, "update_planet_center_From_manager").bind(planet_manager)
 	)
@@ -119,6 +131,14 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	)
 	planet_streamer.update_streamer(camera.global_position)
 	telemetry.sample(self, space_state)
+	environment.update_environment(
+		ship.global_position,
+		planet_manager.planet_center_offset,
+		planet_manager.planet_radius,
+		ship.atmosphere_ceiling,
+		ship.surface_air_density
+	)
+	hud.update_hud(self)
 
 func _get_space_state() -> PhysicsDirectSpaceState3D:
 	if is_inside_tree():
@@ -134,12 +154,18 @@ func destroy() -> void:
 			floating_origin.origin_rebased.disconnect(planet_streamer.rebase_origin)
 		if floating_origin.origin_rebased.is_connected(projectile_pool.rebase_origin):
 			floating_origin.origin_rebased.disconnect(projectile_pool.rebase_origin)
+		if floating_origin.origin_rebased.is_connected(hud.rebase_origin):
+			floating_origin.origin_rebased.disconnect(hud.rebase_origin)
 	if planet_streamer != null:
 		planet_streamer.destroy()
 	if projectile_pool != null:
 		projectile_pool.clear()
 	_free_owned_node(guidance)
 	guidance = null
+	_free_owned_node(hud)
+	hud = null
+	_free_owned_node(environment)
+	environment = null
 	_free_owned_node(weapon_system)
 	weapon_system = null
 	_free_owned_node(floating_origin)
