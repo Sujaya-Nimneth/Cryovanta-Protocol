@@ -79,7 +79,7 @@ func rebase_origin(offset: Vector3) -> void:
 	if offset == Vector3.ZERO:
 		return
 	var index: int = 0
-	while index < trajectory_count:
+	while index < TRAJECTORY_STEPS:
 		trajectory_points[index] -= offset
 		index += 1
 	_ship_position -= offset

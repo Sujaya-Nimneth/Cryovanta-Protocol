@@ -478,7 +478,7 @@ func _run_tier_5() -> void:
 		if file == "PlanetStreamer.gd":
 			_assert(line_count <= 240, "PlanetStreamer.gd has %d lines (limit 240)" % line_count)
 
-	_start_test("Tier 5.2: All 17 headless suites pass")
+	_start_test("Tier 5.2: All 16 prior headless suites pass")
 	var suites: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.begins_with("test_") and file.ends_with(".gd") \
