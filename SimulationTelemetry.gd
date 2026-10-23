@@ -17,6 +17,12 @@ var active_visuals: int = 0
 var active_colliders: int = 0
 var active_projectiles: int = 0
 var origin_sector: Vector3i = Vector3i.ZERO
+var circular_orbit_speed: float = 0.0
+var escape_speed: float = 0.0
+var orbital_eccentricity: float = 0.0
+var periapsis_altitude: float = 0.0
+var apoapsis_altitude: float = 0.0
+var specific_orbital_energy: float = 0.0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO
@@ -25,6 +31,9 @@ var _planet_center: Vector3 = Vector3.ZERO
 var _gravity_accel: Vector3 = Vector3.ZERO
 var _net_force: Vector3 = Vector3.ZERO
 var _origin_sector: Vector3i = Vector3i.ZERO
+var _apsides: Vector2 = Vector2.ZERO
+var _planet_radius: float = 100_000.0
+var _surface_gravity: float = 9.81
 
 func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if sim == null or not is_instance_valid(sim.ship) or not is_instance_valid(sim.planet_manager):
@@ -33,6 +42,8 @@ func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = n
 	var ship: SpaceshipController = sim.ship
 	_ship_position = ship.global_position if ship.is_inside_tree() else ship.position
 	_planet_center = ship.get_planet_center()
+	_planet_radius = ship.get_planet_radius()
+	_surface_gravity = ship.surface_gravity
 	_radial_up = _ship_position - _planet_center
 	if _radial_up.length_squared() > 1e-12:
 		_radial_up = _radial_up.normalized()
@@ -58,4 +69,21 @@ func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = n
 	active_colliders = sim.planet_manager.collider_pool.active_count
 	active_projectiles = sim.projectile_pool.active_count
 	origin_sector = _origin_sector
+	circular_orbit_speed = OrbitalMechanics.get_circular_orbit_speed(
+		_ship_position, _planet_center, _planet_radius, _surface_gravity
+	)
+	escape_speed = OrbitalMechanics.get_escape_speed(
+		_ship_position, _planet_center, _planet_radius, _surface_gravity
+	)
+	orbital_eccentricity = OrbitalMechanics.get_eccentricity_vector(
+		_ship_position, ship.linear_velocity, _planet_center, _planet_radius, _surface_gravity
+	).length()
+	_apsides = OrbitalMechanics.get_apsides_altitudes(
+		_ship_position, ship.linear_velocity, _planet_center, _planet_radius, _surface_gravity
+	)
+	periapsis_altitude = _apsides.x
+	apoapsis_altitude = _apsides.y
+	specific_orbital_energy = OrbitalMechanics.get_specific_orbital_energy(
+		_ship_position, ship.linear_velocity, _planet_center, _planet_radius, _surface_gravity
+	)
 

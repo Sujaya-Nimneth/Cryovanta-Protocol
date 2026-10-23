@@ -9,6 +9,8 @@ const MODE_RADIAL_UP: int = 2
 const MODE_RETROGRADE: int = 3
 const MODE_HOVER: int = 4
 const MODE_SOFT_LAND: int = 5
+const MODE_PROGRADE: int = 6
+const MODE_ORBIT_CIRCULARIZE: int = 7
 @export var ship: RigidBody3D = null
 @export var weapon_system: Node = null
 @export var planet_manager: Node = null
@@ -24,6 +26,8 @@ const MODE_SOFT_LAND: int = 5
 @export var min_descent_speed: float = 0.4
 @export var max_descent_speed: float = 30.0
 @export var touchdown_margin: float = 2.0
+@export var circularize_gain: float = 0.08
+@export var circularize_tolerance: float = 0.05
 
 var _ship_position: Vector3 = Vector3.ZERO
 var _planet_center: Vector3 = Vector3.ZERO
@@ -44,6 +48,10 @@ var _altitude: float = 0.0
 var _radial_speed: float = 0.0
 var _target_radial_speed: float = 0.0
 var _mass: float = 1.0
+var _planet_radius: float = 100_000.0
+var _surface_gravity: float = 9.81
+var _delta_v: Vector3 = Vector3.ZERO
+var _thrust_axis_limit: Vector3 = Vector3.ONE
 
 func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if not is_instance_valid(ship):
@@ -60,6 +68,8 @@ func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	_angular_local = _basis_inv * ship.angular_velocity
 	_linear_local = _basis_inv * ship.linear_velocity
 	_mass = maxf(ship.mass, 0.001)
+	_planet_radius = ship.get_planet_radius()
+	_surface_gravity = ship.surface_gravity
 	_gravity = ship.get_current_gravity()
 	_gravity_accel = _gravity / _mass
 	match mode:
@@ -74,11 +84,15 @@ func update_guidance(delta: float, space_state: PhysicsDirectSpaceState3D = null
 			_apply_hover(space_state, delta)
 		MODE_SOFT_LAND:
 			_apply_soft_land(space_state, delta)
+		MODE_PROGRADE:
+			_apply_prograde()
+		MODE_ORBIT_CIRCULARIZE:
+			_apply_orbit_circularize()
 		_:
 			_clear_commands()
 
 func set_mode(new_mode: int) -> void:
-	mode = clampi(new_mode, MODE_MANUAL, MODE_SOFT_LAND)
+	mode = clampi(new_mode, MODE_MANUAL, MODE_ORBIT_CIRCULARIZE)
 
 func _apply_sas_hold() -> void:
 	_torque_command = -_angular_local * sas_gain
@@ -92,6 +106,31 @@ func _apply_retrograde() -> void:
 	else:
 		_apply_sas_hold()
 	_clear_thrust()
+
+func _apply_prograde() -> void:
+	if ship.linear_velocity.length_squared() > 0.04:
+		_target_world = ship.linear_velocity.normalized()
+		_apply_attitude_target(Vector3.FORWARD, _target_world)
+	else:
+		_apply_sas_hold()
+	_clear_thrust()
+
+func _apply_orbit_circularize() -> void:
+	_delta_v = OrbitalMechanics.calculate_circularization_dv(
+		_ship_position, ship.linear_velocity, _planet_center, _planet_radius, _surface_gravity
+	)
+	if _delta_v.length() <= circularize_tolerance:
+		_clear_commands()
+		return
+	_apply_attitude_target(Vector3.FORWARD, _delta_v.normalized())
+	_thrust_axis_limit = Vector3(
+		maxf(ship.strafe_thrust, 0.001),
+		maxf(ship.vertical_thrust, 0.001),
+		maxf(ship.forward_thrust, 0.001)
+	)
+	_thrust_command = (_basis_inv * _delta_v) * _mass * circularize_gain
+	_thrust_command /= _thrust_axis_limit
+	ship.set_thrust_input(_thrust_command.clamp(Vector3.ONE * -1.0, Vector3.ONE))
 
 func _apply_attitude(world_target: Vector3) -> void:
 	_apply_attitude_target(Vector3.UP, world_target)
