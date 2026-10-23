@@ -161,9 +161,9 @@ func _apply_waypoint_intercept() -> void:
 		return
 	var direction: Vector3 = _delta_v / dist
 	var desired_vel: Vector3 = direction * minf(waypoint_cruise_speed, dist * waypoint_arrival_gain)
-	var vel_err: Vector3 = desired_vel - ship.linear_velocity - _gravity_accel * 0.25
+	var vel_err: Vector3 = desired_vel - ship.linear_velocity
 	_apply_attitude_target(Vector3.FORWARD, direction)
-	var local_accel: Vector3 = (_basis_inv * vel_err) * _mass * 2.0
+	var local_accel: Vector3 = (_basis_inv * (vel_err * 2.0 - _gravity_accel)) * _mass
 	_thrust_command.x = clampf(local_accel.x / maxf(ship.strafe_thrust, 0.001), -1.0, 1.0)
 	_thrust_command.y = clampf(local_accel.y / maxf(ship.vertical_thrust, 0.001), -1.0, 1.0)
 	var longitudinal_thrust: float = ship.forward_thrust if local_accel.z <= 0.0 else ship.reverse_thrust

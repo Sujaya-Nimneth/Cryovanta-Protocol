@@ -20,16 +20,19 @@ var points_per_kill: int = 100
 var points_per_waypoint: int = 250
 var combat_score: int = 0
 var _rebase_connected: bool = false
+var _guidance: FlightGuidanceSystem = null
 
 func setup_director(sim: PlanetarySimulation) -> void:
 	if sim == null or not is_instance_valid(sim.planet_manager):
 		return
 	governor.reset(sim.planet_manager.lod_split_scale)
+	_guidance = sim.guidance
 	bind_floating_origin(sim.floating_origin)
 
 func shutdown_director(sim: PlanetarySimulation) -> void:
 	if sim != null:
 		unbind_floating_origin(sim.floating_origin)
+	_guidance = null
 
 func bind_floating_origin(origin: FloatingOrigin) -> void:
 	if not is_instance_valid(origin):
@@ -131,6 +134,8 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 
 func rebase_origin(offset: Vector3) -> void:
 	waypoints.rebase_origin(offset)
+	if is_instance_valid(_guidance) and _guidance.waypoint_target_active:
+		_guidance.waypoint_target_pos -= offset
 
 func step_evasion(
 	delta: float,
