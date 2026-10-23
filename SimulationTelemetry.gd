@@ -39,6 +39,10 @@ var weapon_heat: float = 0.0
 var weapon_overheated: bool = false
 var mission_stage: int = 0
 var recorded_samples: int = 0
+var fuel_fraction: float = 1.0
+var remaining_delta_v: float = 0.0
+var proximity_alert: int = 0
+var time_to_impact: float = INF
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO
