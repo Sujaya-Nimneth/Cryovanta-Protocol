@@ -18,6 +18,28 @@ var evasion_frequency: float = 2.4
 var elapsed_time: float = 0.0
 var _rebase_connected: bool = false
 
+func setup_director(sim: PlanetarySimulation) -> void:
+	if sim == null or not is_instance_valid(sim.planet_manager):
+		return
+	governor.reset(sim.planet_manager.lod_split_scale)
+	bind_floating_origin(sim.floating_origin)
+
+func shutdown_director(sim: PlanetarySimulation) -> void:
+	if sim != null:
+		unbind_floating_origin(sim.floating_origin)
+
+func bind_floating_origin(origin: FloatingOrigin) -> void:
+	if not is_instance_valid(origin):
+		return
+	if not origin.origin_rebased.is_connected(rebase_origin):
+		origin.origin_rebased.connect(rebase_origin)
+	_rebase_connected = true
+
+func unbind_floating_origin(origin: FloatingOrigin) -> void:
+	if is_instance_valid(origin) and origin.origin_rebased.is_connected(rebase_origin):
+		origin.origin_rebased.disconnect(rebase_origin)
+		_rebase_connected = false
+
 func spawn_drone_ring(
 	ship_pos: Vector3,
 	planet_center: Vector3,
@@ -56,10 +78,6 @@ func spawn_drone_ring(
 func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	if sim == null or sim.telemetry == null:
 		return
-	if is_instance_valid(sim.floating_origin) and not _rebase_connected:
-		if not sim.floating_origin.origin_rebased.is_connected(rebase_origin):
-			sim.floating_origin.origin_rebased.connect(rebase_origin)
-		_rebase_connected = true
 	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):
 		if sim.target_pool.active_count == 0:
 			spawn_drone_ring(

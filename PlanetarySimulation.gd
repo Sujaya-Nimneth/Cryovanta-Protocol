@@ -119,7 +119,6 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 
 	telemetry = SimulationTelemetry.new()
 	encounter_director = EncounterDirector.new()
-	encounter_director.governor.reset(planet_manager.lod_split_scale)
 	floating_origin = FloatingOrigin.new()
 	floating_origin.name = "FloatingOrigin"
 	floating_origin.player_node = ship
@@ -134,8 +133,8 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	floating_origin.origin_rebased.connect(
 		Callable(surface_material, "update_planet_center_From_manager").bind(planet_manager)
 	)
+	encounter_director.setup_director(self)
 	is_setup = true
-
 func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if not is_setup:
 		return
@@ -189,6 +188,7 @@ func destroy() -> void:
 	if not is_setup:
 		return
 	is_setup = false
+	if encounter_director != null: encounter_director.shutdown_director(self)
 	if floating_origin != null:
 		if floating_origin.origin_rebased.is_connected(planet_streamer.rebase_origin):
 			floating_origin.origin_rebased.disconnect(planet_streamer.rebase_origin)
