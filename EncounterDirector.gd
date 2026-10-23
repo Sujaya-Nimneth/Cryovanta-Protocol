@@ -21,6 +21,8 @@ var points_per_waypoint: int = 250
 var combat_score: int = 0
 var recorder: FlightRecorderRingBuffer = FlightRecorderRingBuffer.new()
 var mission: MissionScenarioRunner = MissionScenarioRunner.new()
+var propellant: PropellantMassModel = PropellantMassModel.new()
+var proximity: ProximityWarningSystem = ProximityWarningSystem.new()
 var _rebase_connected: bool = false
 var _guidance: FlightGuidanceSystem = null
 
@@ -134,6 +136,13 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			sim.telemetry,
 			sim.guidance.mode if is_instance_valid(sim.guidance) else 0
 		)
+		propellant.step_propellant(delta, sim.ship)
+		proximity.evaluate_proximity(
+			sim.telemetry.radar_altitude_agl,
+			sim.telemetry.vertical_speed,
+			sim.ship.global_position,
+			sim.target_pool
+		)
 	var kills: int = sim.target_pool.destroyed_count if is_instance_valid(sim.target_pool) else 0
 	var bonus: int = mission.mission_bonus_points if mission.is_completed() else 0
 	combat_score = kills * points_per_kill + waypoints.completed_waypoints * points_per_waypoint + bonus
@@ -141,6 +150,10 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	sim.telemetry.combat_score = combat_score
 	sim.telemetry.mission_stage = mission.stage
 	sim.telemetry.recorded_samples = recorder.count
+	sim.telemetry.fuel_fraction = propellant.get_fuel_fraction()
+	sim.telemetry.remaining_delta_v = propellant.get_remaining_delta_v()
+	sim.telemetry.proximity_alert = proximity.alert_level
+	sim.telemetry.time_to_impact = proximity.time_to_impact
 	sim.telemetry.weapon_heat = sim.weapon_system.capacitor.get_normalized_heat() \
 		if is_instance_valid(sim.weapon_system) else 0.0
 	sim.telemetry.weapon_overheated = sim.weapon_system.capacitor.overheated \
