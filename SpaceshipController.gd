@@ -37,6 +37,7 @@ extends RigidBody3D
 # Direct 6-DOF Input Registers (Pre-allocated for Zero Runtime Heap Allocations)
 # thrust_input: (x: strafe right/left, y: vertical up/down, z: forward/reverse)
 var thrust_input: Vector3 = Vector3.ZERO
+var thrust_cutoff: bool = false
 # torque_input: (x: pitch up/down, y: yaw left/right, z: roll left/right)
 var torque_input: Vector3 = Vector3.ZERO
 
@@ -70,6 +71,8 @@ func _physics_process(_delta: float) -> void:
 	_apply_flight_forces()
 
 func _apply_flight_forces() -> void:
+	if thrust_cutoff:
+		thrust_input = Vector3.ZERO
 	var center: Vector3 = get_planet_center()
 	var radius: float = get_planet_radius()
 	var pos: Vector3 = global_position if is_inside_tree() else position

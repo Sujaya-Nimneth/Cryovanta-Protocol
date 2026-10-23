@@ -13,10 +13,12 @@ var specific_impulse_s: float = 380.0
 var fuel_depleted: bool = false
 var mass_flow_rate: float = 0.0
 
-func reset() -> void:
+func reset(ship: SpaceshipController = null) -> void:
 	propellant_mass = max_propellant_mass
 	fuel_depleted = false
 	mass_flow_rate = 0.0
+	if is_instance_valid(ship):
+		ship.thrust_cutoff = false
 
 func get_wet_mass() -> float:
 	return maxf(dry_mass, 1.0) + maxf(propellant_mass, 0.0)
@@ -36,12 +38,14 @@ func step_propellant(delta: float, ship: SpaceshipController) -> float:
 		return get_wet_mass()
 	if not enabled:
 		mass_flow_rate = 0.0
+		ship.thrust_cutoff = false
 		return ship.mass
 	var dt: float = maxf(delta, 0.0)
 	if propellant_mass <= 0.0:
 		propellant_mass = 0.0
 		fuel_depleted = true
 		mass_flow_rate = 0.0
+		ship.thrust_cutoff = true
 		ship.set_thrust_input(Vector3.ZERO)
 		ship.mass = maxf(dry_mass, 1.0)
 		return ship.mass
@@ -55,6 +59,7 @@ func step_propellant(delta: float, ship: SpaceshipController) -> float:
 	mass_flow_rate = thrust_mag / v_e
 	propellant_mass = maxf(propellant_mass - mass_flow_rate * dt, 0.0)
 	fuel_depleted = propellant_mass <= 0.0
+	ship.thrust_cutoff = fuel_depleted
 	if fuel_depleted:
 		ship.set_thrust_input(Vector3.ZERO)
 	ship.mass = get_wet_mass()
