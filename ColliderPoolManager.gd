@@ -29,10 +29,11 @@ func _init() -> void:
 		body.name = "ColliderBody_%d" % i
 		body.collision_layer = 0
 		body.collision_mask = 0
-		
+
 		var col: CollisionShape3D = CollisionShape3D.new()
 		col.name = "Shape3D"
 		var shape: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
+		shape.backface_collision = true
 		col.shape = shape
 		col.disabled = true
 		

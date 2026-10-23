@@ -18,7 +18,7 @@ const MODE_SOFT_LAND: int = 5
 @export var attitude_gain: float = 2.8
 @export var angular_damping: float = 2.2
 @export var hover_altitude_gain: float = 0.035
-@export var hover_speed_gain: float = 12.0
+@export var hover_speed_gain: float = 14.0
 @export var tangential_damping: float = 1.4
 @export var max_descent_decel: float = 8.0
 @export var min_descent_speed: float = 0.4
@@ -120,18 +120,20 @@ func _apply_soft_land(space_state: PhysicsDirectSpaceState3D, _delta: float) -> 
 	_apply_attitude(_radial_up)
 	_altitude = _measure_altitude(space_state)
 	_radial_speed = ship.linear_velocity.dot(_radial_up)
-	var clearance: float = maxf(_altitude - touchdown_margin * 0.5, 0.0)
-	_target_radial_speed = -clampf(
-		sqrt(2.0 * max_descent_decel * clearance),
-		min_descent_speed,
-		max_descent_speed
-	)
+	if _altitude > touchdown_margin:
+		var clearance: float = maxf(_altitude - touchdown_margin, 0.0)
+		_target_radial_speed = -clampf(
+			sqrt(2.0 * max_descent_decel * clearance),
+			min_descent_speed,
+			max_descent_speed
+		)
+	else:
+		_target_radial_speed = 0.0
 	var vertical_accel: float = (_target_radial_speed - _radial_speed) * hover_speed_gain
+	if _radial_speed < 0.0 and vertical_accel > 0.0:
+		vertical_accel = minf(vertical_accel, -_radial_speed / maxf(_delta, 1e-6))
 	var thrust_y: float = (vertical_accel - _gravity_accel.dot(_radial_up)) * _mass / maxf(ship.vertical_thrust, 1.0)
-	var gravity_compensation: float = -_gravity_accel.dot(_radial_up) * _mass / maxf(ship.vertical_thrust, 1.0)
 	_thrust_command.y = thrust_y
-	if _altitude < 10.0:
-		_thrust_command.y = maxf(_thrust_command.y, gravity_compensation + 0.9)
 	_damp_tangential_velocity()
 	ship.set_thrust_input(_thrust_command.clamp(Vector3.ONE * -1.0, Vector3.ONE))
 
@@ -140,7 +142,8 @@ func _damp_tangential_velocity() -> void:
 	if _tangential_velocity.length_squared() > 1e-8:
 		_target_world = _basis_inv * (-_tangential_velocity.normalized())
 		_thrust_command.x = _target_world.x * _tangential_velocity.length() * _mass * tangential_damping / maxf(ship.strafe_thrust, 1.0)
-		_thrust_command.z = -_target_world.z * _tangential_velocity.length() * _mass * tangential_damping / maxf(ship.forward_thrust, 1.0)
+		var longitudinal_thrust: float = ship.forward_thrust if -_target_world.z >= 0.0 else ship.reverse_thrust
+		_thrust_command.z = -_target_world.z * _tangential_velocity.length() * _mass * tangential_damping / maxf(longitudinal_thrust, 1.0)
 	else:
 		_thrust_command.x = 0.0
 		_thrust_command.z = 0.0
