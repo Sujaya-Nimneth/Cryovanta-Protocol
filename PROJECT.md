@@ -1,4 +1,4 @@
-# Project: Cryovanta Protocol - Orbital Flight Simulation (Phase 5)
+# Project: Cryovanta Protocol - Orbital Flight Simulation (Phase 6)
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
@@ -23,6 +23,11 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Flight Telemetry**: `SimulationTelemetry.gd` samples flight, atmosphere, gravity, G-load, streamed pool counts, 64-bit origin-sector registers, and orbital speed/eccentricity/apsides/energy in O(1).
 - **Surface-to-Vacuum Environment**: `PlanetaryEnvironment.gd` owns a pre-built sun, procedural sky, fog, and `WorldEnvironment`, smoothly interpolating atmospheric lighting and fog to exact vacuum values at the ceiling.
 - **Cockpit HUD & Input Wiring**: `CockpitHUD.gd` mirrors telemetry into fixed scalar registers and draws a 64-point orbital trajectory from a pre-allocated buffer. `FlightInputBindings.gd` idempotently registers all 14 cockpit actions. `PlanetarySimulation.step_simulation()` polls mode cycling, manual flight, and weapon fire when `process_user_input` is enabled.
+- **32-Slot Target Ring Buffer**: `TargetPoolManager.gd` pre-allocates 32 `StaticBody3D` targets with sphere colliders on layer 4 and independent visual markers. O(1) spawn/release, damage with auto-release, motion stepping, collider lookup, and origin rebasing keep target state allocation-free.
+- **32-Slot Impact Ring Buffer**: `ImpactEffectPoolManager.gd` pre-allocates 32 expanding burst markers with fixed duration/remaining buffers. Projectile impacts spawn bursts automatically, and expired effects release their slots without allocating.
+- **Projectile Combat & Ballistic Lead**: `ProjectilePoolManager.gd` masks layers 1 and 4, resolves target colliders, applies 50 default damage, and emits impact effects. `SpaceshipWeaponSystem.gd` provides the first-order lead solver and nearest-active-target lock; `CockpitHUD.gd` mirrors target and lead positions across rebases.
+- **Android Virtual Dual-Stick**: `MobileTouchController.gd` maps radial-deadzoned left/right sticks plus vertical/roll axes to the ship's thrust and torque registers. `PlanetarySimulation` applies it only in manual mode when enabled.
+- **Phase 6 Integration**: `PlanetarySimulation.gd` owns and steps both pools, wires both rebase handlers, and `SimulationTelemetry.gd` records `active_targets` and `active_impacts`.
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
@@ -74,6 +79,12 @@ The architecture decouples planetary terrain generation from local physics via c
 | F44 | Zero-Allocation Cockpit HUD | Fixed telemetry registers, 64-point trajectory buffer, and rebase-aware projection | M27 | Phase 5 R4 |
 | F45 | Live Cockpit Input Wiring | Idempotent 14-action registration, manual-mode input preservation, mode cycling, and weapon polling | M27 | Phase 5 R4 |
 | F46 | Phase 5 Automated Verification | Five-tier orbital, guidance, environment, HUD, input, memory, and all-suite regression gate | M28 | Phase 5 R5 |
+| F47 | 32-Slot Target Ring Buffer | Pre-allocated target bodies, colliders, markers, health, O(1) lifecycle, damage auto-release, and rebase | M29 | Phase 6 R1 |
+| F48 | 32-Slot Impact Ring Buffer | Pre-allocated expanding impact markers, duration decay, O(1) lifecycle, and rebase | M29 | Phase 6 R2 |
+| F49 | Projectile Damage & Impact Bursts | Layer 1/4 projectile mask, target collider resolution, 50 damage, automatic impact spawning | M30 | Phase 6 R2 |
+| F50 | Ballistic Lead & Target Lock | Zero-allocation first-order lead solver, nearest-target acquisition, and HUD target/lead tracking | M30 | Phase 6 R3 |
+| F51 | Android Virtual Dual-Stick | Radial-deadzoned virtual sticks, six-axis thrust/torque mapping, and manual simulation integration | M31 | Phase 6 R4 |
+| F52 | Phase 6 Automated Verification | Five-tier target, impact, combat, mobile, memory, 25-script guardrail, and 18-suite regression gate | M32 | Phase 6 R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -106,6 +117,10 @@ The architecture decouples planetary terrain generation from local physics via c
 | M26 | Planetary Environment | `PlanetaryEnvironment.gd` surface-to-vacuum lighting, sky, and fog | M3, M19 | DONE |
 | M27 | Cockpit HUD & Input Wiring | `CockpitHUD.gd`, `FlightInputBindings.gd`, and simulation integration | M22, M24, M26 | DONE |
 | M28 | Phase 5 Verification | `test_phase5_orbital_hud_environment_headless.gd` Tiers 1-5 and Phase 1-4 regression | M24-M27 | DONE |
+| M29 | Target & Impact Pools | `TargetPoolManager.gd`, `ImpactEffectPoolManager.gd` fixed 32-slot buffers | M15 | DONE |
+| M30 | Projectile Combat & Lead Lock | Projectile damage/effects, weapon lead solver, target acquisition, HUD tracking | M17, M29 | DONE |
+| M31 | Android Virtual Dual-Stick | `MobileTouchController.gd` and manual-mode simulation wiring | M2, M19 | DONE |
+| M32 | Phase 6 Verification | `test_phase6_targets_combat_mobile_headless.gd` Tiers 1-5 and Phase 1-5 regression | M29-M31 | DONE |
 
 ## Interface Contracts
 
@@ -187,13 +202,38 @@ The architecture decouples planetary terrain generation from local physics via c
 
 ### `ProjectilePoolManager`
 - `ProjectilePoolManager.gd`:
-  - Extends `Node3D`; `const POOL_SIZE: int = 128`.
+  - Extends `Node3D`; `const POOL_SIZE: int = 128`, `const DEFAULT_COLLISION_MASK: int = 5` (terrain layer 1 plus target layer 4).
   - Fixed state: `positions`, `velocities`, `lifetimes`, `is_in_use`, `free_indices`, 128 pooled `Node3D` markers, and one `PhysicsRayQueryParameters3D`.
+  - `@export var projectile_damage: float = 50.0`; `target_pool: Node` and `impact_pool: Node`.
   - `spawn_projectile(origin: Vector3, velocity: Vector3, lifetime: float = 5.0) -> int`: O(1), returns `[0..127]` or `-1` when exhausted.
   - `release_projectile(projectile_id: int) -> bool`: O(1) release; invalid/double release returns `false`.
-  - `step_projectiles(delta, space_state = null, planet_center = Vector3.ZERO, planet_radius = 100_000.0, surface_gravity = 0.0) -> int`: Reuses scratch vectors/query, applies optional radial gravity, detects terrain impacts, and returns the impact count.
+  - `step_projectiles(delta, space_state = null, planet_center = Vector3.ZERO, planet_radius = 100_000.0, surface_gravity = 0.0) -> int`: Reuses scratch vectors/query, applies optional radial gravity, spawns an impact burst, resolves target collider damage, and returns the impact count.
   - `rebase_origin(offset: Vector3) -> void`: Subtracts `offset` from active positions without changing velocities or lifetimes.
   - `verify_integrity() -> Dictionary`, `clear() -> void`.
+
+### `TargetPoolManager` & `ImpactEffectPoolManager`
+- `TargetPoolManager.gd`:
+  - Extends `Node3D`; `const POOL_SIZE: int = 32`, `const TARGET_COLLISION_LAYER: int = 4`.
+  - Pre-allocates `bodies: Array[StaticBody3D]`, `shapes: Array[CollisionShape3D]`, `markers: Array[MeshInstance3D]`, `positions`, `velocities`, `health`, `is_in_use`, and `free_indices`.
+  - `spawn_target(pos, vel = Vector3.ZERO, initial_health = 100.0) -> int` and `release_target(target_id) -> bool`: O(1) lifecycle with enabled/disabled sphere colliders.
+  - `step_targets(delta)`, `find_target_by_collider(collider) -> int`, `apply_damage(target_id, amount) -> bool`: Motion sync, collider ownership lookup, and health decrement with automatic release at zero.
+  - `get_target_position(id)`, `get_target_velocity(id)`, `rebase_origin(offset)`, `verify_integrity()`, `clear()`.
+- `ImpactEffectPoolManager.gd`:
+  - Extends `Node3D`; `const POOL_SIZE: int = 32`.
+  - Pre-allocates 32 `MeshInstance3D` burst markers plus `positions`, `durations`, `remaining`, `is_in_use`, and `free_indices`.
+  - `spawn_effect(pos, duration = 0.35) -> int`, `release_effect(effect_id) -> bool`, `step_effects(delta)`: O(1) lifecycle and expanding-scale decay with automatic release.
+  - `rebase_origin(offset)`, `verify_integrity()`, `clear()`.
+
+### `MobileTouchController` & Combat HUD
+- `MobileTouchController.gd`:
+  - Extends `RefCounted`; `enabled`, `deadzone = 0.1`, `left_stick`, `right_stick`, `vertical_axis`, `roll_axis`, `thrust_output`, and `torque_output`.
+  - `set_virtual_sticks(left, right, vertical = 0.0, roll = 0.0)`: Radial deadzone on both sticks and scalar axes, clamped to `[-1, 1]`; maps thrust to `(strafe, vertical, forward)` and torque to `(pitch, yaw, roll)`.
+  - `apply_to_ship(ship)`: Writes the cached outputs into `SpaceshipController`.
+- `SpaceshipWeaponSystem.gd`:
+  - `static func calculate_lead_position(shooter_pos, shooter_vel, target_pos, target_vel, muzzle_speed = 800.0) -> Vector3`: First-order `target_pos + (target_vel - shooter_vel) * (range / max(muzzle_speed, 1))`.
+  - `acquire_nearest_target(override_pool = null) -> int`: Scans active slots and stores `locked_target_id`.
+- `CockpitHUD.gd`:
+  - `locked_target_id`, `locked_target_pos`, and `locked_lead_pos` mirror the weapon lock in `update_hud()` and shift by `-offset` during rebasing.
 
 ### `ComputeChunkDispatcher` ↔ `planet_chunk.glsl`
 - `ComputeChunkDispatcher.gd`:
@@ -214,7 +254,8 @@ The architecture decouples planetary terrain generation from local physics via c
 ### `PlanetarySimulation` & `main.tscn`
 - `PlanetarySimulation.gd`:
   - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
-  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, manual input sampling, weapon fire) -> guidance -> flight forces -> rebase check -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
+  - Owns `target_pool`, `impact_pool`, and `touch_controller` in addition to the Phase 1-5 runtime graph.
+  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, touch/keyboard manual input, weapon fire) -> guidance -> flight forces -> rebase check -> target/impact stepping -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
   - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
   - The ship owns a radius-2.0 `SphereShape3D` on collision layer 2 / mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
   - `initial_altitude` defaults to 1000 m; startup rebases the planet center to `(0, -(planet_radius + initial_altitude), 0)` before streamer/material synchronization.
