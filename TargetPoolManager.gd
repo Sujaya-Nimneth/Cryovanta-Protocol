@@ -71,10 +71,10 @@ func spawn_target(
 	health[id] = maxf(initial_health, 0.0)
 	is_in_use[id] = true
 	active_count += 1
-	bodies[id].position = pos
 	markers[id].position = pos
 	markers[id].visible = true
 	shapes[id].disabled = false
+	_sync_body_transform(id)
 	return id
 
 func release_target(target_id: int) -> bool:
@@ -96,7 +96,7 @@ func step_targets(delta: float) -> void:
 		if not is_in_use[id]:
 			continue
 		positions[id] += velocities[id] * dt
-		bodies[id].position = positions[id]
+		_sync_body_transform(id)
 		markers[id].position = positions[id]
 
 func get_target_position(target_id: int) -> Vector3:
@@ -138,8 +138,17 @@ func rebase_origin(offset: Vector3) -> void:
 		if not is_in_use[id]:
 			continue
 		positions[id] -= offset
-		bodies[id].position = positions[id]
+		_sync_body_transform(id)
 		markers[id].position = positions[id]
+
+func _sync_body_transform(id: int) -> void:
+	bodies[id].position = positions[id]
+	if bodies[id].is_inside_tree():
+		PhysicsServer3D.body_set_state(
+			bodies[id].get_rid(),
+			PhysicsServer3D.BODY_STATE_TRANSFORM,
+			bodies[id].global_transform
+		)
 
 func verify_integrity() -> Dictionary:
 	var errors: Array[String] = []

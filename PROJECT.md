@@ -25,9 +25,9 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Cockpit HUD & Input Wiring**: `CockpitHUD.gd` mirrors telemetry into fixed scalar registers and draws a 64-point orbital trajectory from a pre-allocated buffer. `FlightInputBindings.gd` idempotently registers all 14 cockpit actions. `PlanetarySimulation.step_simulation()` polls mode cycling, manual flight, and weapon fire when `process_user_input` is enabled.
 - **32-Slot Target Ring Buffer**: `TargetPoolManager.gd` pre-allocates 32 `StaticBody3D` targets with sphere colliders on layer 4 and independent visual markers. O(1) spawn/release, damage with auto-release, motion stepping, collider lookup, and origin rebasing keep target state allocation-free.
 - **32-Slot Impact Ring Buffer**: `ImpactEffectPoolManager.gd` pre-allocates 32 expanding burst markers with fixed duration/remaining buffers. Projectile impacts spawn bursts automatically, and expired effects release their slots without allocating.
-- **Projectile Combat & Ballistic Lead**: `ProjectilePoolManager.gd` masks layers 1 and 4, resolves target colliders, applies 50 default damage, and emits impact effects. `SpaceshipWeaponSystem.gd` provides the first-order lead solver and nearest-active-target lock; `CockpitHUD.gd` mirrors target and lead positions across rebases.
+- **Projectile Combat & Ballistic Lead**: `ProjectilePoolManager.gd` masks layers 1 and 4, resolves target colliders, applies 50 default damage, and emits impact effects. `SpaceshipWeaponSystem.gd` provides the exact quadratic intercept solver and nearest-active-target lock; `CockpitHUD.gd` draws target and lead reticles and mirrors both positions across rebases.
 - **Android Virtual Dual-Stick**: `MobileTouchController.gd` maps radial-deadzoned left/right sticks plus vertical/roll axes to the ship's thrust and torque registers. `PlanetarySimulation` applies it only in manual mode when enabled.
-- **Phase 6 Integration**: `PlanetarySimulation.gd` owns and steps both pools, wires both rebase handlers, and `SimulationTelemetry.gd` records `active_targets` and `active_impacts`.
+- **Phase 6 Integration**: `PlanetarySimulation.gd` owns and steps both pools, wires both rebase handlers, refreshes invalid or destroyed target locks, and `SimulationTelemetry.gd` records `active_targets` and `active_impacts`. Target bodies synchronize their `PhysicsServer3D` transforms on spawn, motion, and rebase for same-frame projectile raycasts.
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
@@ -230,10 +230,11 @@ The architecture decouples planetary terrain generation from local physics via c
   - `set_virtual_sticks(left, right, vertical = 0.0, roll = 0.0)`: Radial deadzone on both sticks and scalar axes, clamped to `[-1, 1]`; maps thrust to `(strafe, vertical, forward)` and torque to `(pitch, yaw, roll)`.
   - `apply_to_ship(ship)`: Writes the cached outputs into `SpaceshipController`.
 - `SpaceshipWeaponSystem.gd`:
-  - `static func calculate_lead_position(shooter_pos, shooter_vel, target_pos, target_vel, muzzle_speed = 800.0) -> Vector3`: First-order `target_pos + (target_vel - shooter_vel) * (range / max(muzzle_speed, 1))`.
-  - `acquire_nearest_target(override_pool = null) -> int`: Scans active slots and stores `locked_target_id`.
+  - `static func calculate_lead_position(shooter_pos, shooter_vel, target_pos, target_vel, muzzle_speed = 800.0) -> Vector3`: Solves the exact quadratic intercept time, selecting the smallest positive root and falling back to range/muzzle speed when no positive root exists.
+  - `acquire_nearest_target(override_pool = null, origin_override = null) -> int`: Scans active slots and stores `locked_target_id`; accepts either a pool or `(ship_position, pool)`.
 - `CockpitHUD.gd`:
   - `locked_target_id`, `locked_target_pos`, and `locked_lead_pos` mirror the weapon lock in `update_hud()` and shift by `-offset` during rebasing.
+  - `_draw_cockpit()` draws a 28x28 target lock box and an 8-pixel lead circle when both projected points are in front of the camera; `last_drawn_target_reticles` records 0-2 reticles drawn.
 
 ### `ComputeChunkDispatcher` ↔ `planet_chunk.glsl`
 - `ComputeChunkDispatcher.gd`:
@@ -255,7 +256,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `PlanetarySimulation.gd`:
   - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
   - Owns `target_pool`, `impact_pool`, and `touch_controller` in addition to the Phase 1-5 runtime graph.
-  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, touch/keyboard manual input, weapon fire) -> guidance -> flight forces -> rebase check -> target/impact stepping -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
+  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, touch/keyboard manual input, weapon fire) -> guidance -> flight forces -> rebase check -> target stepping and lock refresh -> impact stepping -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
   - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
   - The ship owns a radius-2.0 `SphereShape3D` on collision layer 2 / mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
   - `initial_altitude` defaults to 1000 m; startup rebases the planet center to `(0, -(planet_radius + initial_altitude), 0)` before streamer/material synchronization.
@@ -310,14 +311,14 @@ The architecture decouples planetary terrain generation from local physics via c
 - `PlanetStreamer.gd`: Root project folder (240 lines).
 - `ProjectilePoolManager.gd`: Root project folder (159 lines).
 - `ComputeChunkDispatcher.gd`: Root project folder (214 lines).
-- `SpaceshipWeaponSystem.gd`: Root project folder (76 lines).
+- `SpaceshipWeaponSystem.gd`: Root project folder (140 lines).
 - `PlanetarySimulation.gd`: Root project folder (<= 250 lines).
 - `FlightGuidanceSystem.gd`: Root project folder (<= 250 lines).
 - `PlanetSurfaceMaterial.gd`: Root project folder (<= 250 lines).
 - `SimulationTelemetry.gd`: Root project folder (<= 250 lines).
 - `OrbitalMechanics.gd`: Root project folder (129 lines).
 - `PlanetaryEnvironment.gd`: Root project folder (80 lines).
-- `CockpitHUD.gd`: Root project folder (135 lines).
+- `CockpitHUD.gd`: Root project folder (193 lines).
 - `FlightInputBindings.gd`: Root project folder (38 lines).
 - `main.tscn`: Playable root scene.
 - `planet_chunk.glsl`: Root project folder (Compute shader).

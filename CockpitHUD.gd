@@ -19,6 +19,9 @@ var trajectory_count: int = 0
 var locked_target_id: int = -1
 var locked_target_pos: Vector3 = Vector3.ZERO
 var locked_lead_pos: Vector3 = Vector3.ZERO
+var last_drawn_target_reticles: int = 0
+var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
+var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
 
 var _surface: Control = null
 var _projected_points: PackedVector2Array = PackedVector2Array()
@@ -121,6 +124,7 @@ func _update_target_lock(sim: PlanetarySimulation) -> void:
 
 func _draw_cockpit() -> void:
 	_viewport_size = _surface.size
+	last_drawn_target_reticles = 0
 	var margin: float = 22.0
 	var panel_width: float = minf(300.0, _viewport_size.x * 0.42)
 	_surface.draw_rect(
@@ -145,6 +149,27 @@ func _draw_cockpit() -> void:
 		_line_color
 	)
 	_draw_trajectory()
+	_draw_target_reticles()
+
+func _draw_target_reticles() -> void:
+	if locked_target_id < 0:
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	if camera == null or not camera.is_inside_tree():
+		return
+	if not camera.is_position_behind(locked_target_pos):
+		var t_screen: Vector2 = camera.unproject_position(locked_target_pos)
+		_surface.draw_rect(
+			Rect2(t_screen - Vector2(14.0, 14.0), Vector2(28.0, 28.0)),
+			hud_warning_color,
+			false,
+			1.5
+		)
+		last_drawn_target_reticles += 1
+	if not camera.is_position_behind(locked_lead_pos):
+		var l_screen: Vector2 = camera.unproject_position(locked_lead_pos)
+		_surface.draw_arc(l_screen, 8.0, 0.0, TAU, 12, hud_alert_color, 1.5)
+		last_drawn_target_reticles += 1
 
 func _draw_bar(position: Vector2, width: float, height: float, fill: float, color: Color) -> void:
 	_surface.draw_rect(Rect2(position, Vector2(width, height)), Color(0.04, 0.12, 0.14, 0.8))

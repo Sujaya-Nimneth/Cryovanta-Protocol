@@ -50,18 +50,42 @@ static func calculate_lead_position(
 ) -> Vector3:
 	var rel_pos: Vector3 = target_pos - shooter_pos
 	var rel_vel: Vector3 = target_vel - shooter_vel
-	var time_to_intercept: float = rel_pos.length() / maxf(muzzle_speed, 1.0)
-	return target_pos + rel_vel * time_to_intercept
+	var speed: float = maxf(muzzle_speed, 1.0)
+	var a: float = rel_vel.length_squared() - speed * speed
+	var b: float = 2.0 * rel_pos.dot(rel_vel)
+	var c: float = rel_pos.length_squared()
+	var t: float = 0.0
+	if absf(a) < 0.0001:
+		if absf(b) > 0.0001:
+			t = -c / b
+	else:
+		var disc: float = b * b - 4.0 * a * c
+		if disc >= 0.0:
+			var sqrt_d: float = sqrt(disc)
+			var t1: float = (-b - sqrt_d) / (2.0 * a)
+			var t2: float = (-b + sqrt_d) / (2.0 * a)
+			t = t1 if t1 > 0.0 and (t2 <= 0.0 or t1 < t2) else t2
+	if t <= 0.0:
+		t = rel_pos.length() / speed
+	return target_pos + target_vel * t
 
-func acquire_nearest_target(override_pool: Node = null) -> int:
-	var pool: Node = override_pool if is_instance_valid(override_pool) else target_pool
+func acquire_nearest_target(override_pool: Variant = null, origin_override: Variant = null) -> int:
+	var pool: Node = target_pool
+	var ship_pos: Vector3 = Vector3.ZERO
+	if override_pool is Vector3:
+		ship_pos = override_pool
+		if is_instance_valid(origin_override):
+			pool = origin_override
+	elif is_instance_valid(override_pool):
+		pool = override_pool
 	if not is_instance_valid(ship) or not is_instance_valid(pool):
 		locked_target_id = -1
 		return locked_target_id
 	if not "is_in_use" in pool or not "positions" in pool:
 		locked_target_id = -1
 		return locked_target_id
-	var ship_pos: Vector3 = ship.global_position if ship.is_inside_tree() else ship.position
+	if not override_pool is Vector3:
+		ship_pos = ship.global_position if ship.is_inside_tree() else ship.position
 	var nearest_id: int = -1
 	var nearest_distance_sq: float = INF
 	var active: Array = pool.is_in_use

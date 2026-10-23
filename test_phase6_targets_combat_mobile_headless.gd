@@ -201,10 +201,19 @@ func _run_tier_2() -> void:
 		Vector3(0.0, 0.0, -30.0), Vector3.ZERO, 100.0
 	)
 	var target_body: StaticBody3D = sim.target_pool.bodies[target_id]
-	target_body.force_update_transform()
 	await physics_frame
 	await physics_frame
 	var space_state: PhysicsDirectSpaceState3D = get_root().get_world_3d().direct_space_state
+	_assert_vec3(target_body.global_position, Vector3(0.0, 0.0, -30.0), 1e-5,
+		"Target body transform syncs on spawn")
+	var immediate_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
+	immediate_query.from = Vector3(0.0, 0.0, 10.0)
+	immediate_query.to = Vector3(0.0, 0.0, -40.0)
+	immediate_query.collision_mask = 5
+	immediate_query.collide_with_bodies = true
+	var immediate_hit: Dictionary = space_state.intersect_ray(immediate_query)
+	_assert(not immediate_hit.is_empty() and immediate_hit["collider"] == target_body,
+		"Same-frame raycast sees the spawned target collider")
 	_assert_int(sim.projectile_pool.DEFAULT_COLLISION_MASK, 5, "Projectile collision mask")
 	_assert_int(sim.projectile_pool._ray_query.collision_mask, 5, "Projectile query mask")
 	_assert(sim.projectile_pool.target_pool == sim.target_pool, "Projectile pool links targets")
@@ -248,14 +257,21 @@ func _run_tier_3() -> void:
 	var lead: Vector3 = SpaceshipWeaponSystem.calculate_lead_position(
 		shooter_pos, shooter_vel, target_pos, target_vel, 800.0
 	)
-	var flight_time: float = (target_pos - shooter_pos).length() / 800.0
-	var expected: Vector3 = target_pos + (target_vel - shooter_vel) * flight_time
-	_assert_vec3(lead, expected, 1e-6, "Lead matches the closed-form intercept estimate")
-	var shot_velocity: Vector3 = (lead - shooter_pos).normalized() * 800.0 + shooter_vel
-	var target_at_intercept: Vector3 = target_pos + target_vel * flight_time
-	_assert(lead.distance_to(target_at_intercept) < 110.0,
-		"First-order lead tracks moving target within 110 m")
-	_assert(shot_velocity.length() >= 800.0, "Intercept shot retains muzzle speed")
+	var rel_pos: Vector3 = target_pos - shooter_pos
+	var rel_vel: Vector3 = target_vel - shooter_vel
+	var qa: float = rel_vel.length_squared() - 800.0 * 800.0
+	var qb: float = 2.0 * rel_pos.dot(rel_vel)
+	var qc: float = rel_pos.length_squared()
+	var disc: float = qb * qb - 4.0 * qa * qc
+	var sqrt_d: float = sqrt(disc)
+	var t1: float = (-qb - sqrt_d) / (2.0 * qa)
+	var t2: float = (-qb + sqrt_d) / (2.0 * qa)
+	var intercept_time: float = t1 if t1 > 0.0 and (t2 <= 0.0 or t1 < t2) else t2
+	var expected: Vector3 = target_pos + target_vel * intercept_time
+	var intercept_error: float = lead.distance_to(expected)
+	_assert(intercept_error < 1.0,
+		"Quadratic lead intercept error %.6f m is below 1 m" % intercept_error)
+	_assert_approx(intercept_time, 0.856395, 1e-4, "Quadratic positive root")
 	var stationary: Vector3 = SpaceshipWeaponSystem.calculate_lead_position(
 		Vector3.ZERO, Vector3.ZERO, Vector3(100.0, 0.0, 0.0), Vector3.ZERO, 0.0
 	)
@@ -310,9 +326,32 @@ func _run_tier_3() -> void:
 		"HUD lead position shifts on rebase")
 	_assert_vec3(sim.target_pool.get_target_position(hud_target),
 		target_before - offset, 1e-5, "Pool target shifts with the HUD")
+	_assert(sim.camera.is_inside_tree() and sim.camera.current, "HUD camera is active in-tree")
+	sim.hud._surface.queue_redraw()
+	await process_frame
+	await process_frame
+	_assert_int(sim.hud.last_drawn_target_reticles, 2,
+		"HUD draws target lock box and lead reticle")
 	sim.weapon_system.locked_target_id = -1
 	sim.step_simulation(DT)
-	_assert_int(sim.hud.locked_target_id, -1, "HUD clears stale target lock")
+	_assert_int(sim.weapon_system.locked_target_id, hud_target,
+		"Simulation reacquires a cleared lock")
+	_assert_int(sim.hud.locked_target_id, hud_target, "HUD mirrors reacquired lock")
+
+	_start_test("Tier 3.4: Destroyed lock auto-refreshes to the next target")
+	var next_target: int = sim.target_pool.spawn_target(
+		Vector3(-200.0, 20.0, -250.0), Vector3.ZERO, 100.0
+	)
+	sim.weapon_system.locked_target_id = hud_target
+	_assert(sim.target_pool.apply_damage(hud_target, 100.0), "Locked target destroyed")
+	sim.step_simulation(DT)
+	_assert_int(sim.weapon_system.locked_target_id, next_target,
+		"Destroyed lock reacquires the remaining target")
+	_assert_int(sim.hud.locked_target_id, next_target, "HUD follows the refreshed lock")
+	sim.target_pool.apply_damage(next_target, 100.0)
+	sim.step_simulation(DT)
+	_assert_int(sim.weapon_system.locked_target_id, -1, "Empty target pool clears the lock")
+	_assert_int(sim.hud.locked_target_id, -1, "HUD clears the empty target lock")
 	_dispose_sim(sim)
 
 func _run_tier_4() -> void:

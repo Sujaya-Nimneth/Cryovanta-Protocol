@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
 ## Phase 6 Readiness
-Phase 6 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The Phase 6 suite passes at **347 / 347 assertions**, and its complete Phase 1–5 regression gate passes across **18 suites** with exit code 0.
+Phase 6 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The hardened Phase 6 suite passes at **356 / 356 assertions**, and its complete Phase 1–5 regression gate passes across **18 suites** with exit code 0.
 
 | Phase 6 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase6_targets_combat_mobile_headless.gd` | 347 | 0 | 0 | 32-slot target/impact lifecycle and exhaustion, motion/decay/rebase, projectile damage and auto-release, automatic impact bursts, first-order lead solving, nearest-target lock, HUD rebase tracking, virtual dual-stick mapping, telemetry, 1,000-tick memory stability, 25 production class-name/line checks, 18 prior suites |
+| `test_phase6_targets_combat_mobile_headless.gd` | 356 | 0 | 0 | 32-slot target/impact lifecycle and exhaustion, same-frame physics transform sync, projectile damage and auto-release, automatic impact bursts, sub-meter quadratic lead solving, lock refresh, dual HUD reticles, virtual dual-stick mapping, telemetry, 1,000-tick memory stability, 25 production class-name/line checks, 18 prior suites |
 
 ## Test Execution Overview
-All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 6 suite passes at **347 / 347 assertions**, including its 18-suite Phase 1–5 regression gate.
+All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 6 suite passes at **356 / 356 assertions**, including its 18-suite Phase 1–5 regression gate.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -30,7 +30,7 @@ All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_phase3_streaming_projectiles_headless.gd` | 2,616 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
 | `test_phase4_simulation_autopilot_headless.gd` | 405 assertions | 0 | 0 | Unified simulation, collision isolation, 6-DOF guidance, shared material, telemetry, HUD/environment integration, memory, class/line guardrails, and all-suite regression | **PASS** |
 | `test_phase5_orbital_hud_environment_headless.gd` | 262 assertions | 0 | 0 | Keplerian mechanics, zero-tangent fallback, 64-point Velocity-Verlet prediction, manual-input preservation, prograde/circularization guidance, environment transition, input/HUD rebase, memory, 25-script guardrail, and 17-suite regression gate | **PASS** |
-| `test_phase6_targets_combat_mobile_headless.gd` | 347 assertions | 0 | 0 | Target/impact pools, projectile damage/effects, lead lock, HUD rebase tracking, dual-stick input, telemetry, memory, 25-script guardrail, and 18-suite regression gate | **PASS** |
+| `test_phase6_targets_combat_mobile_headless.gd` | 356 assertions | 0 | 0 | Target/impact pools, same-frame transform sync, projectile damage/effects, exact lead lock, dual HUD reticles, lock refresh, dual-stick input, telemetry, memory, 25-script guardrail, and 18-suite regression gate | **PASS** |
 | **Total Test Coverage** | **> 26,000 tests & assertions across 19 suites** | **0** | **0** | **Comprehensive Phase 1-6 Integration & Hardening** | **100% PASS** |
 
 ---
@@ -88,7 +88,7 @@ All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F47** | 32-Slot Target Ring Buffer | Phase 6 R1 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 1) | O(1) exhaustion/reuse, motion, damage auto-release, 2,000 m rebase, zero-growth stepping | **PASS** |
 | **F48** | 32-Slot Impact Ring Buffer | Phase 6 R2 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 1) | O(1) exhaustion/reuse, expanding decay, auto-release, rebase, zero-growth stepping | **PASS** |
 | **F49** | Projectile Damage & Impact Bursts | Phase 6 R2 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 2) | Layer 1/4 mask, 2x50 damage destruction, auto-release, automatic burst spawning | **PASS** |
-| **F50** | Ballistic Lead & Target Lock | Phase 6 R3 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 3) | Closed-form lead, nearest target, stale lock clearing, HUD target/lead rebase shifts | **PASS** |
+| **F50** | Ballistic Lead & Target Lock | Phase 6 R3 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 3) | Exact quadratic lead below 1 m, nearest target, destroyed-lock refresh, target box and lead reticle, HUD rebase shifts | **PASS** |
 | **F51** | Android Virtual Dual-Stick | Phase 6 R4 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 4) | Radial deadzone, scalar filtering, 6-DOF mapping, manual simulation step, telemetry | **PASS** |
 | **F52** | Phase 6 Regression Gate | Phase 6 R5 | `test_phase6_targets_combat_mobile_headless.gd` (Tier 5) | 25 production `class_name` declarations, 250-line limits, all 18 Phase 1-5 suites | **PASS** |
 
@@ -111,19 +111,19 @@ All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
 | `ProjectilePoolManager.gd` | 170 lines | 80 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
-| `SpaceshipWeaponSystem.gd` | 116 lines | 134 lines | **COMPLIANT** |
-| `PlanetarySimulation.gd` | 236 lines | 14 lines | **COMPLIANT** |
+| `SpaceshipWeaponSystem.gd` | 140 lines | 110 lines | **COMPLIANT** |
+| `PlanetarySimulation.gd` | 242 lines | 8 lines | **COMPLIANT** |
 | `FlightGuidanceSystem.gd` | 214 lines | 36 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
 | `SimulationTelemetry.gd` | 93 lines | 157 lines | **COMPLIANT** |
 | `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
 | `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
-| `CockpitHUD.gd` | 168 lines | 82 lines | **COMPLIANT** |
+| `CockpitHUD.gd` | 193 lines | 57 lines | **COMPLIANT** |
 | `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
-| `TargetPoolManager.gd` | 197 lines | 53 lines | **COMPLIANT** |
+| `TargetPoolManager.gd` | 206 lines | 44 lines | **COMPLIANT** |
 | `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
 | `MobileTouchController.gd` | 54 lines | 196 lines | **COMPLIANT** |
-| **Total Production Lines** | **3,883 lines** | **2,367 lines total headroom** | **100% COMPLIANT** |
+| **Total Production Lines** | **3,947 lines** | **2,303 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 

@@ -150,6 +150,12 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	ship._apply_flight_forces()
 	floating_origin.check_rebase()
 	target_pool.step_targets(delta)
+	var locked_id: int = weapon_system.locked_target_id
+	if target_pool.active_count == 0:
+		weapon_system.locked_target_id = -1
+	elif locked_id < 0 or locked_id >= target_pool.is_in_use.size() \
+			or not target_pool.is_in_use[locked_id]:
+		weapon_system.acquire_nearest_target(ship.global_position, target_pool)
 	impact_pool.step_effects(delta)
 	projectile_pool.step_projectiles(
 		delta,
