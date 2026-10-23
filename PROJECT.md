@@ -1,4 +1,4 @@
-# Project: Cryovanta Protocol - Orbital Flight Simulation (Phase 6)
+# Project: Cryovanta Protocol - Orbital Flight Simulation (Phase 7)
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
@@ -28,6 +28,10 @@ The architecture decouples planetary terrain generation from local physics via c
 - **Projectile Combat & Ballistic Lead**: `ProjectilePoolManager.gd` masks layers 1 and 4, resolves target colliders, applies 50 default damage, and emits impact effects. `SpaceshipWeaponSystem.gd` provides the exact quadratic intercept solver and nearest-active-target lock; `CockpitHUD.gd` draws target and lead reticles and mirrors both positions across rebases.
 - **Android Virtual Dual-Stick**: `MobileTouchController.gd` maps radial-deadzoned left/right sticks plus vertical/roll axes to the ship's thrust and torque registers. `PlanetarySimulation` applies it only in manual mode when enabled.
 - **Phase 6 Integration**: `PlanetarySimulation.gd` owns and steps both pools, wires both rebase handlers, refreshes invalid or destroyed target locks, and `SimulationTelemetry.gd` records `active_targets` and `active_impacts`. Target bodies synchronize their `PhysicsServer3D` transforms on spawn, motion, and rebase for same-frame projectile raycasts.
+- **Atmospheric Thermal & Structural Integrity**: `ThermalStructuralModel.gd` models convective stagnation heating, passive cryogenic cooling, normalized heat-shield load, and hull ablation from overheat and over-G loads with fixed scalar state and no per-step allocation.
+- **Adaptive 120 FPS Governor**: `FrameBudgetGovernor.gd` tracks an EMA against an 8.333 ms target, applies streak hysteresis, and smoothly drives `PlanetManager.lod_split_scale` from 1.0 to 4.0. The neutral scale of 2.0 preserves the existing `split_ratio` behavior exactly.
+- **Orbital Encounter Director**: `EncounterDirector.gd` deterministically spawns tangential drone rings in the ship's local orbital plane, replaces emptied waves only when explicitly enabled, coordinates thermal and governor updates, and writes all Phase 7 telemetry in O(1).
+- **Phase 7 Integration**: `PlanetarySimulation.gd` owns the encounter director, steps it before HUD refresh, and leaves auto-spawning disabled by default so startup target counts and prior behavior remain unchanged. `CockpitHUD.gd` mirrors heat load and hull integrity into two compact status bars.
 - **Automated Verification**: Comprehensive headless test suites validate end-to-end functionality, quadtree pool stability, 48-byte std430 alignment, mesh topology, collider pool integrity, worker thread bounds, radial gravity continuity, memory leaks, and line counts.
 
 ## Feature Inventory
@@ -85,6 +89,10 @@ The architecture decouples planetary terrain generation from local physics via c
 | F50 | Ballistic Lead & Target Lock | Zero-allocation first-order lead solver, nearest-target acquisition, and HUD target/lead tracking | M30 | Phase 6 R3 |
 | F51 | Android Virtual Dual-Stick | Radial-deadzoned virtual sticks, six-axis thrust/torque mapping, and manual simulation integration | M31 | Phase 6 R4 |
 | F52 | Phase 6 Automated Verification | Five-tier target, impact, combat, mobile, memory, 25-script guardrail, and 18-suite regression gate | M32 | Phase 6 R5 |
+| F53 | Atmospheric Thermal & Structural Integrity | Vacuum cooling, calibrated hypersonic stagnation heating, shield load, hull ablation, and over-G damage | M33 | Phase 7 R1 |
+| F54 | Adaptive 120 FPS Frame-Budget Governor | EMA frame budget, streak hysteresis, bounded split-scale control, and live quadtree detail response | M34 | Phase 7 R2 |
+| F55 | Deterministic Orbital Encounter Spawner | Local-plane drone rings, tangential orbital velocity, fixed-pool saturation, wave turnover, and target lock | M35 | Phase 7 R3 |
+| F56 | Phase 7 Automated Verification | Thermal, governor, encounter, HUD, memory, 28-script guardrail, and 19-suite regression gate | M36 | Phase 7 R4-R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -121,6 +129,10 @@ The architecture decouples planetary terrain generation from local physics via c
 | M30 | Projectile Combat & Lead Lock | Projectile damage/effects, weapon lead solver, target acquisition, HUD tracking | M17, M29 | DONE |
 | M31 | Android Virtual Dual-Stick | `MobileTouchController.gd` and manual-mode simulation wiring | M2, M19 | DONE |
 | M32 | Phase 6 Verification | `test_phase6_targets_combat_mobile_headless.gd` Tiers 1-5 and Phase 1-5 regression | M29-M31 | DONE |
+| M33 | Thermal & Structural Integrity | `ThermalStructuralModel.gd` zero-allocation entry heating and hull damage | M2, M3 | DONE |
+| M34 | Adaptive Frame-Budget Governor | `FrameBudgetGovernor.gd` and `PlanetManager.lod_split_scale` control | M14, M33 | DONE |
+| M35 | Orbital Encounter Director | `EncounterDirector.gd` deterministic wave spawning and subsystem coordination | M29, M33, M34 | DONE |
+| M36 | Phase 7 Verification | `test_phase7_thermal_governor_encounters_headless.gd` Tiers 1-5 and Phase 1-6 regression | M33-M35 | DONE |
 
 ## Interface Contracts
 
@@ -236,6 +248,25 @@ The architecture decouples planetary terrain generation from local physics via c
   - `locked_target_id`, `locked_target_pos`, and `locked_lead_pos` mirror the weapon lock in `update_hud()` and shift by `-offset` during rebasing.
   - `_draw_cockpit()` draws a 28x28 target lock box and an 8-pixel lead circle when both projected points are in front of the camera; `last_drawn_target_reticles` records 0-2 reticles drawn.
 
+### Phase 7 Thermal, Governor, and Encounter Contracts
+- `ThermalStructuralModel.gd`:
+  - Extends `RefCounted`; fixed scalar registers `hull_integrity`, `heat_shield_load`, `surface_temperature_k`, and safety flags.
+  - `step_thermal(delta, air_density, speed, g_load)`: clamps non-negative inputs, computes the cubic stagnation-flux proxy with a fixed SI calibration constant, moves toward equilibrium or ambient temperature, and applies overheat/over-G ablation.
+  - `reset()`: restores maximum hull integrity, zero shield load, ambient temperature, and cleared safety flags.
+- `FrameBudgetGovernor.gd`:
+  - Extends `RefCounted`; `TARGET_FRAME_MS = 8.333333`, `MIN_SPLIT_SCALE = 1.0`, and `MAX_SPLIT_SCALE = 4.0`.
+  - `sample_frame_time(frame_ms, planet_manager)`: updates the EMA, requires 4 over-budget or 8 under-budget samples before changing the split scale, and writes the recommendation to a valid `PlanetManager`.
+- `PlanetManager.gd`:
+  - `@export var lod_split_scale: float = 2.0`: neutral scale multiplies `split_ratio` by 0.5; scales below 2.0 reduce subdivision and scales above 2.0 increase it.
+- `EncounterDirector.gd`:
+  - Extends `RefCounted`; owns `thermal`, `governor`, wave state, and spawn tuning.
+  - `spawn_drone_ring(ship_pos, planet_center, target_pool, count = 4) -> int`: deterministic local-plane ring with tangential velocity, layer-4 pooled targets, and saturation-safe count clamping.
+  - `step_director(sim, delta) -> void`: optionally replaces an empty wave, steps thermal and governor subsystems, and mirrors thermal, hull, EMA, and split-scale registers into `SimulationTelemetry`.
+- `SimulationTelemetry.gd`:
+  - Adds `surface_temperature_k`, `heat_shield_load`, `hull_integrity`, `ema_frame_ms`, and `governor_split_scale`.
+- `CockpitHUD.gd`:
+  - Adds `displayed_heat_load` and `displayed_hull_integrity`; `_draw_cockpit()` draws two compact status bars and records `last_drawn_thermal_bars`.
+
 ### `ComputeChunkDispatcher` ↔ `planet_chunk.glsl`
 - `ComputeChunkDispatcher.gd`:
   - Extends `RefCounted`; constants `WORKGROUP_X = 5`, `WORKGROUP_Y = 5`, `WORKGROUP_Z = 1`, `VERTEX_STRIDE_BYTES = 32`, `STORAGE_BUFFER_SIZE_BYTES = 36_992`, `VERTEX_COUNT = 1_156`.
@@ -256,12 +287,12 @@ The architecture decouples planetary terrain generation from local physics via c
 - `PlanetarySimulation.gd`:
   - `setup_simulation(synchronous_streaming: bool = false) -> void`: Builds and wires the complete runtime graph exactly once.
   - Owns `target_pool`, `impact_pool`, and `touch_controller` in addition to the Phase 1-5 runtime graph.
-  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, touch/keyboard manual input, weapon fire) -> guidance -> flight forces -> rebase check -> target stepping and lock refresh -> impact stepping -> projectile stepping -> streamer update -> telemetry -> environment -> HUD.
+  - `step_simulation(delta, space_state = null) -> void`: Optional live cockpit polling (mode cycle, touch/keyboard manual input, weapon fire) -> guidance -> flight forces -> rebase check -> target stepping and lock refresh -> impact stepping -> projectile stepping -> streamer update -> telemetry -> environment -> encounter director -> HUD.
   - `destroy() -> void`: Disconnects signals, drains streaming work, and frees every owned runtime node.
   - The ship owns a radius-2.0 `SphereShape3D` on collision layer 2 / mask 1, plus the protected `FlightCamera` at local `(0, 3, 8)`.
   - `initial_altitude` defaults to 1000 m; startup rebases the planet center to `(0, -(planet_radius + initial_altitude), 0)` before streamer/material synchronization.
   - `FloatingOrigin.origin_rebased` fans out to `PlanetStreamer.rebase_origin`, `ProjectilePoolManager.rebase_origin`, `CockpitHUD.rebase_origin`, and the shared material's planet-center uniform refresh.
-  - Calls `FlightInputBindings.ensure_default_actions()` before constructing the runtime, and owns `PlanetaryEnvironment` plus `CockpitHUD` for the lifetime of the simulation.
+  - Calls `FlightInputBindings.ensure_default_actions()` before constructing the runtime, and owns `PlanetaryEnvironment`, `CockpitHUD`, and `EncounterDirector` for the lifetime of the simulation.
 - `main.tscn`: Root `PlanetarySimulation` scene. `project.godot` registers it as `application/run/main_scene`.
 
 ### `FlightGuidanceSystem`
@@ -285,7 +316,7 @@ The architecture decouples planetary terrain generation from local physics via c
 
 ### `PlanetaryEnvironment`, `CockpitHUD`, and `FlightInputBindings`
 - `PlanetaryEnvironment.gd`: pre-allocates `sun_light`, `world_environment`, `environment`, `sky_material`, and the `Sky` wrapper in `_init()`. `update_environment(...)` normalizes air density by surface density, sets exact zero fog/factor at or above the ceiling, and updates ambient, fog, and sky energy in O(1).
-- `CockpitHUD.gd`: `TRAJECTORY_STEPS = 64`; pre-allocates `trajectory_points`, projected screen points, and validity bytes. `update_hud(sim, predict_dt = 0.5)` copies telemetry and fills the trajectory; `rebase_origin(offset)` shifts all 64 points.
+- `CockpitHUD.gd`: `TRAJECTORY_STEPS = 64`; pre-allocates `trajectory_points`, projected screen points, and validity bytes. `update_hud(sim, predict_dt = 0.5)` copies telemetry, thermal/hull status, and fills the trajectory; `rebase_origin(offset)` shifts all 64 points.
 - `FlightInputBindings.gd`: `ACTIONS` contains `fly_forward`, `fly_backward`, `fly_left`, `fly_right`, `fly_up`, `fly_down`, `fly_pitch_up`, `fly_pitch_down`, `fly_yaw_left`, `fly_yaw_right`, `fly_roll_left`, `fly_roll_right`, `fire_weapon`, and `cycle_guidance_mode`; `ensure_default_actions()` is idempotent.
 
 ### `PlanetSurfaceMaterial`
@@ -294,7 +325,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `update_planet_center(center) -> void` and `update_planet_center_From_manager(manager_or_offset, manager = null) -> void`: Refresh uniforms without allocation.
 
 ### `SimulationTelemetry`
-- Pre-allocated registers: `altitude_asl`, `radar_altitude_agl`, `vertical_speed`, `horizontal_speed`, `total_speed`, `air_density`, `drag_magnitude`, `gravity_magnitude`, `g_load`, `active_leaves`, `active_visuals`, `active_colliders`, `active_projectiles`, `origin_sector`, `circular_orbit_speed`, `escape_speed`, `orbital_eccentricity`, `periapsis_altitude`, `apoapsis_altitude`, `specific_orbital_energy`.
+  - Pre-allocated registers: `altitude_asl`, `radar_altitude_agl`, `vertical_speed`, `horizontal_speed`, `total_speed`, `air_density`, `drag_magnitude`, `gravity_magnitude`, `g_load`, `active_leaves`, `active_visuals`, `active_colliders`, `active_projectiles`, `active_targets`, `active_impacts`, `origin_sector`, `circular_orbit_speed`, `escape_speed`, `orbital_eccentricity`, `periapsis_altitude`, `apoapsis_altitude`, `specific_orbital_energy`, `surface_temperature_k`, `heat_shield_load`, `hull_integrity`, `ema_frame_ms`, and `governor_split_scale`.
 - `sample(sim, space_state = null) -> void`: O(1) update from the unified simulation.
 
 ## Code Layout
@@ -309,7 +340,7 @@ The architecture decouples planetary terrain generation from local physics via c
 - `QuadtreeNode.gd`: Root project folder (<= 250 lines).
 - `ChunkPoolManager.gd`: Root project folder (<= 250 lines).
 - `PlanetStreamer.gd`: Root project folder (240 lines).
-- `ProjectilePoolManager.gd`: Root project folder (159 lines).
+- `ProjectilePoolManager.gd`: Root project folder (170 lines).
 - `ComputeChunkDispatcher.gd`: Root project folder (214 lines).
 - `SpaceshipWeaponSystem.gd`: Root project folder (140 lines).
 - `PlanetarySimulation.gd`: Root project folder (<= 250 lines).
@@ -318,7 +349,10 @@ The architecture decouples planetary terrain generation from local physics via c
 - `SimulationTelemetry.gd`: Root project folder (<= 250 lines).
 - `OrbitalMechanics.gd`: Root project folder (129 lines).
 - `PlanetaryEnvironment.gd`: Root project folder (80 lines).
-- `CockpitHUD.gd`: Root project folder (193 lines).
+- `CockpitHUD.gd`: Root project folder (205 lines).
+- `ThermalStructuralModel.gd`: Root project folder (61 lines).
+- `FrameBudgetGovernor.gd`: Root project folder (42 lines).
+- `EncounterDirector.gd`: Root project folder (74 lines).
 - `FlightInputBindings.gd`: Root project folder (38 lines).
 - `main.tscn`: Playable root scene.
 - `planet_chunk.glsl`: Root project folder (Compute shader).
@@ -335,3 +369,5 @@ The architecture decouples planetary terrain generation from local physics via c
   - `test_phase3_streaming_projectiles_headless.gd`: Phase 3 streaming, projectile, compute, radar, memory, and regression suite (Tiers 1-5), plus 30-frame async convergence and rebase-alignment hardening checks.
   - `test_phase4_simulation_autopilot_headless.gd`: Phase 4 unified-scene, guidance, material, telemetry, memory, and all-suite regression gate (Tiers 1-5).
   - `test_phase5_orbital_hud_environment_headless.gd`: Phase 5 Keplerian mechanics, prograde/circularization guidance, environment, HUD/input, memory, and all-suite regression gate (Tiers 1-5).
+  - `test_phase6_targets_combat_mobile_headless.gd`: Phase 6 target/impact pools, combat, mobile input, HUD tracking, memory, and all-suite regression gate (Tiers 1-5).
+  - `test_phase7_thermal_governor_encounters_headless.gd`: Phase 7 thermal integrity, frame governor, encounter waves, HUD sync, memory, and all-suite regression gate (Tiers 1-5).
