@@ -6,6 +6,8 @@ extends Node3D
 
 const POOL_SIZE: int = 128
 const TERRAIN_COLLISION_MASK: int = 1
+const TARGET_COLLISION_LAYER: int = 4
+const DEFAULT_COLLISION_MASK: int = 5
 const PROJECTILE_MARKER_SCALE: Vector3 = Vector3(0.08, 0.08, 0.5)
 
 var positions: PackedVector3Array = PackedVector3Array()
@@ -15,6 +17,9 @@ var is_in_use: Array[bool] = []
 var free_indices: Array[int] = []
 var markers: Array[Node3D] = []
 var active_count: int = 0
+@export var projectile_damage: float = 50.0
+var target_pool: Node = null
+var impact_pool: Node = null
 var _ray_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
 var _step_from: Vector3 = Vector3.ZERO
 var _step_to: Vector3 = Vector3.ZERO
@@ -38,7 +43,7 @@ func _init() -> void:
 		marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(marker)
 		markers[i] = marker
-	_ray_query.collision_mask = TERRAIN_COLLISION_MASK
+	_ray_query.collision_mask = DEFAULT_COLLISION_MASK
 	_ray_query.collide_with_bodies = true
 	_ray_query.collide_with_areas = false
 	_ray_query.hit_from_inside = true
@@ -101,6 +106,12 @@ func step_projectiles(
 			if not hit.is_empty():
 				positions[id] = hit["position"]
 				markers[id].position = positions[id]
+				if is_instance_valid(impact_pool) and impact_pool.has_method("spawn_effect"):
+					impact_pool.spawn_effect(hit["position"])
+				if is_instance_valid(target_pool) and target_pool.has_method("find_target_by_collider"):
+					var tid: int = target_pool.find_target_by_collider(hit["collider"])
+					if tid >= 0:
+						target_pool.apply_damage(tid, projectile_damage)
 				release_projectile(id)
 				impacted += 1
 				continue

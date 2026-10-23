@@ -16,6 +16,8 @@ var active_leaves: int = 0
 var active_visuals: int = 0
 var active_colliders: int = 0
 var active_projectiles: int = 0
+var active_targets: int = 0
+var active_impacts: int = 0
 var origin_sector: Vector3i = Vector3i.ZERO
 var circular_orbit_speed: float = 0.0
 var escape_speed: float = 0.0
@@ -68,6 +70,8 @@ func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = n
 	active_visuals = sim.planet_streamer.get_active_visual_count()
 	active_colliders = sim.planet_manager.collider_pool.active_count
 	active_projectiles = sim.projectile_pool.active_count
+	active_targets = sim.target_pool.active_count if is_instance_valid(sim.target_pool) else 0
+	active_impacts = sim.impact_pool.active_count if is_instance_valid(sim.impact_pool) else 0
 	origin_sector = _origin_sector
 	circular_orbit_speed = OrbitalMechanics.get_circular_orbit_speed(
 		_ship_position, _planet_center, _planet_radius, _surface_gravity

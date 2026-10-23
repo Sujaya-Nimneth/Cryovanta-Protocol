@@ -8,6 +8,8 @@ extends Node3D
 @export var projectile_pool: Node3D = null
 @export var planet_manager: Node = null
 @export var terrain_collision_mask: int = 1
+var target_pool: Node = null
+var locked_target_id: int = -1
 
 var _radar_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
 var _muzzle_world: Vector3 = Vector3.ZERO
@@ -38,6 +40,42 @@ func fire_projectile(
 	_muzzle_world = ship.global_transform * muzzle_local_offset
 	_muzzle_velocity = _ship_velocity + _ship_forward * muzzle_speed
 	return projectile_pool.spawn_projectile(_muzzle_world, _muzzle_velocity, lifetime)
+
+static func calculate_lead_position(
+	shooter_pos: Vector3,
+	shooter_vel: Vector3,
+	target_pos: Vector3,
+	target_vel: Vector3,
+	muzzle_speed: float = 800.0
+) -> Vector3:
+	var rel_pos: Vector3 = target_pos - shooter_pos
+	var rel_vel: Vector3 = target_vel - shooter_vel
+	var time_to_intercept: float = rel_pos.length() / maxf(muzzle_speed, 1.0)
+	return target_pos + rel_vel * time_to_intercept
+
+func acquire_nearest_target(override_pool: Node = null) -> int:
+	var pool: Node = override_pool if is_instance_valid(override_pool) else target_pool
+	if not is_instance_valid(ship) or not is_instance_valid(pool):
+		locked_target_id = -1
+		return locked_target_id
+	if not "is_in_use" in pool or not "positions" in pool:
+		locked_target_id = -1
+		return locked_target_id
+	var ship_pos: Vector3 = ship.global_position if ship.is_inside_tree() else ship.position
+	var nearest_id: int = -1
+	var nearest_distance_sq: float = INF
+	var active: Array = pool.is_in_use
+	var target_positions: PackedVector3Array = pool.positions
+	var count: int = mini(active.size(), target_positions.size())
+	for id in range(count):
+		if not active[id]:
+			continue
+		var distance_sq: float = ship_pos.distance_squared_to(target_positions[id])
+		if distance_sq < nearest_distance_sq:
+			nearest_distance_sq = distance_sq
+			nearest_id = id
+	locked_target_id = nearest_id
+	return nearest_id
 
 ## Returns the distance from the ship to the nearest baked terrain surface.
 func measure_radar_altitude(space_state: PhysicsDirectSpaceState3D, max_range: float = 5000.0) -> float:

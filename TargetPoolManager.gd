@@ -53,7 +53,7 @@ func _create_target_slot(id: int) -> void:
 	marker.scale = TARGET_MARKER_SCALE
 	marker.visible = false
 	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	body.add_child(marker)
+	add_child(marker)
 	add_child(body)
 	bodies[id] = body
 	shapes[id] = shape

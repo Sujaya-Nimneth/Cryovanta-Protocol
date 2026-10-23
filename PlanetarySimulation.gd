@@ -1,7 +1,7 @@
 class_name PlanetarySimulation
 extends Node3D
 
-## Unified Phase 4 simulation root. Builds and wires all runtime systems once.
+## Unified simulation root. Builds and wires all runtime systems once.
 
 @export var synchronous_streaming: bool = false
 @export var auto_step: bool = true
@@ -13,6 +13,9 @@ var planet_streamer: PlanetStreamer = null
 var floating_origin: FloatingOrigin = null
 var ship: SpaceshipController = null
 var projectile_pool: ProjectilePoolManager = null
+var target_pool: TargetPoolManager = null
+var impact_pool: ImpactEffectPoolManager = null
+var touch_controller: MobileTouchController = null
 var weapon_system: SpaceshipWeaponSystem = null
 var guidance: FlightGuidanceSystem = null
 var telemetry: SimulationTelemetry = null
@@ -79,12 +82,24 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	projectile_pool.name = "ProjectilePool"
 	add_child(projectile_pool)
 
+	target_pool = TargetPoolManager.new()
+	target_pool.name = "TargetPool"
+	add_child(target_pool)
+
+	impact_pool = ImpactEffectPoolManager.new()
+	impact_pool.name = "ImpactPool"
+	add_child(impact_pool)
+	projectile_pool.target_pool = target_pool
+	projectile_pool.impact_pool = impact_pool
+
 	weapon_system = SpaceshipWeaponSystem.new()
 	weapon_system.name = "WeaponSystem"
 	weapon_system.ship = ship
 	weapon_system.projectile_pool = projectile_pool
+	weapon_system.target_pool = target_pool
 	weapon_system.planet_manager = planet_manager
 	add_child(weapon_system)
+	touch_controller = MobileTouchController.new()
 
 	guidance = FlightGuidanceSystem.new()
 	guidance.name = "FlightGuidance"
@@ -110,6 +125,8 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	add_child(floating_origin)
 	floating_origin.origin_rebased.connect(planet_streamer.rebase_origin)
 	floating_origin.origin_rebased.connect(projectile_pool.rebase_origin)
+	floating_origin.origin_rebased.connect(target_pool.rebase_origin)
+	floating_origin.origin_rebased.connect(impact_pool.rebase_origin)
 	floating_origin.origin_rebased.connect(hud.rebase_origin)
 	floating_origin.origin_rebased.connect(
 		Callable(surface_material, "update_planet_center_From_manager").bind(planet_manager)
@@ -123,12 +140,17 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 		if Input.is_action_just_pressed(&"cycle_guidance_mode"):
 			guidance.set_mode((guidance.mode + 1) % 8)
 		if guidance.mode == FlightGuidanceSystem.MODE_MANUAL:
-			ship._sample_user_input()
+			if touch_controller.enabled:
+				touch_controller.apply_to_ship(ship)
+			else:
+				ship._sample_user_input()
 		if Input.is_action_just_pressed(&"fire_weapon"):
 			weapon_system.fire_projectile()
 	guidance.update_guidance(delta, space_state)
 	ship._apply_flight_forces()
 	floating_origin.check_rebase()
+	target_pool.step_targets(delta)
+	impact_pool.step_effects(delta)
 	projectile_pool.step_projectiles(
 		delta,
 		space_state,
@@ -161,12 +183,20 @@ func destroy() -> void:
 			floating_origin.origin_rebased.disconnect(planet_streamer.rebase_origin)
 		if floating_origin.origin_rebased.is_connected(projectile_pool.rebase_origin):
 			floating_origin.origin_rebased.disconnect(projectile_pool.rebase_origin)
+		if floating_origin.origin_rebased.is_connected(target_pool.rebase_origin):
+			floating_origin.origin_rebased.disconnect(target_pool.rebase_origin)
+		if floating_origin.origin_rebased.is_connected(impact_pool.rebase_origin):
+			floating_origin.origin_rebased.disconnect(impact_pool.rebase_origin)
 		if floating_origin.origin_rebased.is_connected(hud.rebase_origin):
 			floating_origin.origin_rebased.disconnect(hud.rebase_origin)
 	if planet_streamer != null:
 		planet_streamer.destroy()
 	if projectile_pool != null:
 		projectile_pool.clear()
+	if target_pool != null:
+		target_pool.clear()
+	if impact_pool != null:
+		impact_pool.clear()
 	_free_owned_node(guidance)
 	guidance = null
 	_free_owned_node(hud)
@@ -179,6 +209,10 @@ func destroy() -> void:
 	floating_origin = null
 	_free_owned_node(projectile_pool)
 	projectile_pool = null
+	_free_owned_node(target_pool)
+	target_pool = null
+	_free_owned_node(impact_pool)
+	impact_pool = null
 	_free_owned_node(planet_streamer)
 	planet_streamer = null
 	_free_owned_node(ship)
@@ -192,6 +226,7 @@ func destroy() -> void:
 	planet_manager = null
 	telemetry = null
 	surface_material = null
+	touch_controller = null
 
 func _free_owned_node(node: Node) -> void:
 	if node == null:

@@ -16,6 +16,9 @@ var displayed_eccentricity: float = 0.0
 var displayed_mode: int = 0
 var trajectory_points: PackedVector3Array = PackedVector3Array()
 var trajectory_count: int = 0
+var locked_target_id: int = -1
+var locked_target_pos: Vector3 = Vector3.ZERO
+var locked_lead_pos: Vector3 = Vector3.ZERO
 
 var _surface: Control = null
 var _projected_points: PackedVector2Array = PackedVector2Array()
@@ -63,6 +66,7 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	_planet_center = ship.get_planet_center()
 	_planet_radius = ship.get_planet_radius()
 	_surface_gravity = ship.surface_gravity
+	_update_target_lock(sim)
 	trajectory_count = OrbitalMechanics.predict_trajectory(
 		_ship_position,
 		_ship_velocity,
@@ -84,7 +88,31 @@ func rebase_origin(offset: Vector3) -> void:
 		index += 1
 	_ship_position -= offset
 	_planet_center -= offset
+	if locked_target_id >= 0:
+		locked_target_pos -= offset
+		locked_lead_pos -= offset
 	_surface.queue_redraw()
+
+func _update_target_lock(sim: PlanetarySimulation) -> void:
+	locked_target_id = -1
+	if not is_instance_valid(sim.weapon_system) or not is_instance_valid(sim.target_pool):
+		return
+	var target_id: int = sim.weapon_system.locked_target_id
+	var pool: Node = sim.target_pool
+	if not "is_in_use" in pool or not "positions" in pool:
+		return
+	if target_id < 0 or target_id >= pool.is_in_use.size():
+		return
+	if target_id >= pool.positions.size() or not pool.is_in_use[target_id]:
+		return
+	locked_target_id = target_id
+	locked_target_pos = pool.positions[target_id]
+	locked_lead_pos = SpaceshipWeaponSystem.calculate_lead_position(
+		_ship_position,
+		_ship_velocity,
+		locked_target_pos,
+		pool.velocities[target_id]
+	)
 
 func _draw_cockpit() -> void:
 	_viewport_size = _surface.size
