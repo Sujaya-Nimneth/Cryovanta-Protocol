@@ -123,14 +123,17 @@ func _apply_orbit_circularize() -> void:
 		_clear_commands()
 		return
 	_apply_attitude_target(Vector3.FORWARD, _delta_v.normalized())
-	_thrust_axis_limit = Vector3(
-		maxf(ship.strafe_thrust, 0.001),
-		maxf(ship.vertical_thrust, 0.001),
-		maxf(ship.forward_thrust, 0.001)
-	)
-	_thrust_command = (_basis_inv * _delta_v) * _mass * circularize_gain
-	_thrust_command /= _thrust_axis_limit
-	ship.set_thrust_input(_thrust_command.clamp(Vector3.ONE * -1.0, Vector3.ONE))
+	var local_accel: Vector3 = (_basis_inv * _delta_v) * _mass * circularize_gain
+	_thrust_command.x = local_accel.x / maxf(ship.strafe_thrust, 0.001)
+	_thrust_command.y = local_accel.y / maxf(ship.vertical_thrust, 0.001)
+	var longitudinal_thrust: float = ship.forward_thrust if local_accel.z <= 0.0 else ship.reverse_thrust
+	_thrust_command.z = -local_accel.z / maxf(longitudinal_thrust, 0.001)
+	var command_scale: float = maxf(absf(_thrust_command.x), maxf(
+		absf(_thrust_command.y), absf(_thrust_command.z)
+	))
+	if command_scale > 1.0:
+		_thrust_command /= command_scale
+	ship.set_thrust_input(_thrust_command)
 
 func _apply_attitude(world_target: Vector3) -> void:
 	_apply_attitude_target(Vector3.UP, world_target)

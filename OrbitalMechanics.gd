@@ -85,9 +85,9 @@ static func calculate_circularization_dv(
 	surface_gravity: float = 9.81
 ) -> Vector3:
 	var r_vec: Vector3 = vessel_pos - planet_pos
-	var prograde: Vector3 = r_vec.cross(velocity).cross(r_vec)
+	var radial: Vector3 = r_vec.normalized()
+	var prograde: Vector3 = velocity - radial * velocity.dot(radial)
 	if prograde.length_squared() < 1e-12:
-		var radial: Vector3 = r_vec.normalized()
 		prograde = velocity - radial * velocity.dot(radial)
 	if prograde.length_squared() < 1e-12:
 		return Vector3.ZERO
