@@ -585,7 +585,8 @@ func _run_tier_5() -> void:
 				and file != "test_phase3_streaming_projectiles_headless.gd" \
 				and file != "test_phase4_simulation_autopilot_headless.gd" \
 				and file != "test_phase5_orbital_hud_environment_headless.gd" \
-				and file != "test_phase6_targets_combat_mobile_headless.gd":
+				and file != "test_phase6_targets_combat_mobile_headless.gd" \
+				and file != "test_phase7_thermal_governor_encounters_headless.gd":
 			suites.append(file)
 	suites.sort()
 	_assert(suites.size() >= 15, "Discovered all existing headless suites")

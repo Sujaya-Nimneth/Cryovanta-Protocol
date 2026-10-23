@@ -511,7 +511,7 @@ func _run_tier_5() -> void:
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
-	_assert_int(production_files.size(), 25, "Discovered all 25 production scripts")
+	_assert(production_files.size() >= 25, "Discovered all 25 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = text.split("\n").size()

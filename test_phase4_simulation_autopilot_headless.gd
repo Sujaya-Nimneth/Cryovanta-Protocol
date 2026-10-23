@@ -484,7 +484,8 @@ func _run_tier_5() -> void:
 		if file.begins_with("test_") and file.ends_with(".gd") \
 			and file != "test_phase4_simulation_autopilot_headless.gd" \
 			and file != "test_phase5_orbital_hud_environment_headless.gd" \
-			and file != "test_phase6_targets_combat_mobile_headless.gd":
+			and file != "test_phase6_targets_combat_mobile_headless.gd" \
+			and file != "test_phase7_thermal_governor_encounters_headless.gd":
 			suites.append(file)
 	suites.sort()
 	_assert_int(suites.size(), 16, "Discovered all 16 prior headless suites")
