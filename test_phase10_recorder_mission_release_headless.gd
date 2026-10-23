@@ -144,6 +144,7 @@ func _run_tier_1() -> void:
 	_assert_approx(thermal.hull_integrity, 63.0, 1e-6, "Hull integrity is restored")
 	_assert_int(guidance.mode, 8, "Guidance mode is restored")
 	_assert(not recorder.restore_snapshot(-1, ship), "Negative slot is rejected")
+	_assert(not recorder.restore_snapshot(2, ship), "Unwritten slot below capacity is rejected")
 	_assert(not recorder.restore_snapshot(64, ship), "Out-of-range slot is rejected")
 	_assert(not recorder.restore_snapshot(0, null), "Null ship is rejected")
 	get_root().remove_child(guidance)

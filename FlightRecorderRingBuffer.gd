@@ -96,13 +96,20 @@ func restore_snapshot(
 	thermal: ThermalStructuralModel = null,
 	guidance: FlightGuidanceSystem = null
 ) -> bool:
-	if slot < 0 or slot >= CAPACITY or count == 0 or not is_instance_valid(ship):
+	if slot < 0 or slot >= count or slot >= CAPACITY or not is_instance_valid(ship):
 		return false
 	if ship.is_inside_tree():
 		ship.global_position = positions[slot]
 	else:
 		ship.position = positions[slot]
 	ship.linear_velocity = velocities[slot]
+	if ship.is_inside_tree():
+		PhysicsServer3D.body_set_state(
+			ship.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, ship.global_transform
+		)
+		PhysicsServer3D.body_set_state(
+			ship.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, velocities[slot]
+		)
 	if is_instance_valid(thermal):
 		thermal.surface_temperature_k = temperatures_k[slot]
 		thermal.hull_integrity = hull_integrities[slot]
