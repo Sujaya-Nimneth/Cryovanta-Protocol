@@ -88,7 +88,8 @@ static func calculate_circularization_dv(
 	var radial: Vector3 = r_vec.normalized()
 	var prograde: Vector3 = velocity - radial * velocity.dot(radial)
 	if prograde.length_squared() < 1e-12:
-		prograde = velocity - radial * velocity.dot(radial)
+		var ref: Vector3 = Vector3.UP if absf(radial.y) < 0.99 else Vector3.RIGHT
+		prograde = radial.cross(ref).normalized()
 	if prograde.length_squared() < 1e-12:
 		return Vector3.ZERO
 	var target_speed: float = get_circular_orbit_speed(
@@ -109,14 +110,20 @@ static func predict_trajectory(
 	var count: int = mini(maxi(steps, 0), out_points.size())
 	var position: Vector3 = vessel_pos
 	var velocity_step: Vector3 = velocity
-	var gravity: Vector3 = Vector3.ZERO
+	var gravity: Vector3 = AtmosphereMath.calculate_gravity_acceleration(
+		position, planet_pos, planet_radius, surface_gravity
+	)
+	var next_pos: Vector3 = Vector3.ZERO
+	var next_gravity: Vector3 = Vector3.ZERO
 	for i in range(count):
-		gravity = AtmosphereMath.calculate_gravity_acceleration(
-			position, planet_pos, planet_radius, surface_gravity
+		next_pos = position + velocity_step * dt + gravity * (0.5 * dt * dt)
+		next_gravity = AtmosphereMath.calculate_gravity_acceleration(
+			next_pos, planet_pos, planet_radius, surface_gravity
 		)
-		position += velocity_step * dt + gravity * (0.5 * dt * dt)
-		velocity_step += gravity * dt
-		if AtmosphereMath.get_altitude(position, planet_pos, planet_radius) <= 0.0:
+		velocity_step += 0.5 * (gravity + next_gravity) * dt
+		position = next_pos
+		gravity = next_gravity
+		if AtmosphereMath.get_altitude(next_pos, planet_pos, planet_radius) <= 0.0:
 			return i
-		out_points[i] = position
+		out_points[i] = next_pos
 	return count
