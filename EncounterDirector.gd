@@ -19,6 +19,8 @@ var elapsed_time: float = 0.0
 var points_per_kill: int = 100
 var points_per_waypoint: int = 250
 var combat_score: int = 0
+var recorder: FlightRecorderRingBuffer = FlightRecorderRingBuffer.new()
+var mission: MissionScenarioRunner = MissionScenarioRunner.new()
 var _rebase_connected: bool = false
 var _guidance: FlightGuidanceSystem = null
 
@@ -108,6 +110,7 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			sim.guidance.set_waypoint_target(
 				waypoints.current_waypoint_id >= 0, waypoints.get_current_waypoint_position()
 			)
+	mission.step_mission(delta, sim, self)
 	sim.telemetry.active_waypoints = waypoints.active_count
 	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
 	sim.telemetry.waypoint_distance = waypoints.distance_to_current
@@ -123,10 +126,21 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	governor.sample_frame_time(delta * 1000.0, sim.planet_manager)
 	sim.telemetry.ema_frame_ms = governor.ema_frame_ms
 	sim.telemetry.governor_split_scale = governor.recommended_split_scale
+	if is_instance_valid(sim.ship):
+		recorder.step_recorder(
+			delta,
+			sim.ship.global_position,
+			sim.ship.linear_velocity,
+			sim.telemetry,
+			sim.guidance.mode if is_instance_valid(sim.guidance) else 0
+		)
 	var kills: int = sim.target_pool.destroyed_count if is_instance_valid(sim.target_pool) else 0
-	combat_score = kills * points_per_kill + waypoints.completed_waypoints * points_per_waypoint
+	var bonus: int = mission.mission_bonus_points if mission.is_completed() else 0
+	combat_score = kills * points_per_kill + waypoints.completed_waypoints * points_per_waypoint + bonus
 	sim.telemetry.targets_destroyed = kills
 	sim.telemetry.combat_score = combat_score
+	sim.telemetry.mission_stage = mission.stage
+	sim.telemetry.recorded_samples = recorder.count
 	sim.telemetry.weapon_heat = sim.weapon_system.capacitor.get_normalized_heat() \
 		if is_instance_valid(sim.weapon_system) else 0.0
 	sim.telemetry.weapon_overheated = sim.weapon_system.capacitor.overheated \
@@ -134,6 +148,7 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 
 func rebase_origin(offset: Vector3) -> void:
 	waypoints.rebase_origin(offset)
+	recorder.rebase_origin(offset)
 	if is_instance_valid(_guidance) and _guidance.waypoint_target_active:
 		_guidance.waypoint_target_pos -= offset
 
