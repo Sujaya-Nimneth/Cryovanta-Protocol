@@ -123,7 +123,7 @@ All 19 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `TargetPoolManager.gd` | 197 lines | 53 lines | **COMPLIANT** |
 | `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
 | `MobileTouchController.gd` | 54 lines | 196 lines | **COMPLIANT** |
-| **Total Production Lines** | **3,805 lines** | **2,445 lines total headroom** | **100% COMPLIANT** |
+| **Total Production Lines** | **3,883 lines** | **2,367 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
