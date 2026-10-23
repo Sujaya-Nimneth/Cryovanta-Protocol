@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
-## Phase 8 Readiness
-Phase 8 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The Phase 8 suite passes at **165 / 165 assertions**, including its complete Phase 1-7 regression gate across **20 prior suites** with exit code 0.
+## Phase 9 Readiness
+Phase 9 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The Phase 9 suite passes at **140 / 140 assertions**, including its complete Phase 1-8 regression gate across **21 prior suites** with exit code 0.
 
-| Phase 8 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| Phase 9 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase8_waypoints_evasion_hud_headless.gd` | 165 | 0 | 0 | 16-slot waypoint/beacon ring, terrain-height beacon placement, sequential capture and rebase, default-off deterministic evasion, bounded orbital speed, zero static growth, live telemetry/HUD diamond, 29 production class-name/line checks, 20 prior suites |
+| `test_phase9_weapon_heat_autopilot_score_headless.gd` | 140 | 0 | 0 | Immediate waypoint rebase binding, thermal weapon cooldown/overheat lifecycle, 400 m autonomous intercept and capture, kill/waypoint score and HUD sync, 1,000-tick zero static growth, 30 production class-name/line checks, 21 prior suites |
 
 ## Test Execution Overview
-All 21 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 8 suite passes at **165 / 165 assertions**, including its 20-suite Phase 1-7 regression gate.
+All 22 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 9 suite passes at **140 / 140 assertions**, including its 21-suite Phase 1-8 regression gate.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -33,7 +33,8 @@ All 21 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_phase6_targets_combat_mobile_headless.gd` | 362 assertions | 0 | 0 | Target/impact pools, same-frame transform sync, projectile damage/effects, exact lead lock, dual HUD reticles, lock refresh, dual-stick input, telemetry, memory, 25-script guardrail, and 18-suite regression gate | **PASS** |
 | `test_phase7_thermal_governor_encounters_headless.gd` | 163 assertions | 0 | 0 | Thermal/structural integrity, 120 FPS governor, quadtree topology response, deterministic encounter waves, HUD/telemetry sync, 1,000-tick memory, 28-script guardrail, and 19-suite regression gate | **PASS** |
 | `test_phase8_waypoints_evasion_hud_headless.gd` | 165 assertions | 0 | 0 | 16-slot waypoint/beacon ring, terrain-height beacon placement, deterministic evasion, live waypoint capture/rebase, HUD diamond projection, 1,000-tick memory, 29-script guardrail, and 20-suite regression gate | **PASS** |
-| **Total Test Coverage** | **> 26,000 tests & assertions across 21 suites** | **0** | **0** | **Comprehensive Phase 1-8 Integration & Hardening** | **100% PASS** |
+| `test_phase9_weapon_heat_autopilot_score_headless.gd` | 140 assertions | 0 | 0 | Immediate origin rebase binding, weapon heat capacitor/cooldown/overheat, autonomous waypoint intercept, kill and waypoint score telemetry, HUD sync, 1,000-tick memory, 30-script guardrail, and 21-suite regression gate | **PASS** |
+| **Total Test Coverage** | **> 26,000 tests & assertions across 22 suites** | **0** | **0** | **Comprehensive Phase 1-9 Integration & Hardening** | **100% PASS** |
 
 ---
 
@@ -101,6 +102,10 @@ All 21 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F58** | Deterministic Evasive Drone Steering | Phase 8 R2 | `test_phase8_waypoints_evasion_hud_headless.gd` (Tier 2) | Default-disabled invariance, deterministic replay, lateral and radial weave, bounded orbital speed, 1,000-tick zero static growth | **PASS** |
 | **F59** | Waypoint Telemetry & HUD Diamond | Phase 8 R3 | `test_phase8_waypoints_evasion_hud_headless.gd` (Tier 3) | Live waypoint count/completion/distance telemetry, in-tree camera projection, one four-line diamond, synchronized floating-origin shift, capture advancement | **PASS** |
 | **F60** | Phase 8 Regression Gate | Phase 8 R4-R5 | `test_phase8_waypoints_evasion_hud_headless.gd` (Tiers 4-5) | 1,000-tick active waypoint/auto-spawn/evasion zero growth, 29 production `class_name` declarations, 250-line limits, all 20 Phase 1-7 suites | **PASS** |
+| **F61** | Deterministic Waypoint Origin Rebase Binding | Phase 8 Polish | `test_phase9_weapon_heat_autopilot_score_headless.gd` (Tier 1) | Setup-time signal connection, immediate waypoint shift before the first tick, deterministic shutdown/unbind | **PASS** |
+| **F62** | Weapon Heat Capacitor & Thermal Cooldown | Phase 9 R1 | `test_phase9_weapon_heat_autopilot_score_headless.gd` (Tier 1) | Default-off compatibility, fire interval, heat accumulation, overheat latch, cooling clear ratio, projectile gate, fixed registers | **PASS** |
+| **F63** | Autonomous Waypoint Intercept Guidance | Phase 9 R2 | `test_phase9_weapon_heat_autopilot_score_headless.gd` (Tier 2) | Mode 8, 400 m intercept, velocity/attitude steering, monotonic approach, capture within 900 ticks, zero-allocation hot path | **PASS** |
+| **F64** | Combat Score & Weapon Heat Telemetry | Phase 9 R3-R5 | `test_phase9_weapon_heat_autopilot_score_headless.gd` (Tiers 3-5) | Two kills plus one waypoint = 450 points, HUD score/heat mirroring, mode-slot clamp and heat bar, 1,000-tick zero static growth, 30-script guardrail, all 21 prior suites | **PASS** |
 
 ---
 
@@ -121,23 +126,24 @@ All 21 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
 | `ProjectilePoolManager.gd` | 170 lines | 80 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
-| `SpaceshipWeaponSystem.gd` | 140 lines | 110 lines | **COMPLIANT** |
+| `SpaceshipWeaponSystem.gd` | 149 lines | 101 lines | **COMPLIANT** |
 | `PlanetarySimulation.gd` | 248 lines | 2 lines | **COMPLIANT** |
-| `FlightGuidanceSystem.gd` | 214 lines | 36 lines | **COMPLIANT** |
+| `FlightGuidanceSystem.gd` | 245 lines | 5 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
-| `SimulationTelemetry.gd` | 101 lines | 149 lines | **COMPLIANT** |
+| `SimulationTelemetry.gd` | 105 lines | 145 lines | **COMPLIANT** |
 | `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
 | `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
-| `CockpitHUD.gd` | 232 lines | 18 lines | **COMPLIANT** |
+| `CockpitHUD.gd` | 239 lines | 11 lines | **COMPLIANT** |
 | `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
-| `TargetPoolManager.gd` | 206 lines | 44 lines | **COMPLIANT** |
+| `TargetPoolManager.gd` | 209 lines | 41 lines | **COMPLIANT** |
 | `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
 | `MobileTouchController.gd` | 54 lines | 196 lines | **COMPLIANT** |
 | `ThermalStructuralModel.gd` | 61 lines | 189 lines | **COMPLIANT** |
 | `FrameBudgetGovernor.gd` | 42 lines | 208 lines | **COMPLIANT** |
-| `EncounterDirector.gd` | 130 lines | 120 lines | **COMPLIANT** |
+| `EncounterDirector.gd` | 165 lines | 85 lines | **COMPLIANT** |
 | `WaypointRingBuffer.gd` | 103 lines | 147 lines | **COMPLIANT** |
-| **Total Production Lines** | **4,350 lines** | **2,900 lines total headroom** | **100% COMPLIANT** |
+| `WeaponHeatCapacitor.gd` | 48 lines | 202 lines | **COMPLIANT** |
+| **Total Production Lines** | **4,487 lines** | **3,013 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_phase6_targets_combat_mobile_headless.gd`, `test_phase7_thermal_governor_encounters_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
@@ -145,7 +151,7 @@ All 21 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 
 ## Verification Execution Commands
 
-To execute and verify all 21 headless test suites:
+To execute and verify all 22 headless test suites:
 ```bash
 godot --headless -s test_phase2_terrain_gravity_headless.gd
 godot --headless -s test_adversarial_m13_challenger1.gd
@@ -168,9 +174,10 @@ godot --headless -s test_phase5_orbital_hud_environment_headless.gd
 godot --headless -s test_phase6_targets_combat_mobile_headless.gd
 godot --headless -s test_phase7_thermal_governor_encounters_headless.gd
 godot --headless -s test_phase8_waypoints_evasion_hud_headless.gd
+godot --headless -s test_phase9_weapon_heat_autopilot_score_headless.gd
 ```
 
 To verify production script line counts:
 ```bash
-wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd MobileTouchController.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd ProjectilePoolManager.gd QuadtreeNode.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd
+wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd MobileTouchController.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd ProjectilePoolManager.gd QuadtreeNode.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
 ```
