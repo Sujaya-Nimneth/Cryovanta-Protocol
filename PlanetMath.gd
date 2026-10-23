@@ -6,6 +6,9 @@ extends RefCounted
 ## tan(uv * PI / 4.0) to eliminate corner grid stretching.
 
 const QUARTER_PI: float = 0.7853981633974483
+const TERRAIN_SEED: int = 1337
+const TERRAIN_FREQUENCY: float = 0.002
+const TERRAIN_AMPLITUDE: float = 500.0
 
 # 6 Cube Face unit normals: +X, -X, +Y, -Y, +Z, -Z
 const FACE_NORMALS: Array[Vector3] = [
@@ -76,3 +79,13 @@ static func get_chunk_bounds(face_index: int, uv_min: Vector2, uv_max: Vector2, 
 		"center": c,
 		"radius": r
 	}
+
+## Radial terrain height matching PlanetStreamer's FBM contract (zero-allocation).
+static func get_terrain_height(
+	unit_dir: Vector3,
+	planet_radius: float,
+	seed_val: int = TERRAIN_SEED,
+	frequency: float = TERRAIN_FREQUENCY,
+	amplitude: float = TERRAIN_AMPLITUDE
+) -> float:
+	return planet_radius + amplitude * TerrainMeshBuilder.fbm4(unit_dir * frequency, seed_val).x

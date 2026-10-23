@@ -476,7 +476,8 @@ func _run_tier_5() -> void:
 	for file in DirAccess.get_files_at("res://"):
 		if file.begins_with("test_") and file.ends_with(".gd") \
 			and file != "test_phase6_targets_combat_mobile_headless.gd" \
-			and file != "test_phase7_thermal_governor_encounters_headless.gd":
+			and file != "test_phase7_thermal_governor_encounters_headless.gd" \
+			and file != "test_phase8_waypoints_evasion_hud_headless.gd":
 			suites.append(file)
 	suites.sort()
 	_assert_int(suites.size(), 18, "Discovered all 18 prior headless suites")

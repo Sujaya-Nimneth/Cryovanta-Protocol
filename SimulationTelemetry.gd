@@ -30,6 +30,9 @@ var heat_shield_load: float = 0.0
 var hull_integrity: float = 100.0
 var ema_frame_ms: float = 8.0
 var governor_split_scale: float = 2.0
+var active_waypoints: int = 0
+var completed_waypoints: int = 0
+var waypoint_distance: float = 0.0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO

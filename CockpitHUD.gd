@@ -23,6 +23,10 @@ var locked_target_pos: Vector3 = Vector3.ZERO
 var locked_lead_pos: Vector3 = Vector3.ZERO
 var last_drawn_target_reticles: int = 0
 var last_drawn_thermal_bars: int = 0
+var active_waypoint_id: int = -1
+var active_waypoint_pos: Vector3 = Vector3.ZERO
+var displayed_waypoint_distance: float = 0.0
+var last_drawn_waypoint_markers: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
 
@@ -69,6 +73,12 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_periapsis = telemetry.periapsis_altitude
 	displayed_eccentricity = telemetry.orbital_eccentricity
 	displayed_mode = sim.guidance.mode if is_instance_valid(sim.guidance) else 0
+	displayed_waypoint_distance = telemetry.waypoint_distance
+	if sim.encounter_director != null and sim.encounter_director.waypoints.current_waypoint_id >= 0:
+		active_waypoint_id = sim.encounter_director.waypoints.current_waypoint_id
+		active_waypoint_pos = sim.encounter_director.waypoints.get_current_waypoint_position()
+	else:
+		active_waypoint_id = -1
 	_ship_position = ship.global_position if ship.is_inside_tree() else ship.position
 	_ship_velocity = ship.linear_velocity
 	_planet_center = ship.get_planet_center()
@@ -99,6 +109,8 @@ func rebase_origin(offset: Vector3) -> void:
 	if locked_target_id >= 0:
 		locked_target_pos -= offset
 		locked_lead_pos -= offset
+	if active_waypoint_id >= 0:
+		active_waypoint_pos -= offset
 	_surface.queue_redraw()
 
 func _update_target_lock(sim: PlanetarySimulation) -> void:
@@ -162,6 +174,21 @@ func _draw_cockpit() -> void:
 	)
 	_draw_trajectory()
 	_draw_target_reticles()
+	last_drawn_waypoint_markers = 0
+	if active_waypoint_id >= 0:
+		var camera: Camera3D = get_viewport().get_camera_3d()
+		if camera != null and camera.is_inside_tree() \
+			and not camera.is_position_behind(active_waypoint_pos):
+			var wp_screen: Vector2 = camera.unproject_position(active_waypoint_pos)
+			var top: Vector2 = wp_screen + Vector2(0.0, -12.0)
+			var right: Vector2 = wp_screen + Vector2(12.0, 0.0)
+			var bottom: Vector2 = wp_screen + Vector2(0.0, 12.0)
+			var left: Vector2 = wp_screen + Vector2(-12.0, 0.0)
+			_surface.draw_line(top, right, _line_color, 1.5)
+			_surface.draw_line(right, bottom, _line_color, 1.5)
+			_surface.draw_line(bottom, left, _line_color, 1.5)
+			_surface.draw_line(left, top, _line_color, 1.5)
+			last_drawn_waypoint_markers = 1
 
 func _draw_target_reticles() -> void:
 	if locked_target_id < 0:

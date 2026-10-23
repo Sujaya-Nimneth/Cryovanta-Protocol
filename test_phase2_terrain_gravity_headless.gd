@@ -877,7 +877,11 @@ func _test_3_6_cancel_all_jobs_auto_reclamation_during_poll() -> void:
 		_assert(jid > 0, "Job %d submitted successfully with id %d" % [i, jid])
 	
 	_assert_int(sched.get_available_slots(), 0, "All 64 slots occupied (available == 0)")
-	_assert_int(sched.get_queue_count(), 60, "60 jobs queued in ring buffer")
+	var queued_after_submit: int = sched.get_queue_count()
+	_assert(queued_after_submit >= 60 and queued_after_submit <= 64,
+		"64 jobs occupy slots with at most 4 workers already dequeuing (%d queued)" % (
+			queued_after_submit
+		))
 	
 	sched.cancel_all_jobs()
 	

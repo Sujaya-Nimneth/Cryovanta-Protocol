@@ -11,6 +11,12 @@ var target_initial_health: float = 100.0
 var wave_counter: int = 0
 var thermal: ThermalStructuralModel = ThermalStructuralModel.new()
 var governor: FrameBudgetGovernor = FrameBudgetGovernor.new()
+var waypoints: WaypointRingBuffer = WaypointRingBuffer.new()
+var evasion_enabled: bool = false
+var evasion_amplitude: float = 18.0
+var evasion_frequency: float = 2.4
+var elapsed_time: float = 0.0
+var _rebase_connected: bool = false
 
 func spawn_drone_ring(
 	ship_pos: Vector3,
@@ -50,6 +56,10 @@ func spawn_drone_ring(
 func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	if sim == null or sim.telemetry == null:
 		return
+	if is_instance_valid(sim.floating_origin) and not _rebase_connected:
+		if not sim.floating_origin.origin_rebased.is_connected(rebase_origin):
+			sim.floating_origin.origin_rebased.connect(rebase_origin)
+		_rebase_connected = true
 	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):
 		if sim.target_pool.active_count == 0:
 			spawn_drone_ring(
@@ -60,6 +70,17 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			)
 			if is_instance_valid(sim.weapon_system):
 				sim.weapon_system.acquire_nearest_target()
+	if is_instance_valid(sim.ship):
+		step_evasion(
+			delta,
+			sim.ship.global_position,
+			sim.planet_manager.planet_center_offset,
+			sim.target_pool
+		)
+		waypoints.step_waypoints(sim.ship.global_position)
+	sim.telemetry.active_waypoints = waypoints.active_count
+	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
+	sim.telemetry.waypoint_distance = waypoints.distance_to_current
 	thermal.step_thermal(
 		delta,
 		sim.telemetry.air_density,
@@ -72,3 +93,38 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	governor.sample_frame_time(delta * 1000.0, sim.planet_manager)
 	sim.telemetry.ema_frame_ms = governor.ema_frame_ms
 	sim.telemetry.governor_split_scale = governor.recommended_split_scale
+
+func rebase_origin(offset: Vector3) -> void:
+	waypoints.rebase_origin(offset)
+
+func step_evasion(
+	delta: float,
+	ship_pos: Vector3,
+	planet_center: Vector3,
+	target_pool: TargetPoolManager
+) -> void:
+	elapsed_time += maxf(delta, 0.0)
+	if not evasion_enabled or not is_instance_valid(target_pool):
+		return
+	var radial_up: Vector3 = ship_pos - planet_center
+	radial_up = radial_up.normalized() if radial_up.length_squared() > 1e-12 else Vector3.UP
+	var dt: float = maxf(delta, 0.0)
+	var id: int = 0
+	while id < TargetPoolManager.POOL_SIZE:
+		if target_pool.is_in_use[id]:
+			var velocity: Vector3 = target_pool.velocities[id]
+			var speed: float = velocity.length()
+			if speed > 1e-6:
+				var lateral: Vector3 = velocity.cross(radial_up)
+				if lateral.length_squared() < 1e-12:
+					lateral = velocity.cross(Vector3.FORWARD)
+				if lateral.length_squared() < 1e-12:
+					lateral = velocity.cross(Vector3.RIGHT)
+				lateral = lateral.normalized()
+				var phase: float = elapsed_time * evasion_frequency + float(id) * 1.5707963
+				var weave: Vector3 = (
+					lateral * cos(phase) + radial_up * sin(phase)
+				) * evasion_amplitude * dt
+				velocity += weave
+				target_pool.velocities[id] = velocity.normalized() * target_orbital_speed
+		id += 1
