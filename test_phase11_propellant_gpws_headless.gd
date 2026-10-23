@@ -127,7 +127,11 @@ func _run_tier_1() -> void:
 	_assert_approx(propellant.propellant_mass, 0.0, 0.0, "Propellant cannot go negative")
 	_assert_approx(ship.mass, propellant.dry_mass, 0.0, "Depleted ship mass equals dry mass")
 	_assert_vec3(ship.thrust_input, Vector3.ZERO, 0.0, "Depletion zeroes thrust input")
+	_assert(ship.thrust_cutoff, "Depletion latches the controller cutoff")
 	_assert_approx(propellant.get_remaining_delta_v(), 0.0, 0.0, "Dry ship has no delta-v")
+	propellant.reset(ship)
+	_assert(not propellant.fuel_depleted, "Reset clears the depletion latch")
+	_assert(not ship.thrust_cutoff, "Reset releases the controller cutoff")
 	get_root().remove_child(ship)
 	ship.free()
 
@@ -195,8 +199,27 @@ func _run_tier_3() -> void:
 		"HUD fuel fraction mirrors telemetry")
 	_assert_int(sim.hud.displayed_proximity_alert, sim.telemetry.proximity_alert,
 		"HUD proximity alert mirrors telemetry")
+	_start_test("Tier 3.2: Depleted live ticks reject guidance thrust and apply zero thruster force")
+	sim.encounter_director.propellant.propellant_mass = 0.0
+	sim.encounter_director.propellant.fuel_depleted = true
+	sim.ship.thrust_cutoff = true
+	sim.guidance.set_waypoint_target(true, Vector3(0.0, 0.0, -1_000.0))
+	sim.guidance.set_mode(FlightGuidanceSystem.MODE_WAYPOINT_INTERCEPT)
+	sim.step_simulation(DT)
+	_assert(sim.ship.thrust_cutoff, "First live tick keeps the depletion cutoff latched")
+	_assert_vec3(sim.ship.thrust_input, Vector3.ZERO, 0.0,
+		"First live tick strips autopilot thrust input")
+	_assert_vec3(sim.ship.get_current_net_force() - sim.ship.get_current_gravity(),
+		sim.ship.get_current_drag(), 1e-4, "First live tick has no thruster force")
+	sim.ship.set_thrust_input(Vector3(1.0, 1.0, 1.0))
+	sim.step_simulation(DT)
+	_assert(sim.ship.thrust_cutoff, "Second live tick keeps the depletion cutoff latched")
+	_assert_vec3(sim.ship.thrust_input, Vector3.ZERO, 0.0,
+		"Second live tick rejects direct thrust writes")
+	_assert_vec3(sim.ship.get_current_net_force() - sim.ship.get_current_gravity(),
+		sim.ship.get_current_drag(), 1e-4, "Second live tick has no thruster force")
 
-	_start_test("Tier 3.2: 1,000 ticks with all active systems have zero static growth")
+	_start_test("Tier 3.3: 1,000 ticks with all active systems have zero static growth")
 	sim.encounter_director.recorder.recording_enabled = true
 	sim.encounter_director.mission.start_mission(
 		sim.encounter_director, sim.target_pool, sim.ship.global_position, Vector3.FORWARD
