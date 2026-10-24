@@ -23,6 +23,8 @@ var recorder: FlightRecorderRingBuffer = FlightRecorderRingBuffer.new()
 var mission: MissionScenarioRunner = MissionScenarioRunner.new()
 var propellant: PropellantMassModel = PropellantMassModel.new()
 var proximity: ProximityWarningSystem = ProximityWarningSystem.new()
+var wind: PlanetaryWindModel = PlanetaryWindModel.new()
+var power_bus: ShipPowerBusModel = ShipPowerBusModel.new()
 var _rebase_connected: bool = false
 var _guidance: FlightGuidanceSystem = null
 
@@ -101,6 +103,25 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			if is_instance_valid(sim.weapon_system):
 				sim.weapon_system.acquire_nearest_target()
 	if is_instance_valid(sim.ship):
+		sim.ship.ambient_wind_velocity = wind.sample_wind(
+			delta,
+			sim.ship.global_position,
+			sim.planet_manager.planet_center_offset,
+			sim.planet_manager.planet_radius,
+			sim.ship.atmosphere_ceiling
+		)
+		var throttle_norm: float = clampf(sim.ship.thrust_input.length(), 0.0, 1.0)
+		var w_heat: float = sim.weapon_system.capacitor.get_normalized_heat() \
+			if is_instance_valid(sim.weapon_system) else 0.0
+		power_bus.step_power_bus(
+			delta,
+			sim.ship.global_position,
+			sim.planet_manager.planet_center_offset,
+			sim.planet_manager.planet_radius,
+			throttle_norm,
+			w_heat,
+			sim.weapon_system.capacitor if is_instance_valid(sim.weapon_system) else null
+		)
 		step_evasion(
 			delta,
 			sim.ship.global_position,
@@ -158,6 +179,10 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 		if is_instance_valid(sim.weapon_system) else 0.0
 	sim.telemetry.weapon_overheated = sim.weapon_system.capacitor.overheated \
 		if is_instance_valid(sim.weapon_system) else false
+	sim.telemetry.wind_speed = wind.current_wind_speed
+	sim.telemetry.battery_fraction = power_bus.get_battery_fraction()
+	sim.telemetry.in_eclipse = power_bus.in_eclipse
+	sim.telemetry.power_brownout = power_bus.brownout
 
 func rebase_origin(offset: Vector3) -> void:
 	waypoints.rebase_origin(offset)
