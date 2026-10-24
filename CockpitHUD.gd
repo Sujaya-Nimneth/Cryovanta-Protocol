@@ -36,7 +36,6 @@ var displayed_wind_speed: float = 0.0
 var last_drawn_waypoint_markers: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
-
 var _surface: Control = null
 var _projected_points: PackedVector2Array = PackedVector2Array()
 var _projected_valid: PackedByteArray = PackedByteArray()

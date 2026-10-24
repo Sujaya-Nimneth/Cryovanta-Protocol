@@ -247,13 +247,13 @@ func _run_tier_3() -> void:
 	_dispose_sim(sim)
 
 func _run_tier_4() -> void:
-	print("\n--- Tier 4: 34-Script Guardrails and 23-Suite Master Regression Gate ---")
-	_start_test("Tier 4.1: All 34 production scripts declare class_name and stay <= 250 lines")
+	print("\n--- Tier 4: 36-Script Guardrails and 23-Suite Master Regression Gate ---")
+	_start_test("Tier 4.1: All 36 production scripts declare class_name and stay <= 250 lines")
 	var production_files: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
-	_assert_int(production_files.size(), 34, "Discovered all 34 production scripts")
+	_assert_int(production_files.size(), 36, "Discovered all 36 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)
@@ -262,7 +262,8 @@ func _run_tier_4() -> void:
 		_assert(text.begins_with("class_name "), "%s declares class_name" % file)
 	for required in [
 		"PropellantMassModel.gd", "ProximityWarningSystem.gd", "EncounterDirector.gd",
-		"FlightRecorderRingBuffer.gd", "SimulationTelemetry.gd", "CockpitHUD.gd"
+		"FlightRecorderRingBuffer.gd", "PlanetaryWindModel.gd", "ShipPowerBusModel.gd",
+		"SimulationTelemetry.gd", "CockpitHUD.gd"
 	]:
 		_assert(production_files.has(required), "%s is a production script" % required)
 	_assert(_count_lines("res://PlanetarySimulation.gd") <= 248,

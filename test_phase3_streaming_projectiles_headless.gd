@@ -115,9 +115,11 @@ func _prepare_face_zero_high_lod(planet: Node) -> void:
 	for step in range(5):
 		planet.update_camera(Vector3(100_050.0, 0.0, 0.0))
 
-func _wait_streamer(streamer: Node, max_frames: int = 600) -> bool:
+func _wait_streamer(streamer: Node, max_frames: int = 6000) -> bool:
 	for frame in range(max_frames):
 		streamer.task_scheduler.poll()
+		streamer._release_retired_staging()
+		streamer._scan_leaves()
 		var ready: bool = streamer.pending_jobs == 0
 		if ready:
 			for leaf in streamer.planet_manager.get_all_leaves():
