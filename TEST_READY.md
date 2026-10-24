@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
-## Phase 13 Readiness
-Phase 13 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The release gate suite passes at **166 / 166 assertions**, including its complete Phase 1-12 regression gate across **25 prior suites** with exit code 0.
+## Phase 14 Readiness (Final Release Certification)
+Phase 14 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The final release gate suite (`test_phase14_release_export_touch_headless.gd`) passes at **181 / 181 assertions**, including its flat $O(N)$ `--direct-regression` master gate across **all 26 prior suites** with exit code 0.
 
-| Phase 13 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| Phase 14 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase13_landing_gear_radar_los_headless.gd` | 166 | 0 | 0 | Default-off gear invariance, altitude-driven deployment actuator and drag interpolation, soft/hard/gear-up touchdown response, horizon segment/sphere occlusion, range-attenuated target/waypoint signals, live gear/LOS HUD lockstep, 1,000-tick zero static growth, 38 production class-name/line checks, 25 prior suites |
+| `test_phase14_release_export_touch_headless.gd` | 181 | 0 | 0 | Mobile renderer/120 Hz physics/landscape viewport settings, Android ARM64 `export_presets.cfg` and `README.md` audit, multi-touch dual-stick `MobileTouchOverlay` routing, live `InputEventScreenTouch`/`InputEventScreenDrag` SceneTree forwarding and one-shot action consumption, 1,000-tick full-stack zero static memory growth, 39 production class-name/line checks, and 26 prior suites |
 
 ## Test Execution Overview
-All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 13 release gate passes at **166 / 166 assertions**, including its 25-suite Phase 1-12 regression gate.
+All 27 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 14 final release gate passes at **181 / 181 assertions**, including its 26-suite Phase 1-13 regression gate.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -38,7 +38,8 @@ All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_phase11_propellant_gpws_headless.gd` | 167 assertions | 0 | 0 | Tsiolkovsky propellant/wet mass/delta-v, persistent controller cutoff and zero thruster force across two live depleted ticks, GPWS terrain caution/pull-up, target threat alerts, live telemetry/HUD sync, 1,000-tick zero growth, 38-script audit, and 23-suite master gate | **PASS** |
 | `test_phase12_wind_power_eclipse_headless.gd` | 180 assertions | 0 | 0 | Air-relative convective heating and brownout lock recovery, altitude-banded wind/turbulence and air-relative drag, eclipse solar bus and brownout weapon gate, live telemetry/HUD lockstep, 1,000-tick zero growth, 38-script audit, and 24-suite master gate | **PASS** |
 | `test_phase13_landing_gear_radar_los_headless.gd` | 166 assertions | 0 | 0 | Retractable gear actuator and drag interpolation, soft/hard/gear-up touchdown shock response, planetary horizon LOS and signal attenuation, live gear/radar telemetry and HUD lockstep, 1,000-tick zero growth, 38-script audit, and 25-suite master gate | **PASS** |
-| **Total Test Coverage** | **> 26,000 tests & assertions across 26 suites** | **0** | **0** | **Comprehensive Phase 1-13 Integration & Hardening** | **100% PASS** |
+| `test_phase14_release_export_touch_headless.gd` | 181 assertions | 0 | 0 | Mobile 120 Hz/landscape project settings, Android ARM64 `export_presets.cfg`, multi-touch dual-stick `MobileTouchOverlay` and live `_input(event)` routing, one-shot action consumption, 1,000-tick zero growth, 39-script audit, and 26-suite flat $O(N)$ master gate | **PASS** |
+| **Total Test Coverage** | **> 26,200 tests & assertions across 27 suites** | **0** | **0** | **Comprehensive Phase 1-14 Final Release Certification** | **100% PASS** |
 
 ---
 
@@ -126,6 +127,10 @@ All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F78** | Touchdown Shock Absorption & Hull Damage | Phase 13 Step 2 | `test_phase13_landing_gear_radar_los_headless.gd` (Tier 1) | Weight-on-wheels contact, 4 m compression envelope, zero-damage 4 m/s touchdown, excess sink-rate hard-landing damage, gear-up contact damage | **PASS** |
 | **F79** | Planetary Horizon Radar LOS & Signal Attenuation | Phase 13 Step 3 | `test_phase13_landing_gear_radar_los_headless.gd` (Tier 2) | Closest-point segment/sphere occlusion, clear-horizon visibility, 25 km range attenuation, locked-target and active-waypoint LOS registers | **PASS** |
 | **F80** | Phase 13 Master Production Gate | Phase 13 Steps 5-7 | `test_phase13_landing_gear_radar_los_headless.gd` (Tiers 3-4) | Live gear/LOS telemetry and HUD lockstep, 1,000-tick all-system zero static growth, 38 production `class_name`/250-line checks, tight 248/248/245/248/245 ceilings, all 25 prior suites exit 0 | **PASS** |
+| **F81** | Android 120 Hz & Landscape Display Config | Phase 14 Step 1 | `test_phase14_release_export_touch_headless.gd` (Tier 1) | `mobile` Vulkan renderer, 120 Hz physics tick rate, landscape orientation (`0`), 1920x1080 reference viewport, mouse-to-touch emulation | **PASS** |
+| **F82** | Android ARM64 Vulkan Export Preset | Phase 14 Step 2 | `test_phase14_release_export_touch_headless.gd` (Tier 1) | `export_presets.cfg` with `arm64-v8a=true`, `com.cryovanta.protocol`, non-XR regular APK packaging (`build/CryovantaProtocol.apk`), and `README.md` guide | **PASS** |
+| **F83** | Multi-Touch Overlay & Live SceneTree Routing | Phase 14 Steps 3-4 | `test_phase14_release_export_touch_headless.gd` (Tier 2) | Independent left/right virtual sticks, upward screen drag forward thrust, top-band mode/fire action zones, live `SpaceshipWeaponSystem._input(event)` forwarding, and one-shot `EncounterDirector` action consumption | **PASS** |
+| **F84** | Phase 14 Final Release Master Gate | Phase 14 Steps 5-6 | `test_phase14_release_export_touch_headless.gd` (Tiers 3-4) | 1,000-tick full-stack zero static memory growth, 39 production `class_name`/250-line checks, flat $O(N)$ `--direct-regression` guard across all 26 prior suites | **PASS** |
 
 ---
 
@@ -146,7 +151,7 @@ All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
 | `ProjectilePoolManager.gd` | 170 lines | 80 lines | **COMPLIANT** |
 | `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
-| `SpaceshipWeaponSystem.gd` | 149 lines | 101 lines | **COMPLIANT** |
+| `SpaceshipWeaponSystem.gd` | 159 lines | 91 lines | **COMPLIANT** |
 | `PlanetarySimulation.gd` | 248 lines | 2 lines | **COMPLIANT** |
 | `FlightGuidanceSystem.gd` | 245 lines | 5 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
@@ -157,10 +162,11 @@ All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
 | `TargetPoolManager.gd` | 209 lines | 41 lines | **COMPLIANT** |
 | `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
-| `MobileTouchController.gd` | 54 lines | 196 lines | **COMPLIANT** |
+| `MobileTouchController.gd` | 55 lines | 195 lines | **COMPLIANT** |
+| `MobileTouchOverlay.gd` | 84 lines | 166 lines | **COMPLIANT** |
 | `ThermalStructuralModel.gd` | 61 lines | 189 lines | **COMPLIANT** |
 | `FrameBudgetGovernor.gd` | 42 lines | 208 lines | **COMPLIANT** |
-| `EncounterDirector.gd` | 239 lines | 11 lines | **COMPLIANT** |
+| `EncounterDirector.gd` | 247 lines | 3 lines | **COMPLIANT** |
 | `WaypointRingBuffer.gd` | 103 lines | 147 lines | **COMPLIANT** |
 | `WeaponHeatCapacitor.gd` | 48 lines | 202 lines | **COMPLIANT** |
 | `FlightRecorderRingBuffer.gd` | 126 lines | 124 lines | **COMPLIANT** |
@@ -171,45 +177,25 @@ All 26 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `ShipPowerBusModel.gd` | 76 lines | 174 lines | **COMPLIANT** |
 | `LandingGearModel.gd` | 74 lines | 176 lines | **COMPLIANT** |
 | `RadarOcclusionModel.gd` | 73 lines | 177 lines | **COMPLIANT** |
-| **Total Production Lines** | **5,205 lines** | **4,295 lines total headroom** | **100% COMPLIANT** |
+| **Total Production Lines** | **5,308 lines (39 scripts)** | **4,442 lines total headroom** | **100% COMPLIANT** |
 
-*Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_phase6_targets_combat_mobile_headless.gd`, `test_phase7_thermal_governor_encounters_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
+*Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd` through `test_phase14_release_export_touch_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
 ---
 
 ## Verification Execution Commands
 
-To execute and verify all 26 headless test suites:
+To execute the Phase 14 final release master gate (which runs all 26 prior suites in flat $O(N)$ mode via `--direct-regression`):
 ```bash
-godot --headless -s test_phase2_terrain_gravity_headless.gd
-godot --headless -s test_adversarial_m13_challenger1.gd
-godot --headless -s test_adversarial_m13_challenger2.gd
-godot --headless -s test_adversarial_m13_reviewer2.gd
-godot --headless -s test_floating_origin_headless.gd
-godot --headless -s test_quadtree_headless.gd
-godot --headless -s test_adversarial_challenger2.gd
-godot --headless -s test_adversarial_edge_cases.gd
-godot --headless -s test_adversarial_empirical.gd
-godot --headless -s test_adversarial_hardening.gd
-godot --headless -s test_adversarial_challenger_hardening.gd
-godot --headless -s test_adversarial_m10_reviewer2.gd
-godot --headless -s test_adversarial_m12_challenger.gd
-godot --headless -s test_adversarial_m12_challenger2.gd
-godot --headless -s test_adversarial_m8_reviewer2.gd
-godot --headless -s test_phase3_streaming_projectiles_headless.gd
-godot --headless -s test_phase4_simulation_autopilot_headless.gd
-godot --headless -s test_phase5_orbital_hud_environment_headless.gd
-godot --headless -s test_phase6_targets_combat_mobile_headless.gd
-godot --headless -s test_phase7_thermal_governor_encounters_headless.gd
-godot --headless -s test_phase8_waypoints_evasion_hud_headless.gd
-godot --headless -s test_phase9_weapon_heat_autopilot_score_headless.gd
-godot --headless -s test_phase10_recorder_mission_release_headless.gd
-godot --headless -s test_phase11_propellant_gpws_headless.gd
-godot --headless -s test_phase12_wind_power_eclipse_headless.gd
-godot --headless -s test_phase13_landing_gear_radar_los_headless.gd
+godot --headless -s test_phase14_release_export_touch_headless.gd
 ```
 
-To verify production script line counts:
+To execute any individual headless test suite directly without nested regression cascades:
 ```bash
-wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd LandingGearModel.gd MissionScenarioRunner.gd MobileTouchController.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd PlanetaryWindModel.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd RadarOcclusionModel.gd ShipPowerBusModel.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
+godot --headless -s test_phase14_release_export_touch_headless.gd -- --direct-regression
+```
+
+To verify all 39 production script line counts:
+```bash
+wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd LandingGearModel.gd MissionScenarioRunner.gd MobileTouchController.gd MobileTouchOverlay.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd PlanetaryWindModel.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd RadarOcclusionModel.gd ShipPowerBusModel.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
 ```
