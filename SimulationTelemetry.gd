@@ -47,6 +47,10 @@ var wind_speed: float = 0.0
 var battery_fraction: float = 1.0
 var in_eclipse: bool = false
 var power_brownout: bool = false
+var gear_deploy_progress: float = 1.0
+var weight_on_wheels: bool = false
+var target_los_clear: bool = true
+var waypoint_signal_strength: float = 0.0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO

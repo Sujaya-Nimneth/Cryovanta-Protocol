@@ -33,6 +33,8 @@ var displayed_fuel_fraction: float = 1.0
 var displayed_proximity_alert: int = 0
 var displayed_battery_fraction: float = 1.0
 var displayed_wind_speed: float = 0.0
+var displayed_gear_progress: float = 1.0
+var displayed_target_los: bool = true
 var last_drawn_waypoint_markers: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
@@ -87,6 +89,8 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_proximity_alert = telemetry.proximity_alert
 	displayed_battery_fraction = telemetry.battery_fraction
 	displayed_wind_speed = telemetry.wind_speed
+	displayed_gear_progress = telemetry.gear_deploy_progress
+	displayed_target_los = telemetry.target_los_clear
 	if sim.encounter_director != null and sim.encounter_director.waypoints.current_waypoint_id >= 0:
 		active_waypoint_id = sim.encounter_director.waypoints.current_waypoint_id
 		active_waypoint_pos = sim.encounter_director.waypoints.get_current_waypoint_position()
@@ -156,24 +160,20 @@ func _draw_cockpit() -> void:
 	_viewport_size = _surface.size
 	last_drawn_target_reticles = 0
 	var margin: float = 22.0
-	var panel_width: float = minf(300.0, _viewport_size.x * 0.42)
-	_surface.draw_rect(
-		Rect2(Vector2(margin, margin), Vector2(panel_width, 172.0)), _panel_color
-	)
-	_surface.draw_line(
-		Vector2(margin, margin), Vector2(margin + panel_width, margin), _line_color, 2.0
-	)
-	_draw_bar(Vector2(margin + 14.0, margin + 22.0), panel_width - 28.0, 9.0,
+	var pw: float = minf(300.0, _viewport_size.x * 0.42)
+	_surface.draw_rect(Rect2(Vector2(margin, margin), Vector2(pw, 172.0)), _panel_color)
+	_surface.draw_line(Vector2(margin, margin), Vector2(margin + pw, margin), _line_color, 2.0)
+	_draw_bar(Vector2(margin + 14.0, margin + 22.0), pw - 28.0, 9.0,
 		clampf(displayed_altitude / 20_000.0, 0.0, 1.0), _line_color)
-	_draw_bar(Vector2(margin + 14.0, margin + 43.0), panel_width - 28.0, 9.0,
+	_draw_bar(Vector2(margin + 14.0, margin + 43.0), pw - 28.0, 9.0,
 		clampf(displayed_radar_altitude / 5_000.0, 0.0, 1.0), _trajectory_color)
-	_draw_bar(Vector2(margin + 14.0, margin + 64.0), panel_width - 28.0, 9.0,
+	_draw_bar(Vector2(margin + 14.0, margin + 64.0), pw - 28.0, 9.0,
 		clampf(absf(displayed_vertical_speed) / 100.0, 0.0, 1.0), _warning_color)
-	_draw_bar(Vector2(margin + 14.0, margin + 85.0), panel_width - 28.0, 9.0,
+	_draw_bar(Vector2(margin + 14.0, margin + 85.0), pw - 28.0, 9.0,
 		clampf(displayed_horizontal_speed / 2_000.0, 0.0, 1.0), _line_color)
-	_draw_bar(Vector2(margin + 14.0, margin + 106.0), panel_width - 28.0, 9.0,
+	_draw_bar(Vector2(margin + 14.0, margin + 106.0), pw - 28.0, 9.0,
 		clampf(displayed_g_load / 10.0, 0.0, 1.0), _warning_color)
-	var status_width: float = (panel_width - 32.0) * 0.5
+	var status_width: float = (pw - 32.0) * 0.5
 	_draw_bar(Vector2(margin + 14.0, margin + 127.0), status_width, 8.0,
 		clampf(displayed_heat_load, 0.0, 1.0), _warning_color)
 	last_drawn_thermal_bars = 1
