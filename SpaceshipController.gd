@@ -19,6 +19,7 @@ extends RigidBody3D
 # Aerodynamics
 @export var drag_coefficient: float = 0.5
 @export var cross_sectional_area: float = 10.0
+var ambient_wind_velocity: Vector3 = Vector3.ZERO
 
 # Propulsion Forces (Newtons)
 @export var forward_thrust: float = 50_000.0
@@ -79,7 +80,7 @@ func _apply_flight_forces() -> void:
 	var alt: float = AtmosphereMath.get_altitude(pos, center, radius)
 	var rho: float = AtmosphereMath.get_air_density(alt, atmosphere_ceiling, surface_air_density)
 	
-	_ship_vel = linear_velocity
+	_ship_vel = linear_velocity - ambient_wind_velocity
 	_drag_force = AtmosphereMath.calculate_drag_force(
 		_ship_vel, rho, drag_coefficient, cross_sectional_area
 	)
