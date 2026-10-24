@@ -25,6 +25,8 @@ var propellant: PropellantMassModel = PropellantMassModel.new()
 var proximity: ProximityWarningSystem = ProximityWarningSystem.new()
 var wind: PlanetaryWindModel = PlanetaryWindModel.new()
 var power_bus: ShipPowerBusModel = ShipPowerBusModel.new()
+var landing_gear: LandingGearModel = LandingGearModel.new()
+var radar_los: RadarOcclusionModel = RadarOcclusionModel.new()
 var _rebase_connected: bool = false
 var _guidance: FlightGuidanceSystem = null
 
@@ -133,6 +135,14 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			sim.guidance.set_waypoint_target(
 				waypoints.current_waypoint_id >= 0, waypoints.get_current_waypoint_position()
 			)
+		landing_gear.step_gear(
+			delta, sim.telemetry.radar_altitude_agl, sim.telemetry.vertical_speed,
+			sim.ship, thermal
+		)
+		radar_los.step_radar_los(
+			sim.ship.global_position, sim.planet_manager.planet_center_offset,
+			sim.planet_manager.planet_radius, sim.weapon_system, sim.target_pool, waypoints
+		)
 	mission.step_mission(delta, sim, self)
 	sim.telemetry.active_waypoints = waypoints.active_count
 	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
@@ -185,6 +195,10 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	sim.telemetry.battery_fraction = power_bus.get_battery_fraction()
 	sim.telemetry.in_eclipse = power_bus.in_eclipse
 	sim.telemetry.power_brownout = power_bus.brownout
+	sim.telemetry.gear_deploy_progress = landing_gear.deploy_progress
+	sim.telemetry.weight_on_wheels = landing_gear.weight_on_wheels
+	sim.telemetry.target_los_clear = radar_los.target_los_clear
+	sim.telemetry.waypoint_signal_strength = radar_los.waypoint_signal_strength
 
 func rebase_origin(offset: Vector3) -> void:
 	waypoints.rebase_origin(offset)
