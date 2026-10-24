@@ -137,10 +137,12 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	sim.telemetry.active_waypoints = waypoints.active_count
 	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
 	sim.telemetry.waypoint_distance = waypoints.distance_to_current
+	var air_speed: float = (sim.ship.linear_velocity - sim.ship.ambient_wind_velocity).length() \
+		if is_instance_valid(sim.ship) else sim.telemetry.total_speed
 	thermal.step_thermal(
 		delta,
 		sim.telemetry.air_density,
-		sim.telemetry.total_speed,
+		air_speed,
 		sim.telemetry.g_load
 	)
 	sim.telemetry.surface_temperature_k = thermal.surface_temperature_k

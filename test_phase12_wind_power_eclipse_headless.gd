@@ -216,6 +216,14 @@ func _run_tier_2() -> void:
 	weapon.capacitor = capacitor
 	_assert_int(weapon.fire_projectile(), -1, "Brownout blocks weapon firing")
 	_assert_int(pool.active_count, 0, "Blocked shot spawns no projectile")
+	capacitor.heat = 0.0
+	bus.step_power_bus(
+		1.0, Vector3(0.0, 105_000.0, 0.0), PLANET_CENTER, PLANET_RADIUS, 0.0, 0.0, capacitor
+	)
+	_assert(not bus.brownout, "Sunlit recharge clears brownout")
+	_assert(bus.battery_wh > 0.0, "Sunlit recharge restores battery energy")
+	_assert(not capacitor.overheated, "Cool capacitor overheat lock clears after recharge")
+	_assert(not bus._brownout_locked_weapon, "Recharge clears the brownout weapon lock latch")
 	get_root().remove_child(weapon)
 	weapon.free()
 	get_root().remove_child(pool)
@@ -259,7 +267,27 @@ func _run_tier_3() -> void:
 	_assert(not sim.telemetry.in_eclipse, "Live sunlit step clears eclipse telemetry")
 	_dispose_sim(sim)
 
-	_start_test("Tier 3.2: 1,000 ticks with all Phase 1-12 systems active")
+	_start_test("Tier 3.2: Headwind raises air-relative convective heating")
+	var calm_sim: Node = _instantiate_sim()
+	var windy_sim: Node = _instantiate_sim()
+	await process_frame
+	_configure_sim(calm_sim)
+	_configure_sim(windy_sim)
+	calm_sim.ship.linear_velocity = Vector3(0.0, 0.0, -1_000.0)
+	windy_sim.ship.linear_velocity = Vector3(0.0, 0.0, -1_000.0)
+	calm_sim.encounter_director.wind.enabled = false
+	windy_sim.encounter_director.wind.enabled = true
+	calm_sim.step_simulation(DT)
+	windy_sim.step_simulation(DT)
+	_assert(windy_sim.encounter_director.wind.current_wind_speed > 0.0,
+		"Enabled headwind produces atmospheric wind")
+	_assert(windy_sim.telemetry.surface_temperature_k
+		> calm_sim.telemetry.surface_temperature_k,
+		"Air-relative headwind increases convective heating")
+	_dispose_sim(windy_sim)
+	_dispose_sim(calm_sim)
+
+	_start_test("Tier 3.3: 1,000 ticks with all Phase 1-12 systems active")
 	sim = _instantiate_sim()
 	await process_frame
 	_configure_sim(sim)

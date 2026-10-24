@@ -14,12 +14,14 @@ var weapon_heat_cooling_drain: float = 10.0
 var in_eclipse: bool = false
 var brownout: bool = false
 var net_power_rate: float = 0.0
+var _brownout_locked_weapon: bool = false
 
 func reset() -> void:
 	battery_wh = max_battery_wh
 	in_eclipse = false
 	brownout = false
 	net_power_rate = 0.0
+	_brownout_locked_weapon = false
 
 func get_battery_fraction() -> float:
 	return clampf(battery_wh / maxf(max_battery_wh, 0.001), 0.0, 1.0)
@@ -66,4 +68,9 @@ func step_power_bus(
 		weapon_capacitor.cooldown_remaining = maxf(
 			weapon_capacitor.cooldown_remaining, weapon_capacitor.fire_interval
 		)
+		_brownout_locked_weapon = true
+	elif not brownout and _brownout_locked_weapon and weapon_capacitor != null:
+		if weapon_capacitor.heat <= weapon_capacitor.max_heat * weapon_capacitor.overheat_clear_ratio:
+			weapon_capacitor.overheated = false
+		_brownout_locked_weapon = false
 	return get_battery_fraction()
