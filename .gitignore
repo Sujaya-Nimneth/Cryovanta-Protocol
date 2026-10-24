@@ -2,3 +2,6 @@
 *.uid
 .agents/
 .DS_Store
+build/
+*.apk
+*.aab
