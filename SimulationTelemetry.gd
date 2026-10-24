@@ -43,6 +43,10 @@ var fuel_fraction: float = 1.0
 var remaining_delta_v: float = 0.0
 var proximity_alert: int = 0
 var time_to_impact: float = INF
+var wind_speed: float = 0.0
+var battery_fraction: float = 1.0
+var in_eclipse: bool = false
+var power_brownout: bool = false
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO

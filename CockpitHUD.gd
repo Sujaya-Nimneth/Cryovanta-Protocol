@@ -31,6 +31,8 @@ var displayed_combat_score: int = 0
 var displayed_mission_stage: int = 0
 var displayed_fuel_fraction: float = 1.0
 var displayed_proximity_alert: int = 0
+var displayed_battery_fraction: float = 1.0
+var displayed_wind_speed: float = 0.0
 var last_drawn_waypoint_markers: int = 0
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
@@ -84,6 +86,8 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_mission_stage = telemetry.mission_stage
 	displayed_fuel_fraction = telemetry.fuel_fraction
 	displayed_proximity_alert = telemetry.proximity_alert
+	displayed_battery_fraction = telemetry.battery_fraction
+	displayed_wind_speed = telemetry.wind_speed
 	if sim.encounter_director != null and sim.encounter_director.waypoints.current_waypoint_id >= 0:
 		active_waypoint_id = sim.encounter_director.waypoints.current_waypoint_id
 		active_waypoint_pos = sim.encounter_director.waypoints.get_current_waypoint_position()
