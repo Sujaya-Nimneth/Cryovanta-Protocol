@@ -1,14 +1,14 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
-## Phase 11 Readiness
-Phase 11 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The hardened release gate suite passes at **155 / 155 assertions**, including its complete Phase 1-10 regression gate across **23 prior suites** with exit code 0.
+## Phase 12 Readiness
+Phase 12 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The release gate suite passes at **168 / 168 assertions**, including its complete Phase 1-11 regression gate across **24 prior suites** with exit code 0.
 
-| Phase 11 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| Phase 12 Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase11_propellant_gpws_headless.gd` | 155 | 0 | 0 | Recorder unwritten-slot guard and PhysicsServer3D restore, Tsiolkovsky mass flow/wet mass/delta-v/depletion, persistent controller thrust cutoff across two live ticks, GPWS caution/pull-up, target threat elevation, live fuel/alert HUD lockstep, 1,000-tick zero static growth, 34 production class-name/line checks, 23 prior suites |
+| `test_phase12_wind_power_eclipse_headless.gd` | 168 | 0 | 0 | Default-off wind invariance, jetstream band and ceiling cutoff, deterministic turbulence, stationary-ship air-relative drag, cylindrical eclipse occlusion, solar charge/load discharge, brownout capacitor gate, live wind/battery/eclipse HUD lockstep, 1,000-tick zero static growth, 36 production class-name/line checks, 24 prior suites |
 
 ## Test Execution Overview
-All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The hardened Phase 11 release gate passes at **155 / 155 assertions**, including its 23-suite Phase 1-10 regression gate.
+All 25 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 12 release gate passes at **168 / 168 assertions**, including its 24-suite Phase 1-11 regression gate.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -35,8 +35,9 @@ All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `test_phase8_waypoints_evasion_hud_headless.gd` | 165 assertions | 0 | 0 | 16-slot waypoint/beacon ring, terrain-height beacon placement, deterministic evasion, live waypoint capture/rebase, HUD diamond projection, 1,000-tick memory, 29-script guardrail, and 20-suite regression gate | **PASS** |
 | `test_phase9_weapon_heat_autopilot_score_headless.gd` | 150 assertions | 0 | 0 | Immediate guidance-target rebase sync, weapon heat capacitor/cooldown/overheat, gravity-compensated autonomous intercept, kill and waypoint score telemetry, HUD sync, 1,000-tick memory, 34-script guardrail, and 21-suite regression gate | **PASS** |
 | `test_phase10_recorder_mission_release_headless.gd` | 231 assertions | 0 | 0 | 64-slot black-box recorder with unwritten-slot rejection and physics restore, deterministic three-stage mission plus hull failure, mission bonus/HUD sync, 1,000-tick zero growth, 34-script audit, and 22-suite master gate | **PASS** |
-| `test_phase11_propellant_gpws_headless.gd` | 155 assertions | 0 | 0 | Tsiolkovsky propellant/wet mass/delta-v, persistent controller cutoff and zero thruster force across two live depleted ticks, GPWS terrain caution/pull-up, target threat alerts, live telemetry/HUD sync, 1,000-tick zero growth, 34-script audit, and 23-suite master gate | **PASS** |
-| **Total Test Coverage** | **> 26,000 tests & assertions across 24 suites** | **0** | **0** | **Comprehensive Phase 1-11 Integration & Hardening** | **100% PASS** |
+| `test_phase11_propellant_gpws_headless.gd` | 161 assertions | 0 | 0 | Tsiolkovsky propellant/wet mass/delta-v, persistent controller cutoff and zero thruster force across two live depleted ticks, GPWS terrain caution/pull-up, target threat alerts, live telemetry/HUD sync, 1,000-tick zero growth, 36-script audit, and 23-suite master gate | **PASS** |
+| `test_phase12_wind_power_eclipse_headless.gd` | 168 assertions | 0 | 0 | Altitude-banded wind/turbulence and air-relative drag, eclipse solar bus and brownout weapon gate, live telemetry/HUD lockstep, 1,000-tick zero growth, 36-script audit, and 24-suite master gate | **PASS** |
+| **Total Test Coverage** | **> 26,000 tests & assertions across 25 suites** | **0** | **0** | **Comprehensive Phase 1-12 Integration & Hardening** | **100% PASS** |
 
 ---
 
@@ -115,7 +116,11 @@ All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | **F69** | Recorder Unwritten-Slot Guard & Physics Restore | Phase 10 Polish | `test_phase10_recorder_mission_release_headless.gd` (Tier 1), `test_phase11_propellant_gpws_headless.gd` (Tier 1) | `slot >= count` rejection before wrap, in-tree `PhysicsServer3D` transform and linear-velocity synchronization, exact snapshot fidelity | **PASS** |
 | **F70** | Tsiolkovsky Propellant & Variable Wet Mass | Phase 11 R1 | `test_phase11_propellant_gpws_headless.gd` (Tiers 1, 3) | Default-off mass invariance, `mdot = F / (Isp * g0)`, wet-mass sync, delta-v `Isp * g0 * ln(m_wet / m_dry)`, persistent controller cutoff and zero thruster force across two live depleted ticks | **PASS** |
 | **F71** | GPWS Terrain and Target Threat Alerts | Phase 11 R2 | `test_phase11_propellant_gpws_headless.gd` (Tier 2) | Level-flight clear state, 6 s TTI caution, 2.5 s TTI pull-up, low-altitude descent escalation, nearest active target inside 250 m elevates to caution | **PASS** |
-| **F72** | Fuel and Proximity HUD Integration | Phase 11 R3-R4 | `test_phase11_propellant_gpws_headless.gd` (Tiers 3-4) | Fuel fraction/delta-v/alert/TTI telemetry mirroring, HUD lockstep, 1,000-tick zero static growth, 34-script and 23-suite master gate | **PASS** |
+| **F72** | Fuel and Proximity HUD Integration | Phase 11 R3-R4 | `test_phase11_propellant_gpws_headless.gd` (Tiers 3-4) | Fuel fraction/delta-v/alert/TTI telemetry mirroring, HUD lockstep, 1,000-tick zero static growth, 36-script and 23-suite master gate | **PASS** |
+| **F73** | Altitude-Banded Planetary Wind & Air-Relative Drag | Phase 12 Step 1 | `test_phase12_wind_power_eclipse_headless.gd` (Tiers 1, 3) | Default-off zero-wind invariance, Gaussian jetstream peak at 3,500 m, deterministic turbulence, exact ceiling cutoff, stationary-ship headwind drag opposing relative airflow, live wind register/HUD sync, 1,000-tick zero growth | **PASS** |
+| **F74** | Solar Eclipse Power Bus & Battery Discharge | Phase 12 Step 2 | `test_phase12_wind_power_eclipse_headless.gd` (Tier 2) | Cylindrical sun shadow test, sunlit charge minus avionics drain, eclipse load discharge, bounded state of charge, reset semantics, disabled-bus invariance | **PASS** |
+| **F75** | Brownout Weapon Protection & HUD Energy Telemetry | Phase 12 Steps 2-4 | `test_phase12_wind_power_eclipse_headless.gd` (Tiers 2-3) | Zero-battery brownout latch, capacitor overheat and full cooldown, `fire_projectile()` rejection with no pool consumption, live battery/eclipse/brownout telemetry and HUD lockstep | **PASS** |
+| **F76** | Phase 12 Master Production Gate | Phase 12 Steps 5-6 | `test_phase12_wind_power_eclipse_headless.gd` (Tier 4) | 36 production `class_name`/250-line checks, tight 248/248/245/249/220/235 ceilings, 1,000-tick all-system zero static growth, all 24 prior suites exit 0 | **PASS** |
 
 ---
 
@@ -124,7 +129,7 @@ All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | Script File | Verified Line Count | Headroom to 250 Limit | Status |
 | :--- | :---: | :---: | :---: |
 | `AtmosphereMath.gd` | 88 lines | 162 lines | **COMPLIANT** |
-| `SpaceshipController.gd` | 206 lines | 44 lines | **COMPLIANT** |
+| `SpaceshipController.gd` | 207 lines | 43 lines | **COMPLIANT** |
 | `FloatingOrigin.gd` | 145 lines | 105 lines | **COMPLIANT** |
 | `PlanetManager.gd` | 242 lines | 8 lines | **COMPLIANT** |
 | `PlanetMath.gd` | 91 lines | 159 lines | **COMPLIANT** |
@@ -140,24 +145,26 @@ All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | `PlanetarySimulation.gd` | 248 lines | 2 lines | **COMPLIANT** |
 | `FlightGuidanceSystem.gd` | 245 lines | 5 lines | **COMPLIANT** |
 | `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
-| `SimulationTelemetry.gd` | 111 lines | 139 lines | **COMPLIANT** |
+| `SimulationTelemetry.gd` | 115 lines | 135 lines | **COMPLIANT** |
 | `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
 | `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
-| `CockpitHUD.gd` | 245 lines | 5 lines | **COMPLIANT** |
+| `CockpitHUD.gd` | 248 lines | 2 lines | **COMPLIANT** |
 | `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
 | `TargetPoolManager.gd` | 209 lines | 41 lines | **COMPLIANT** |
 | `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
 | `MobileTouchController.gd` | 54 lines | 196 lines | **COMPLIANT** |
 | `ThermalStructuralModel.gd` | 61 lines | 189 lines | **COMPLIANT** |
 | `FrameBudgetGovernor.gd` | 42 lines | 208 lines | **COMPLIANT** |
-| `EncounterDirector.gd` | 198 lines | 52 lines | **COMPLIANT** |
+| `EncounterDirector.gd` | 223 lines | 27 lines | **COMPLIANT** |
 | `WaypointRingBuffer.gd` | 103 lines | 147 lines | **COMPLIANT** |
 | `WeaponHeatCapacitor.gd` | 48 lines | 202 lines | **COMPLIANT** |
 | `FlightRecorderRingBuffer.gd` | 126 lines | 124 lines | **COMPLIANT** |
 | `MissionScenarioRunner.gd` | 86 lines | 164 lines | **COMPLIANT** |
 | `PropellantMassModel.gd` | 66 lines | 184 lines | **COMPLIANT** |
 | `ProximityWarningSystem.gd` | 57 lines | 193 lines | **COMPLIANT** |
-| **Total Production Lines** | **4,870 lines** | **3,630 lines total headroom** | **100% COMPLIANT** |
+| `PlanetaryWindModel.gd` | 59 lines | 191 lines | **COMPLIANT** |
+| `ShipPowerBusModel.gd` | 69 lines | 181 lines | **COMPLIANT** |
+| **Total Production Lines** | **5,031 lines** | **3,969 lines total headroom** | **100% COMPLIANT** |
 
 *Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd`, `test_phase3_streaming_projectiles_headless.gd`, `test_phase4_simulation_autopilot_headless.gd`, `test_phase5_orbital_hud_environment_headless.gd`, `test_phase6_targets_combat_mobile_headless.gd`, `test_phase7_thermal_governor_encounters_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
@@ -165,7 +172,7 @@ All 24 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 
 ## Verification Execution Commands
 
-To execute and verify all 24 headless test suites:
+To execute and verify all 25 headless test suites:
 ```bash
 godot --headless -s test_phase2_terrain_gravity_headless.gd
 godot --headless -s test_adversarial_m13_challenger1.gd
@@ -191,9 +198,10 @@ godot --headless -s test_phase8_waypoints_evasion_hud_headless.gd
 godot --headless -s test_phase9_weapon_heat_autopilot_score_headless.gd
 godot --headless -s test_phase10_recorder_mission_release_headless.gd
 godot --headless -s test_phase11_propellant_gpws_headless.gd
+godot --headless -s test_phase12_wind_power_eclipse_headless.gd
 ```
 
 To verify production script line counts:
 ```bash
-wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd MissionScenarioRunner.gd MobileTouchController.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
+wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd MissionScenarioRunner.gd MobileTouchController.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd PlanetaryWindModel.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd ShipPowerBusModel.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
 ```
