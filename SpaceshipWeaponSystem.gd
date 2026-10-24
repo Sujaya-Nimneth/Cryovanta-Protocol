@@ -29,6 +29,17 @@ func _init() -> void:
 	_radar_query.hit_from_inside = true
 	_radar_query.hit_back_faces = true
 
+func _input(event: InputEvent) -> void:
+	var sim: Node = get_parent()
+	if sim == null or not ("touch_controller" in sim) or sim.touch_controller == null:
+		return
+	var tc: MobileTouchController = sim.touch_controller
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	if event is InputEventScreenTouch:
+		tc.overlay.handle_touch_point(event.pressed, event.index, event.position, vp_size, tc)
+	elif event is InputEventScreenDrag:
+		tc.overlay.handle_drag_point(event.index, event.position, tc)
+
 func fire_projectile(
 	muzzle_local_offset: Vector3 = Vector3(0.0, 0.0, -2.0),
 	muzzle_speed: float = 800.0,

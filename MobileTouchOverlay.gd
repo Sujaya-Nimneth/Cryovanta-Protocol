@@ -80,5 +80,5 @@ func handle_drag_point(
 
 func _screen_deflection(pos: Vector2, origin: Vector2) -> Vector2:
 	var raw: Vector2 = (pos - origin) / maxf(joystick_radius, 1.0)
-	# Screen +Y is down; invert it so an upward drag is positive on both sticks.
+	# Screen +Y is down; invert it so an upward drag becomes positive forward throttle.
 	return Vector2(raw.x, -raw.y)

@@ -156,11 +156,18 @@ Action taps in the top band:
 
 The overlay accepts multi-touch by tracking independent left and right touch
 indices. A drag is normalized by `joystick_radius` and clamped by the controller
-deadzone. `MobileTouchOverlay` is a `RefCounted` event router: an input host
+deadzone. Screen +Y is inverted at the router, so an upward drag gives positive
+stick Y and positive forward throttle through `MobileTouchController`.
+`MobileTouchOverlay` is a `RefCounted` event router: an input host
 forwards `InputEventScreenTouch` and `InputEventScreenDrag` to
 `handle_touch_point()` and `handle_drag_point()`, then consumes the latched
 `fire_requested` and `cycle_mode_requested` flags. `reset()` clears both sticks,
 touch ownership, and pending action requests.
+
+`SpaceshipWeaponSystem._input()` is the live event host. It forwards Android
+screen touch/drag events, including desktop-emulated touches, to the simulation's
+controller overlay. `EncounterDirector.step_director()` consumes one-shot
+mode-cycle and weapon-fire requests at the start of each simulation tick.
 
 ## Android Export
 
