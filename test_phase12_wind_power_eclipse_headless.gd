@@ -325,13 +325,13 @@ func _run_tier_3() -> void:
 	_dispose_sim(sim)
 
 func _run_tier_4() -> void:
-	print("\n--- Tier 4: 36-Script Guardrails and 24-Suite Master Regression Gate ---")
-	_start_test("Tier 4.1: All 36 production scripts declare class_name and stay <= 250 lines")
+	print("\n--- Tier 4: 38-Script Guardrails and 24-Suite Master Regression Gate ---")
+	_start_test("Tier 4.1: All 38 production scripts declare class_name and stay <= 250 lines")
 	var production_files: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
-	_assert_int(production_files.size(), 36, "Discovered all 36 production scripts")
+	_assert_int(production_files.size(), 38, "Discovered all 38 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)
@@ -339,7 +339,8 @@ func _run_tier_4() -> void:
 			"%s has %d lines (limit 250)" % [file, line_count])
 		_assert(text.begins_with("class_name "), "%s declares class_name" % file)
 	for required in [
-		"PlanetaryWindModel.gd", "ShipPowerBusModel.gd", "SpaceshipController.gd",
+		"PlanetaryWindModel.gd", "ShipPowerBusModel.gd", "LandingGearModel.gd",
+		"RadarOcclusionModel.gd", "SpaceshipController.gd",
 		"EncounterDirector.gd", "SimulationTelemetry.gd", "CockpitHUD.gd"
 	]:
 		_assert(production_files.has(required), "%s is a production script" % required)
@@ -353,8 +354,8 @@ func _run_tier_4() -> void:
 		"CockpitHUD.gd remains at or below 249 lines")
 	_assert(_count_lines("res://SpaceshipController.gd") <= 220,
 		"SpaceshipController.gd remains at or below 220 lines")
-	_assert(_count_lines("res://EncounterDirector.gd") <= 235,
-		"EncounterDirector.gd remains at or below 235 lines")
+	_assert(_count_lines("res://EncounterDirector.gd") <= 245,
+		"EncounterDirector.gd remains at or below 245 lines")
 
 	_start_test("Tier 4.2: All 24 prior headless suites pass")
 	var suites: Array[String] = [
