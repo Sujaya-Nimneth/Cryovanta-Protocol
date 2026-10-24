@@ -11,6 +11,7 @@ var vertical_axis: float = 0.0
 var roll_axis: float = 0.0
 var thrust_output: Vector3 = Vector3.ZERO
 var torque_output: Vector3 = Vector3.ZERO
+var overlay: MobileTouchOverlay = MobileTouchOverlay.new()
 
 func set_virtual_sticks(
 	left: Vector2,
