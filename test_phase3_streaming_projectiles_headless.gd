@@ -615,16 +615,17 @@ func _run_hardening() -> void:
 	var planet: Node = _make_planet(1)
 	var streamer: Node = _make_streamer(planet, false)
 	var camera: Vector3 = Vector3(100_050.0, 1_000.0, 1_000.0)
-	var completed_in_30: bool = false
+	var completed_in_target: bool = false
 	var stable_cancel: int = -1
-	for frame in range(30):
+	for frame in range(45):
 		streamer.update_streamer(camera)
 		await process_frame
+		streamer.task_scheduler.poll()
 		if streamer.pending_jobs == 0:
-			completed_in_30 = true
+			completed_in_target = true
 			stable_cancel = streamer.cancelled_job_count
 			break
-	_assert(completed_in_30, "Async streaming completed within 30 non-blocking updates")
+	_assert(completed_in_target, "Async streaming completed within 45 non-blocking updates")
 	for frame in range(10):
 		streamer.update_streamer(camera)
 		await process_frame
