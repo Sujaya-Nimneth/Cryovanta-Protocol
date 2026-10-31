@@ -76,7 +76,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	camera = Camera3D.new()
 	camera.name = "FlightCamera"
 	camera.position = camera_local_offset
-	camera.current = true
+	camera.current = true; camera.far = 250_000.0
 	ship.add_child(camera)
 
 	projectile_pool = ProjectilePoolManager.new()

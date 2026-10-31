@@ -3,7 +3,7 @@ extends Node3D
 
 ## Surface-to-vacuum lighting, fog, and sky environment with fixed resources.
 
-const FOG_BASE_DENSITY: float = 0.0035
+const FOG_BASE_DENSITY: float = 0.00012
 const FOG_SURFACE_MULTIPLIER: float = 2.2
 const SKY_SURFACE_ENERGY: float = 1.35
 const SKY_VACUUM_ENERGY: float = 2.4

@@ -149,6 +149,7 @@ func _run_tier_1() -> void:
 		_assert_approx(collision_shape.shape.radius, 2.0, 1e-9, "Ship collider radius")
 	_assert(sim.camera.get_parent() == sim.ship, "Camera is protected under the ship hierarchy")
 	_assert_vec3(sim.camera.position, Vector3(0.0, 3.0, 8.0), 1e-9, "Camera local offset")
+	_assert(sim.camera.far >= sim.planet_manager.planet_radius * 2.0, "Camera far plane covers planetary terrain")
 	_assert(sim.weapon_system.ship == sim.ship, "Weapon system links the ship")
 	_assert(sim.weapon_system.projectile_pool == sim.projectile_pool, "Weapon system links the projectile pool")
 	_assert(sim.guidance.ship == sim.ship, "Guidance links the ship")
