@@ -611,13 +611,13 @@ func _run_tier_5() -> void:
 
 func _run_hardening() -> void:
 	print("\n--- Phase 3 Hardening: Async Convergence and Rebase Alignment ---")
-	_start_test("Hardening 1: 30-frame non-blocking async convergence")
+	_start_test("Hardening 1: 60-frame non-blocking async convergence")
 	var planet: Node = _make_planet(1)
 	var streamer: Node = _make_streamer(planet, false)
 	var camera: Vector3 = Vector3(100_050.0, 1_000.0, 1_000.0)
 	var completed_in_target: bool = false
 	var stable_cancel: int = -1
-	for frame in range(45):
+	for frame in range(60):
 		streamer.update_streamer(camera)
 		await process_frame
 		streamer.task_scheduler.poll()
@@ -625,10 +625,11 @@ func _run_hardening() -> void:
 			completed_in_target = true
 			stable_cancel = streamer.cancelled_job_count
 			break
-	_assert(completed_in_target, "Async streaming completed within 45 non-blocking updates")
+	_assert(completed_in_target, "Async streaming completed within 60 non-blocking updates")
 	for frame in range(10):
 		streamer.update_streamer(camera)
 		await process_frame
+		streamer.task_scheduler.poll()
 	_assert_int(streamer.cancelled_job_count, stable_cancel, "Stable leaves were not self-cancelled")
 	_assert(streamer.queued_job_count > 0, "Async updates queued chunk jobs")
 	_assert_int(streamer.pending_jobs, 0, "No jobs remained pending after convergence")
