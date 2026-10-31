@@ -103,12 +103,16 @@ func restore_snapshot(
 	else:
 		ship.position = positions[slot]
 	ship.linear_velocity = velocities[slot]
+	ship.angular_velocity = Vector3.ZERO
 	if ship.is_inside_tree():
 		PhysicsServer3D.body_set_state(
 			ship.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, ship.global_transform
 		)
 		PhysicsServer3D.body_set_state(
 			ship.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, velocities[slot]
+		)
+		PhysicsServer3D.body_set_state(
+			ship.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO
 		)
 	if is_instance_valid(thermal):
 		thermal.surface_temperature_k = temperatures_k[slot]

@@ -4,7 +4,7 @@ extends SceneTree
 
 const DT: float = 1.0 / 120.0
 const REQUIRED_SUITE_COUNT: int = 26
-const REQUIRED_PRODUCTION_COUNT: int = 39
+const REQUIRED_PRODUCTION_COUNT: int = 40
 
 var total_assertions: int = 0
 var passed_assertions: int = 0
@@ -243,7 +243,7 @@ func _run_tier_4() -> void:
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
 	_assert_int(production_files.size(), REQUIRED_PRODUCTION_COUNT,
-		"Discovered all 39 production scripts")
+		"Discovered all 40 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)

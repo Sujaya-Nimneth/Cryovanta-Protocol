@@ -6,7 +6,8 @@ extends RefCounted
 const ACTIONS: Array[StringName] = [
 	&"fly_forward", &"fly_backward", &"fly_left", &"fly_right", &"fly_up", &"fly_down",
 	&"fly_pitch_up", &"fly_pitch_down", &"fly_yaw_left", &"fly_yaw_right",
-	&"fly_roll_left", &"fly_roll_right", &"fire_weapon", &"cycle_guidance_mode"
+	&"fly_roll_left", &"fly_roll_right", &"fire_weapon", &"cycle_guidance_mode",
+	&"rewind_flight"
 ]
 
 static func ensure_default_actions() -> void:
@@ -27,6 +28,7 @@ static func ensure_default_actions() -> void:
 	_ensure_key("fly_roll_right", KEY_O)
 	_ensure_key("fire_weapon", KEY_SPACE)
 	_ensure_key("cycle_guidance_mode", KEY_TAB)
+	_ensure_key("rewind_flight", KEY_R)
 
 static func _ensure_key(action: StringName, keycode: Key) -> void:
 	var events: Array[InputEvent] = InputMap.action_get_events(action)

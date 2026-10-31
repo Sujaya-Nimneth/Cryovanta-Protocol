@@ -64,6 +64,10 @@ func _ready() -> void:
 	linear_damp = 0.0
 	angular_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	angular_damp = 0.0
+	if is_equal_approx(mass, 1.0):
+		mass = 1000.0
+	if inertia == Vector3.ZERO:
+		inertia = Vector3(2000.0, 2000.0, 3000.0)
 
 func _physics_process(_delta: float) -> void:
 	if process_user_input:

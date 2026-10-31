@@ -25,6 +25,7 @@ func reset(controller: MobileTouchController = null) -> void:
 	cycle_mode_requested = false
 	if controller != null:
 		controller.set_virtual_sticks(Vector2.ZERO, Vector2.ZERO, 0.0, 0.0)
+		controller.enabled = false
 
 func handle_touch_point(
 	pressed: bool,
@@ -62,6 +63,8 @@ func handle_touch_point(
 		_right_deflection = Vector2.ZERO
 		if controller != null:
 			controller.set_virtual_sticks(_left_deflection, Vector2.ZERO, 0.0, 0.0)
+	if controller != null:
+		controller.enabled = (left_touch_index != -1 or right_touch_index != -1)
 
 func handle_drag_point(
 	index: int,
