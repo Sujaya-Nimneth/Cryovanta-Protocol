@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="planet" cx="38%" cy="30%" r="76%">
+      <stop offset="0%" stop-color="#E4FCFF"/>
+      <stop offset="20%" stop-color="#8BDCE7"/>
+      <stop offset="55%" stop-color="#237889"/>
+      <stop offset="84%" stop-color="#0A3542"/>
+      <stop offset="100%" stop-color="#041923"/>
+    </radialGradient>
+    <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#B8F4F7"/>
+      <stop offset="100%" stop-color="#58BECB"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="13" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="sphereClip">
+      <circle cx="512" cy="520" r="204"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="512" cy="520" r="220" fill="#39F2DB" fill-opacity=".09" filter="url(#glow)"/>
+  <path d="M 233 598 C 251 395 391 244 592 241" fill="none" stroke="#42EADF" stroke-width="15" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M 232 598 C 266 705 367 777 512 792" fill="none" stroke="#8FF6FF" stroke-opacity=".3" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="512" cy="520" r="204" fill="url(#planet)"/>
+
+  <g clip-path="url(#sphereClip)">
+    <path d="M 316 386 C 366 343 419 352 458 384 C 487 408 514 401 545 373 C 577 343 618 336 664 364 L 684 415 C 646 443 615 436 585 460 C 555 484 546 514 566 545 C 595 585 631 587 674 618 L 687 659 L 648 726 L 580 741 C 553 717 543 687 555 655 C 568 620 549 590 515 583 C 474 574 443 597 423 636 C 395 692 363 701 327 682 Z" fill="#061C26" fill-opacity=".9"/>
+    <path d="M 330 449 C 383 421 424 433 456 464 C 494 501 536 501 580 470 C 616 444 659 445 692 476 L 689 530 C 649 518 621 530 593 554 C 552 590 509 592 473 562 C 439 534 404 534 363 558 L 327 531 Z" fill="url(#ice)" fill-opacity=".92"/>
+    <path d="M 416 352 L 460 397 L 435 430 L 479 468 L 452 499 L 492 536 L 470 573 L 500 618 L 467 659 L 425 632 L 448 587 L 406 550 L 434 506 L 393 468 L 418 427 L 378 383 Z" fill="#DFFDFF" fill-opacity=".78"/>
+    <path d="M 580 336 C 618 361 646 403 660 448 C 676 502 667 554 638 601 C 616 637 585 668 547 690" fill="none" stroke="#E9FFFF" stroke-opacity=".5" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <circle cx="512" cy="520" r="204" fill="none" stroke="#D8FCFF" stroke-opacity=".78" stroke-width="3"/>
+  <path d="M 400 424 C 424 388 458 368 497 362" fill="none" stroke="#FFFFFF" stroke-opacity=".75" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 485 521 L 516 551 L 545 521 L 531 569 L 571 591 L 516 585 L 467 606 L 490 563 L 453 541 Z" fill="url(#ice)" filter="url(#glow)"/>
+  <circle cx="512" cy="520" r="14" fill="#FFFFFF"/>
+  <g transform="translate(707 335) rotate(28)">
+    <path d="M 0 -30 L 19 22 L 0 14 L -19 22 Z" fill="#E9FFFF" filter="url(#glow)"/>
+    <path d="M 0 -17 L 7 9 L 0 5 L -7 9 Z" fill="#2DE2D4"/>
+  </g>
+</svg>
