@@ -7,7 +7,7 @@ extends RefCounted
 
 const QUARTER_PI: float = 0.7853981633974483
 const TERRAIN_SEED: int = 1337
-const TERRAIN_FREQUENCY: float = 0.002
+const TERRAIN_FREQUENCY: float = 64.0
 const TERRAIN_AMPLITUDE: float = 500.0
 
 # 6 Cube Face unit normals: +X, -X, +Y, -Y, +Z, -Z
@@ -72,9 +72,12 @@ static func get_chunk_radius(face_index: int, uv_min: Vector2, uv_max: Vector2, 
 	return maxf(maxf(r1, r2), maxf(r3, r4))
 
 ## Calculates bounding center and sphere radius for a chunk (retained for backward compatibility)
-static func get_chunk_bounds(face_index: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float) -> Dictionary:
+static func get_chunk_bounds(
+	face_index: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float,
+	amplitude: float = TERRAIN_AMPLITUDE
+) -> Dictionary:
 	var c: Vector3 = get_chunk_center(face_index, uv_min, uv_max, planet_radius)
-	var r: float = get_chunk_radius(face_index, uv_min, uv_max, c, planet_radius)
+	var r: float = get_chunk_radius(face_index, uv_min, uv_max, c, planet_radius) + amplitude
 	return {
 		"center": c,
 		"radius": r

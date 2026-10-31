@@ -33,13 +33,14 @@ var _gpu_uvs: PackedVector2Array = PackedVector2Array()
 var _gpu_mesh_arrays: Array = []
 
 func _init(force_headless: bool = false) -> void:
+	TerrainMeshBuilder.init_builder()
 	last_vertex_buffer.resize(STORAGE_BUFFER_SIZE_BYTES)
 	last_vertices.resize(VERTEX_COUNT)
 	last_normals.resize(VERTEX_COUNT)
 	_gpu_vertices.resize(VERTEX_COUNT)
 	_gpu_normals.resize(VERTEX_COUNT)
 	_gpu_uvs.resize(VERTEX_COUNT)
-	_gpu_mesh_arrays.resize(4)
+	_gpu_mesh_arrays.resize(Mesh.ARRAY_MAX)
 	is_headless = force_headless or DisplayServer.get_name() == "headless"
 	_initialize_compute()
 
@@ -132,10 +133,11 @@ func _upload_vertex_buffer_to_mesh(target_mesh: ArrayMesh) -> void:
 		_gpu_vertices[i] = Vector3(p.x, p.y, p.z)
 		_gpu_normals[i] = Vector3(n.x, n.y, n.z)
 		_gpu_uvs[i] = Vector2(p.w, n.w)
-	_gpu_mesh_arrays[0] = _gpu_vertices
-	_gpu_mesh_arrays[1] = _gpu_normals
-	_gpu_mesh_arrays[2] = _gpu_uvs
-	_gpu_mesh_arrays[3] = TerrainMeshBuilder._indices
+	_gpu_mesh_arrays[Mesh.ARRAY_VERTEX] = _gpu_vertices
+	_gpu_mesh_arrays[Mesh.ARRAY_NORMAL] = _gpu_normals
+	_gpu_mesh_arrays[Mesh.ARRAY_TEX_UV] = _gpu_uvs
+	_gpu_mesh_arrays[Mesh.ARRAY_INDEX] = TerrainMeshBuilder._indices
+	TerrainMeshBuilder._vertices_pool[0] = _gpu_vertices
 	target_mesh.clear_surfaces()
 	target_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _gpu_mesh_arrays)
 

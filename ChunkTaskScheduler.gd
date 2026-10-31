@@ -16,9 +16,13 @@ const STATUS_COMPLETED: int = 3
 const STATUS_CANCELLED: int = 4
 
 static var EMPTY_ARGS: Array = []
-static var _thread_workers: Dictionary = {}
+static var _worker_thread_ids: PackedInt64Array = PackedInt64Array([0, 0, 0, 0])
 
-static func get_current_worker_index() -> int: return _thread_workers.get(OS.get_thread_caller_id(), 0)
+static func get_current_worker_index() -> int:
+	var tid: int = OS.get_thread_caller_id()
+	for i in MAX_CONCURRENT_WORKERS:
+		if _worker_thread_ids[i] == tid: return i
+	return 0
 func get_worker_index() -> int: return get_current_worker_index()
 
 var _mutex: Mutex = Mutex.new()
@@ -55,27 +59,22 @@ func _init() -> void:
 		_job_cancelled[i] = 0; _job_notified[i] = 0; _auto_reclaim[i] = 0; _job_callables[i] = Callable()
 		_job_args[i] = EMPTY_ARGS; _job_results[i] = null
 	for i in MAX_CONCURRENT_WORKERS:
-		var thread: Thread = Thread.new()
-		_threads[i] = thread
-		thread.start(_worker_loop.bind(i))
+		var thread: Thread = Thread.new(); _threads[i] = thread; thread.start(_worker_loop.bind(i))
 	while true:
 		_mutex.lock(); var r: int = _workers_ready; _mutex.unlock()
 		if r == MAX_CONCURRENT_WORKERS: break
 		OS.delay_usec(50)
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE: shutdown()
-
-func _process(_delta: float) -> void:
-	poll()
+func _notification(what: int) -> void: if what == NOTIFICATION_PREDELETE: shutdown()
+func _process(_delta: float) -> void: poll()
 
 func _worker_loop(worker_idx: int) -> void:
-	_mutex.lock(); _thread_workers[OS.get_thread_caller_id()] = worker_idx; _workers_ready += 1; _mutex.unlock()
+	_mutex.lock(); _worker_thread_ids[worker_idx] = OS.get_thread_caller_id(); _workers_ready += 1; _mutex.unlock()
 	while true:
 		_semaphore.wait()
 		_mutex.lock()
 		if not _is_running:
-			_thread_workers.erase(OS.get_thread_caller_id())
+			_worker_thread_ids[worker_idx] = 0
 			_mutex.unlock()
 			break
 		if _queue_count == 0:
@@ -244,5 +243,4 @@ func shutdown() -> void:
 	cancel_all_jobs()
 	_mutex.unlock()
 	for i in MAX_CONCURRENT_WORKERS: _semaphore.post()
-	for thread in _threads:
-		if thread != null and thread.is_started(): thread.wait_to_finish()
+	for thread in _threads: if thread != null and thread.is_started(): thread.wait_to_finish()
