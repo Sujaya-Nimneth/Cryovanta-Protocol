@@ -7,7 +7,7 @@ extends Node3D
 const POOL_SIZE: int = 32
 const TARGET_COLLISION_LAYER: int = 4
 const DEFAULT_TARGET_RADIUS: float = 3.0
-const TARGET_MARKER_SCALE: Vector3 = Vector3(0.5, 0.5, 0.5)
+const TARGET_MARKER_SCALE: Vector3 = Vector3(1.0, 1.0, 1.0)
 
 var bodies: Array[StaticBody3D] = []
 var shapes: Array[CollisionShape3D] = []
@@ -42,16 +42,15 @@ func _create_target_slot(id: int) -> void:
 	body.collision_layer = target_collision_layer
 	body.collision_mask = target_collision_mask
 	body.input_ray_pickable = false
-	var sphere: SphereShape3D = SphereShape3D.new()
-	sphere.radius = DEFAULT_TARGET_RADIUS
 	var shape: CollisionShape3D = CollisionShape3D.new()
 	shape.name = "TargetCollision_%d" % id
-	shape.shape = sphere
+	shape.shape = EntityVisualsBuilder.get_target_shape()
 	shape.disabled = true
 	body.add_child(shape)
 	var marker: MeshInstance3D = MeshInstance3D.new()
 	marker.name = "TargetMarker_%d" % id
-	marker.mesh = SphereMesh.new()
+	marker.mesh = EntityVisualsBuilder.get_target_mesh()
+	marker.material_override = EntityVisualsBuilder.get_target_material()
 	marker.scale = TARGET_MARKER_SCALE
 	marker.visible = false
 	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

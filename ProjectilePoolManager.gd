@@ -37,7 +37,8 @@ func _init() -> void:
 		free_indices[POOL_SIZE - 1 - i] = i
 		var marker: MeshInstance3D = MeshInstance3D.new()
 		marker.name = "ProjectileMarker_%d" % i
-		marker.mesh = BoxMesh.new()
+		marker.mesh = EntityVisualsBuilder.get_projectile_mesh()
+		marker.material_override = EntityVisualsBuilder.get_projectile_material()
 		marker.scale = PROJECTILE_MARKER_SCALE
 		marker.visible = false
 		marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -48,6 +49,19 @@ func _init() -> void:
 	_ray_query.collide_with_areas = false
 	_ray_query.hit_from_inside = true
 	_ray_query.hit_back_faces = true
+
+func _align_marker_to_velocity(marker: Node3D, vel: Vector3) -> void:
+	if vel.length_squared() < 1e-4:
+		return
+	var fwd: Vector3 = vel.normalized()
+	var temp_up: Vector3 = Vector3.UP if absf(fwd.y) < 0.99 else Vector3.FORWARD
+	var right: Vector3 = fwd.cross(temp_up).normalized()
+	var up: Vector3 = right.cross(fwd).normalized()
+	marker.basis = Basis(
+		right * PROJECTILE_MARKER_SCALE.x,
+		up * PROJECTILE_MARKER_SCALE.y,
+		-fwd * PROJECTILE_MARKER_SCALE.z
+	)
 
 func spawn_projectile(origin: Vector3, velocity: Vector3, lifetime: float = 5.0) -> int:
 	if free_indices.is_empty():
@@ -60,6 +74,7 @@ func spawn_projectile(origin: Vector3, velocity: Vector3, lifetime: float = 5.0)
 	active_count += 1
 	var marker: Node3D = markers[id]
 	marker.position = origin
+	_align_marker_to_velocity(marker, velocity)
 	marker.visible = true
 	return id
 
@@ -99,6 +114,7 @@ func step_projectiles(
 			)
 			velocities[id] += _gravity_accel * dt
 			_step_to = _step_from + velocities[id] * dt
+			_align_marker_to_velocity(markers[id], velocities[id])
 		if space_state != null and dt > 0.0:
 			_ray_query.from = _step_from
 			_ray_query.to = _step_to

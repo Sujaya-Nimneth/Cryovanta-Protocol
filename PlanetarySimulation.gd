@@ -74,6 +74,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	ship.mass = 1000.0
 	ship.inertia = Vector3(2000.0, 2000.0, 3000.0)
 	add_child(ship)
+	ship.ensure_visual_rig()
 	ship.set_physics_process(false)
 	_ship_sphere = SphereShape3D.new()
 	_ship_sphere.radius = 2.0

@@ -56,6 +56,7 @@ var _ship_vel: Vector3 = Vector3.ZERO
 var last_rebase_frame: int = -1
 var last_rebase_offset: Vector3 = Vector3.ZERO
 var _last_rebase_result_origin: Vector3 = Vector3(INF, INF, INF)
+var visual_rig: Node3D = null
 
 func _ready() -> void:
 	# Disable global flat gravity; flight governed purely by thrusters and atmospheric drag
@@ -68,11 +69,12 @@ func _ready() -> void:
 		mass = 1000.0
 	if inertia == Vector3.ZERO:
 		inertia = Vector3(2000.0, 2000.0, 3000.0)
+	if visual_rig == null:
+		ensure_visual_rig()
 
 func _physics_process(_delta: float) -> void:
 	if process_user_input:
 		_sample_user_input()
-	
 	_apply_flight_forces()
 
 func _apply_flight_forces() -> void:
@@ -117,6 +119,13 @@ func _apply_flight_forces() -> void:
 	# Project torque into world coordinates and apply
 	_torque_world = ship_basis * _torque_local
 	apply_torque(_torque_world)
+	if visual_rig != null:
+		EntityVisualsBuilder.update_flight_visuals(visual_rig, self)
+
+func ensure_visual_rig() -> Node3D:
+	if visual_rig == null:
+		visual_rig = EntityVisualsBuilder.build_ship_visual_rig(self)
+	return visual_rig
 
 ## Optional sampling of InputMap actions if defined in project settings
 func _sample_user_input() -> void:

@@ -26,7 +26,8 @@ func _init() -> void:
 		free_indices[POOL_SIZE - 1 - id] = id
 		var marker: MeshInstance3D = MeshInstance3D.new()
 		marker.name = "ImpactMarker_%d" % id
-		marker.mesh = SphereMesh.new()
+		marker.mesh = EntityVisualsBuilder.get_impact_mesh()
+		marker.material_override = EntityVisualsBuilder.get_impact_material()
 		marker.scale = Vector3.ONE * IMPACT_MARKER_BASE_SCALE
 		marker.visible = false
 		marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
