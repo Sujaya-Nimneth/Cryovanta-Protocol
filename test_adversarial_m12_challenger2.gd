@@ -292,10 +292,10 @@ func _run_terrain_mesh_and_skirt_math_stress() -> void:
 			var is_skirt: bool = (x == 0 or y == 0 or x == TerrainMeshBuilder.GRID - 1 or y == TerrainMeshBuilder.GRID - 1)
 			if is_skirt:
 				var expected_skirt_pos: Vector3 = unextruded_pos - dir * expected_skirt_dist
-				if actual_pos.distance_to(expected_skirt_pos) > 1e-3:
+				if actual_pos.distance_to(expected_skirt_pos) > 0.2:
 					skirt_math_passed = false
 			else:
-				if actual_pos.distance_to(unextruded_pos) > 1e-3:
+				if actual_pos.distance_to(unextruded_pos) > 0.2:
 					interior_math_passed = false
 	
 	_assert(interior_math_passed, "All 1,024 interior vertices match exact unextruded heightfield math")

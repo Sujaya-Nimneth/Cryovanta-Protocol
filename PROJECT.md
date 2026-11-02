@@ -1,4 +1,4 @@
-# Project: Cryovanta Protocol - Orbital Flight Simulation (Phase 7)
+# Project: Cryovanta Protocol - Orbital Flight Simulation (Phases 1-15 Complete)
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
@@ -130,9 +130,16 @@ The architecture decouples planetary terrain generation from local physics via c
 | M31 | Android Virtual Dual-Stick | `MobileTouchController.gd` and manual-mode simulation wiring | M2, M19 | DONE |
 | M32 | Phase 6 Verification | `test_phase6_targets_combat_mobile_headless.gd` Tiers 1-5 and Phase 1-5 regression | M29-M31 | DONE |
 | M33 | Thermal & Structural Integrity | `ThermalStructuralModel.gd` zero-allocation entry heating and hull damage | M2, M3 | DONE |
-| M34 | Adaptive Frame-Budget Governor | `FrameBudgetGovernor.gd` and `PlanetManager.lod_split_scale` control | M14, M33 | DONE |
-| M35 | Orbital Encounter Director | `EncounterDirector.gd` deterministic wave spawning and subsystem coordination | M29, M33, M34 | DONE |
 | M36 | Phase 7 Verification | `test_phase7_thermal_governor_encounters_headless.gd` Tiers 1-5 and Phase 1-6 regression | M33-M35 | DONE |
+| M37 | Phase 8 Waypoints & Evasion | `WaypointRingBuffer.gd` and `test_phase8_waypoints_evasion_hud_headless.gd` | M36 | DONE |
+| M38 | Phase 9 Weapon Heat & Score | `WeaponHeatCapacitor.gd` and `test_phase9_weapon_heat_autopilot_score_headless.gd` | M37 | DONE |
+| M39 | Phase 10 Flight Recorder & Sortie | `FlightRecorderRingBuffer.gd`, `MissionScenarioRunner.gd`, `test_phase10_recorder_mission_release_headless.gd` | M38 | DONE |
+| M40 | Phase 11 Propellant & GPWS | `PropellantMassModel.gd`, `ProximityWarningSystem.gd`, `test_phase11_propellant_gpws_headless.gd` | M39 | DONE |
+| M41 | Phase 12 Wind & Power Bus | `PlanetaryWindModel.gd`, `ShipPowerBusModel.gd`, `test_phase12_wind_power_eclipse_headless.gd` | M40 | DONE |
+| M42 | Phase 13 Landing Gear & Radar LOS | `LandingGearModel.gd`, `RadarOcclusionModel.gd`, `test_phase13_landing_gear_radar_los_headless.gd` | M41 | DONE |
+| M43 | Phase 14 Release Export & Touch | `MobileTouchOverlay.gd`, Android export, `test_phase14_release_export_touch_headless.gd` | M42 | DONE |
+| M_D | Phase D: Visuals & Cockpit HUD | `EntityVisualsBuilder.gd`, `CockpitHUDRenderer.gd`, shared pool meshes, CockpitHUD refactor | M43 | DONE |
+| M_E | Phase E: Phase 15 & Master 27 Gate | `test_phase15_live_gameplay_compute_hud_headless.gd`, master 27-suite regression gate | M_D | DONE |
 
 ## Interface Contracts
 
@@ -329,45 +336,78 @@ The architecture decouples planetary terrain generation from local physics via c
 - `sample(sim, space_state = null) -> void`: O(1) update from the unified simulation.
 
 ## Code Layout
-- `TerrainMeshBuilder.gd`: Root project folder (<= 250 lines).
-- `ColliderPoolManager.gd`: Root project folder (<= 250 lines).
-- `ChunkTaskScheduler.gd`: Root project folder (<= 250 lines).
-- `FloatingOrigin.gd`: Root project folder (<= 250 lines).
-- `SpaceshipController.gd`: Root project folder (<= 250 lines).
-- `AtmosphereMath.gd`: Root project folder (<= 250 lines).
-- `PlanetManager.gd`: Root project folder (<= 250 lines).
-- `PlanetMath.gd`: Root project folder (<= 250 lines).
-- `QuadtreeNode.gd`: Root project folder (<= 250 lines).
-- `ChunkPoolManager.gd`: Root project folder (<= 250 lines).
-- `PlanetStreamer.gd`: Root project folder (240 lines).
-- `ProjectilePoolManager.gd`: Root project folder (170 lines).
-- `ComputeChunkDispatcher.gd`: Root project folder (214 lines).
-- `SpaceshipWeaponSystem.gd`: Root project folder (140 lines).
-- `PlanetarySimulation.gd`: Root project folder (<= 250 lines).
-- `FlightGuidanceSystem.gd`: Root project folder (<= 250 lines).
-- `PlanetSurfaceMaterial.gd`: Root project folder (<= 250 lines).
-- `SimulationTelemetry.gd`: Root project folder (<= 250 lines).
-- `OrbitalMechanics.gd`: Root project folder (129 lines).
-- `PlanetaryEnvironment.gd`: Root project folder (80 lines).
-- `CockpitHUD.gd`: Root project folder (205 lines).
-- `ThermalStructuralModel.gd`: Root project folder (61 lines).
-- `FrameBudgetGovernor.gd`: Root project folder (42 lines).
-- `EncounterDirector.gd`: Root project folder (74 lines).
-- `FlightInputBindings.gd`: Root project folder (38 lines).
+All 42 production scripts reside in the root project folder and strictly conform to `class_name` declarations and the global `<= 250` line limit:
+- `AtmosphereMath.gd`: Barometric density and drag math (88 lines).
+- `ChunkPoolManager.gd`: Pre-allocated mesh resource pool (111 lines).
+- `ChunkTaskScheduler.gd`: 4-worker concurrent task scheduler (246 lines <= 248 frozen ceiling).
+- `CockpitHUD.gd`: Telemetry registers, trajectory buffer, invariant counters (153 lines <= 248 frozen ceiling).
+- `CockpitHUDRenderer.gd`: Zero-allocation CanvasItem HUD delegate renderer (236 lines).
+- `ColliderPoolManager.gd`: 64-slot concave collider pool (169 lines).
+- `ComputeChunkDispatcher.gd`: Vulkan compute shader bridge and std430 fallback (216 lines).
+- `EncounterDirector.gd`: Orbital drone waves and subsystem coordination (248 lines <= 248 frozen ceiling).
+- `EntityVisualsBuilder.gd`: Procedural 3D spacecraft visual rig and shared pool meshes/materials (165 lines).
+- `FlightGuidanceSystem.gd`: 6-DOF SAS, hover, prograde, circularization guidance (245 lines <= 245 frozen ceiling).
+- `FlightInputBindings.gd`: Idempotent cockpit input action registration (40 lines).
+- `FlightRecorderRingBuffer.gd`: 64-slot black-box telemetry ring buffer (130 lines).
+- `FloatingOrigin.gd`: 2,000m floating origin rebasing with dual 64-bit sector math (145 lines).
+- `FrameBudgetGovernor.gd`: 120 FPS adaptive frame governor (42 lines).
+- `ImpactEffectPoolManager.gd`: 32-slot shared burst impact pool (129 lines).
+- `LandingGearModel.gd`: Retractable landing gear actuator and shock model (74 lines).
+- `LiveSortieBootstrap.gd`: Live auto_step sortie bootstrap and rewind coordinator (106 lines).
+- `MissionScenarioRunner.gd`: Deterministic 3-stage mission state machine (86 lines).
+- `MobileTouchController.gd`: Mobile dual-stick virtual axes (55 lines <= 95 limit).
+- `MobileTouchOverlay.gd`: Multi-touch router and touch/mouse coexistence (87 lines <= 125 limit).
+- `OrbitalMechanics.gd`: Keplerian mechanics and Velocity-Verlet prediction (129 lines).
+- `PlanetManager.gd`: Quadtree LOD and planetary bounds manager (242 lines <= 242 frozen ceiling).
+- `PlanetMath.gd`: Cube-face basis and terrain height functions (94 lines).
+- `PlanetStreamer.gd`: 256-slot chunk streaming orchestrator (239 lines <= 240 frozen ceiling).
+- `PlanetSurfaceMaterial.gd`: Rebase-aware cryo planetary shader material (90 lines).
+- `PlanetaryEnvironment.gd`: Lighting, fog, and celestial environment (80 lines).
+- `PlanetarySimulation.gd`: Unified simulation root (233 lines <= 248 frozen ceiling).
+- `PlanetaryWindModel.gd`: Altitude-banded wind and turbulence (59 lines).
+- `ProjectilePoolManager.gd`: 128-slot velocity-aligned projectile pool (186 lines).
+- `PropellantMassModel.gd`: Tsiolkovsky propellant consumption and wet mass (66 lines).
+- `ProximityWarningSystem.gd`: GPWS terrain caution/pull-up warning system (57 lines).
+- `QuadtreeNode.gd`: Quadtree spatial subdivision node (208 lines).
+- `RadarOcclusionModel.gd`: Horizon line-of-sight occlusion model (73 lines).
+- `ShipPowerBusModel.gd`: Solar power bus and eclipse battery model (76 lines).
+- `SimulationTelemetry.gd`: O(1) telemetry sampling registers (119 lines).
+- `SpaceshipController.gd`: 6-DOF spaceship flight controller (220 lines <= 220 target limit).
+- `SpaceshipWeaponSystem.gd`: Ballistic firing and radar altimeter (160 lines).
+- `TargetPoolManager.gd`: 32-slot shared emissive drone target pool with 3.0m hitbox parity (208 lines).
+- `TerrainMeshBuilder.gd`: 34x34 mesh and std430 push constants builder (233 lines).
+- `ThermalStructuralModel.gd`: Aerodynamic heating and hull integrity (61 lines).
+- `WaypointRingBuffer.gd`: 16-slot waypoint and beacon ring buffer (103 lines).
+- `WeaponHeatCapacitor.gd`: Weapon thermal capacitor and cooldown gating (48 lines).
 - `main.tscn`: Playable root scene.
-- `planet_chunk.glsl`: Root project folder (Compute shader).
-- Headless Test Runners:
-  - `test_phase2_terrain_gravity_headless.gd`: Phase 2 automated test suite (Tiers 1-5).
-  - `test_floating_origin_headless.gd`: Phase 1 E2E verification test suite.
-  - `test_quadtree_headless.gd`: Quadtree pool stress test.
-  - `test_adversarial_challenger2.gd`: Adversarial verification harness.
+- `planet_chunk.glsl`: Vulkan compute shader for terrain geometry.
+
+- Headless Verification Suites (27 Master Regression Suites):
+  - `test_adversarial_challenger2.gd`: Adversarial topology, multi-ship rebase, deep LOD continuity.
+  - `test_adversarial_challenger_hardening.gd`: Adversarial pool and continuity checks.
   - `test_adversarial_edge_cases.gd`: In-tree scene-tree physics and edge-case harness.
   - `test_adversarial_empirical.gd`: Continuous flight and hypersonic velocity harness.
+  - `test_adversarial_hardening.gd`: Quadtree, pooling, scheduler, and origin hardening.
+  - `test_adversarial_m10_reviewer2.gd`: Gravity and flight reviewer regressions.
+  - `test_adversarial_m12_challenger.gd`: Deep LOD, collider, and scheduler stress.
+  - `test_adversarial_m12_challenger2.gd`: Cross-system Phase 2 adversarial checks.
   - `test_adversarial_m13_challenger1.gd`: Challenger 1 empirical concurrency, GLSL parity, and slot reclamation harness.
   - `test_adversarial_m13_challenger2.gd`: Challenger 2 empirical collider churn, push constants memory delta, and FBM parity harness.
   - `test_adversarial_m13_reviewer2.gd`: Reviewer 2 worker slot boundary clamping, auto-reclaim, and collider double release harness.
-  - `test_phase3_streaming_projectiles_headless.gd`: Phase 3 streaming, projectile, compute, radar, memory, and regression suite (Tiers 1-5), plus 30-frame async convergence and rebase-alignment hardening checks.
+  - `test_adversarial_m8_reviewer2.gd`: Collider pool and quadtree reviewer checks.
+  - `test_floating_origin_headless.gd`: Phase 1 E2E verification test suite (Tiers 1-4).
+  - `test_phase2_terrain_gravity_headless.gd`: Phase 2 automated test suite (Tiers 1-5).
+  - `test_phase3_streaming_projectiles_headless.gd`: Phase 3 streaming, projectile, compute, radar, memory, and regression suite (Tiers 1-5).
   - `test_phase4_simulation_autopilot_headless.gd`: Phase 4 unified-scene, guidance, material, telemetry, memory, and all-suite regression gate (Tiers 1-5).
-  - `test_phase5_orbital_hud_environment_headless.gd`: Phase 5 Keplerian mechanics, prograde/circularization guidance, environment, HUD/input, memory, and all-suite regression gate (Tiers 1-5).
-  - `test_phase6_targets_combat_mobile_headless.gd`: Phase 6 target/impact pools, combat, mobile input, HUD tracking, memory, and all-suite regression gate (Tiers 1-5).
-  - `test_phase7_thermal_governor_encounters_headless.gd`: Phase 7 thermal integrity, frame governor, encounter waves, HUD sync, memory, and all-suite regression gate (Tiers 1-5).
+  - `test_phase5_orbital_hud_environment_headless.gd`: Phase 5 Keplerian mechanics, prograde/circularization guidance, environment, HUD/input, memory (Tiers 1-5).
+  - `test_phase6_targets_combat_mobile_headless.gd`: Phase 6 target/impact pools, combat, mobile input, HUD tracking, memory (Tiers 1-5).
+  - `test_phase7_thermal_governor_encounters_headless.gd`: Phase 7 thermal integrity, frame governor, encounter waves, HUD sync, memory (Tiers 1-5).
+  - `test_phase8_waypoints_evasion_hud_headless.gd`: Phase 8 waypoint beacons, evasion, HUD diamonds, memory (Tiers 1-5).
+  - `test_phase9_weapon_heat_autopilot_score_headless.gd`: Phase 9 weapon heat, autonomous intercept, score telemetry, memory (Tiers 1-5).
+  - `test_phase10_recorder_mission_release_headless.gd`: Phase 10 flight recorder, multi-stage sortie, release gates (Tiers 1-5).
+  - `test_phase11_propellant_gpws_headless.gd`: Phase 11 Tsiolkovsky propellant, GPWS caution/pull-up alerts (Tiers 1-5).
+  - `test_phase12_wind_power_eclipse_headless.gd`: Phase 12 atmospheric wind, solar eclipse power bus (Tiers 1-5).
+  - `test_phase13_landing_gear_radar_los_headless.gd`: Phase 13 landing gear, radar horizon LOS occlusion (Tiers 1-5).
+  - `test_phase14_release_export_touch_headless.gd`: Phase 14 master 27-suite regression gate, export preset audit, touch routing (Tiers 1-4).
+  - `test_phase15_live_gameplay_compute_hud_headless.gd`: Phase 15 live sortie activation, touch release coexistence, compute upload array mapping, 0.000000m seam continuity, 1,000-tick zero heap growth (Tiers 1-5).
+  - `test_quadtree_headless.gd`: Quadtree pool stress test.

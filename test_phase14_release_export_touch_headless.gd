@@ -1,10 +1,10 @@
 extends SceneTree
 
-## Phase 14 final release verification: export config, touch routing, and 26-suite gate.
+## Phase 14 final release verification: export config, touch routing, and 27-suite gate.
 
 const DT: float = 1.0 / 120.0
-const REQUIRED_SUITE_COUNT: int = 26
-const REQUIRED_PRODUCTION_COUNT: int = 40
+const REQUIRED_SUITE_COUNT: int = 27
+const REQUIRED_PRODUCTION_COUNT: int = 42
 
 var total_assertions: int = 0
 var passed_assertions: int = 0
@@ -243,7 +243,7 @@ func _run_tier_4() -> void:
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
 	_assert_int(production_files.size(), REQUIRED_PRODUCTION_COUNT,
-		"Discovered all 40 production scripts")
+		"Discovered all 42 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)
@@ -252,7 +252,8 @@ func _run_tier_4() -> void:
 			"%s has %d lines (limit 250)" % [file, line_count])
 	for required in [
 		"MobileTouchOverlay.gd", "MobileTouchController.gd", "PlanetarySimulation.gd",
-		"EncounterDirector.gd", "PlanetStreamer.gd", "FlightGuidanceSystem.gd"
+		"EncounterDirector.gd", "PlanetStreamer.gd", "FlightGuidanceSystem.gd",
+		"EntityVisualsBuilder.gd", "CockpitHUDRenderer.gd"
 	]:
 		_assert(production_files.has(required), "%s is a production script" % required)
 	_assert(_count_lines("res://MobileTouchOverlay.gd") <= 125,
@@ -269,9 +270,9 @@ func _run_tier_4() -> void:
 
 	if OS.get_cmdline_user_args().has("--direct-regression"):
 		return
-	_start_test("Tier 4.2: All 26 prior headless suites pass")
+	_start_test("Tier 4.2: All 27 prior headless suites pass")
 	var suites: Array[String] = _collect_prior_suites()
-	_assert_int(suites.size(), REQUIRED_SUITE_COUNT, "Discovered all 26 prior suites")
+	_assert_int(suites.size(), REQUIRED_SUITE_COUNT, "Discovered all 27 prior suites")
 	var executable: String = OS.get_executable_path()
 	for suite in suites:
 		var output: Array = []
@@ -288,14 +289,38 @@ func _run_tier_4() -> void:
 		if exit_code != 0:
 			printerr("    [SUITE OUTPUT] %s" % str(output))
 
+const ALL_REGRESSION_SUITES: Array[String] = [
+	"test_adversarial_challenger2.gd",
+	"test_adversarial_challenger_hardening.gd",
+	"test_adversarial_edge_cases.gd",
+	"test_adversarial_empirical.gd",
+	"test_adversarial_hardening.gd",
+	"test_adversarial_m10_reviewer2.gd",
+	"test_adversarial_m12_challenger.gd",
+	"test_adversarial_m12_challenger2.gd",
+	"test_adversarial_m13_challenger1.gd",
+	"test_adversarial_m13_challenger2.gd",
+	"test_adversarial_m13_reviewer2.gd",
+	"test_adversarial_m8_reviewer2.gd",
+	"test_floating_origin_headless.gd",
+	"test_phase2_terrain_gravity_headless.gd",
+	"test_phase3_streaming_projectiles_headless.gd",
+	"test_phase4_simulation_autopilot_headless.gd",
+	"test_phase5_orbital_hud_environment_headless.gd",
+	"test_phase6_targets_combat_mobile_headless.gd",
+	"test_phase7_thermal_governor_encounters_headless.gd",
+	"test_phase8_waypoints_evasion_hud_headless.gd",
+	"test_phase9_weapon_heat_autopilot_score_headless.gd",
+	"test_phase10_recorder_mission_release_headless.gd",
+	"test_phase11_propellant_gpws_headless.gd",
+	"test_phase12_wind_power_eclipse_headless.gd",
+	"test_phase13_landing_gear_radar_los_headless.gd",
+	"test_phase15_live_gameplay_compute_hud_headless.gd",
+	"test_quadtree_headless.gd"
+]
+
 func _collect_prior_suites() -> Array[String]:
-	var suites: Array[String] = []
-	for file in DirAccess.get_files_at("res://"):
-		if file.begins_with("test_") and file.ends_with(".gd") \
-				and file != "test_phase14_release_export_touch_headless.gd":
-			suites.append(file)
-	suites.sort()
-	return suites
+	return ALL_REGRESSION_SUITES.duplicate()
 
 func _instantiate_sim() -> Node:
 	var packed: PackedScene = load("res://main.tscn")

@@ -1,45 +1,49 @@
 # TEST_READY: Cryovanta Protocol Automated Verification Suites
 
-## Phase 14 Readiness (Final Release Certification)
-Phase 14 is verified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf. The final release gate suite (`test_phase14_release_export_touch_headless.gd`) passes at **181 / 181 assertions**, including its flat $O(N)$ `--direct-regression` master gate across **all 26 prior suites** with exit code 0.
+## Phase 15 Readiness (Final Master Regression Gate Certification)
+Phase 15 is certified headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf.
+- The Phase 15 verification suite (`test_phase15_live_gameplay_compute_hud_headless.gd`) passes all **1,910 / 1,910 assertions** across 5 tiers with exit code 0.
+- The Phase 14 master regression suite (`test_phase14_release_export_touch_headless.gd`) passes all **190 / 190 assertions**, including its flat $O(N)$ `--direct-regression` master gate across **all 27 prior suites** with exit code 0 and 0 failures.
 
-| Phase 14 Suite | Assertions | Failures | Exit Code | Verification Domain |
+| Verification Suite | Assertions | Failures | Exit Code | Verification Domain |
 | :--- | ---: | ---: | ---: | :--- |
-| `test_phase14_release_export_touch_headless.gd` | 181 | 0 | 0 | Mobile renderer/120 Hz physics/landscape viewport settings, Android ARM64 `export_presets.cfg` and `README.md` audit, multi-touch dual-stick `MobileTouchOverlay` routing, live `InputEventScreenTouch`/`InputEventScreenDrag` SceneTree forwarding and one-shot action consumption, 1,000-tick full-stack zero static memory growth, 39 production class-name/line checks, and 26 prior suites |
+| `test_phase15_live_gameplay_compute_hud_headless.gd` | 1,910 | 0 | 0 | Live `auto_step = true` sortie activation & baseline ship physics, touch/mouse release coexistence restoring keyboard flight & `KEY_R` rewind zeroing spin, Vulkan compute mesh upload buffer mapping (1,156 vertices, 6,534 indices, `ARRAY_TEX_UV = 4`, `ARRAY_INDEX = 12`), 0.000000m planetary terrain seam continuity across all 12 cube-face edges matching `PlanetMath`, and 1,000-tick full-stack zero static memory growth |
+| `test_phase14_release_export_touch_headless.gd` | 190 | 0 | 0 | Mobile renderer/120 Hz physics/landscape viewport settings, Android ARM64 `export_presets.cfg` and `README.md` audit, multi-touch dual-stick `MobileTouchOverlay` routing, live `InputEventScreenTouch`/`InputEventScreenDrag` SceneTree forwarding, 1,000-tick full-stack zero static memory growth, 42 production class-name/line checks, and full 27 prior headless suites |
 
 ## Test Execution Overview
-All 27 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 14 final release gate passes at **181 / 181 assertions**, including its 26-suite Phase 1-13 regression gate.
+All 28 automated test suites execute headlessly on Godot Engine v4.7.2.stable.official.ed1daf0bf with **exit code 0** and **0 failures**. The Phase 14 master gate coordinates all 27 prior suites with 100% pass rate.
 
 | Test Suite Script | Assertions / Steps | Failures | Exit Code | Verification Domain | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `test_phase2_terrain_gravity_headless.gd` | 1,415 assertions | 0 | 0 | 34x34 skirted mesh, 48-byte std430 push constants, 4-worker scratch buffers, GLSL FBM parity, 64-slot collider pool, origin alignment, 4-worker scheduler, slot reclamation, radial gravity math, full Phase 1 regression | **PASS** |
-| `test_adversarial_m13_challenger1.gd` | 2,365 assertions | 0 | 0 | 4-thread concurrency stress, burst cancellation & auto-reclaim, GLSL FBM constants & hash/grad parity, collider saturation | **PASS** |
-| `test_adversarial_m13_challenger2.gd` | 8,066 assertions | 0 | 0 | ColliderPoolManager 5,000 churn cycles & origin alignment, push constants & scheduler poll zero memory delta, GLSL parity & concurrency | **PASS** |
-| `test_adversarial_m13_reviewer2.gd` | 135 assertions | 0 | 0 | TerrainMeshBuilder slot index boundary clamping, scheduler cancellation edge cases & auto-reclaim, collider double release safety | **PASS** |
+| `test_phase15_live_gameplay_compute_hud_headless.gd` | 1,910 assertions | 0 | 0 | Live sortie bootstrap, touch release coexistence, compute upload mapping, 0.000000m seam continuity, 1,000-tick zero heap growth | **PASS** |
+| `test_phase14_release_export_touch_headless.gd` | 190 assertions | 0 | 0 | Mobile 120 Hz/landscape settings, Android ARM64 export, multi-touch overlay, 1,000-tick memory, 42-script audit, 27-suite master gate | **PASS** |
+| `test_phase13_landing_gear_radar_los_headless.gd` | 166 assertions | 0 | 0 | Retractable gear actuator, touchdown shock response, planetary horizon LOS occlusion, live gear/radar telemetry, 25-suite gate | **PASS** |
+| `test_phase12_wind_power_eclipse_headless.gd` | 180 assertions | 0 | 0 | Air-relative convective heating, altitude-banded wind/turbulence, eclipse solar bus, battery discharge, 24-suite gate | **PASS** |
+| `test_phase11_propellant_gpws_headless.gd` | 167 assertions | 0 | 0 | Tsiolkovsky propellant mass flow, controller fuel cutoff, GPWS terrain caution/pull-up alerts, 23-suite gate | **PASS** |
+| `test_phase10_recorder_mission_release_headless.gd` | 245 assertions | 0 | 0 | 64-slot black-box recorder, deterministic 3-stage mission sortie, telemetry restoration, 22-suite gate | **PASS** |
+| `test_phase9_weapon_heat_autopilot_score_headless.gd` | 168 assertions | 0 | 0 | Guidance rebase sync, weapon heat capacitor/cooldown, autonomous intercept guidance, combat score, 21-suite gate | **PASS** |
+| `test_phase8_waypoints_evasion_hud_headless.gd` | 170 assertions | 0 | 0 | 16-slot waypoint/beacon ring, terrain-height beacon placement, deterministic evasion, live HUD diamond, 20-suite gate | **PASS** |
+| `test_phase7_thermal_governor_encounters_headless.gd` | 163 assertions | 0 | 0 | Thermal/structural integrity, 120 FPS governor, encounter waves, HUD/telemetry sync, 19-suite gate | **PASS** |
+| `test_phase6_targets_combat_mobile_headless.gd` | 362 assertions | 0 | 0 | Target/impact pools, same-frame transform sync, projectile damage/effects, exact lead lock, dual-stick input, 18-suite gate | **PASS** |
+| `test_phase5_orbital_hud_environment_headless.gd` | 268 assertions | 0 | 0 | Keplerian mechanics, 64-point Velocity-Verlet prediction, prograde/circularization guidance, environment transition, 17-suite gate | **PASS** |
+| `test_phase4_simulation_autopilot_headless.gd` | 421 assertions | 0 | 0 | Unified simulation, collision isolation, camera coverage, 6-DOF guidance, shared material, telemetry, memory, all-suite gate | **PASS** |
+| `test_phase3_streaming_projectiles_headless.gd` | 2,626 assertions | 0 | 0 | 256-slot streaming, async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, all-suite gate | **PASS** |
+| `test_phase2_terrain_gravity_headless.gd` | 1,415 assertions | 0 | 0 | 34x34 skirted mesh, 48-byte push constants, 4-worker scratch buffers, GLSL parity, 64-slot collider pool, radial gravity | **PASS** |
 | `test_floating_origin_headless.gd` | 61 tests, 98 assertions | 0 | 0 | E2E origin rebasing, 6-DOF physics, atmospheric drag, line counts | **PASS** |
 | `test_quadtree_headless.gd` | 1,000 steps, 0 orphans/leaks | 0 | 0 | Quadtree LOD subdivision, ring buffer mesh pooling | **PASS** |
 | `test_adversarial_challenger2.gd` | 1,348 assertions | 0 | 0 | Adversarial topology, multi-ship rebase, deep LOD continuity | **PASS** |
+| `test_adversarial_challenger_hardening.gd` | 120 assertions | 0 | 0 | Adversarial pool and continuity checks | **PASS** |
 | `test_adversarial_edge_cases.gd` | 44 assertions | 0 | 0 | In-tree SceneTree PhysicsServer3D synchronization & edge cases | **PASS** |
 | `test_adversarial_empirical.gd` | 55 assertions | 0 | 0 | Sustained 1,000-frame rebases, hypersonic velocity, memory profiling | **PASS** |
 | `test_adversarial_hardening.gd` | 3,032 assertions | 0 | 0 | Quadtree, pooling, scheduler, and origin hardening | **PASS** |
-| `test_adversarial_challenger_hardening.gd` | 120 assertions | 0 | 0 | Adversarial pool and continuity checks | **PASS** |
 | `test_adversarial_m10_reviewer2.gd` | 396 assertions | 0 | 0 | Gravity and flight reviewer regressions | **PASS** |
 | `test_adversarial_m12_challenger.gd` | 1,993 assertions | 0 | 0 | Deep LOD, collider, and scheduler stress | **PASS** |
-| `test_adversarial_m12_challenger2.gd` | 479 assertions | 0 | 0 | Cross-system Phase 2 adversarial checks | **PASS** |
+| `test_adversarial_m12_challenger2.gd` | 479 assertions | 0 | 0 | Cross-system Phase 2 adversarial checks, mesh and skirt math | **PASS** |
+| `test_adversarial_m13_challenger1.gd` | 2,365 assertions | 0 | 0 | 4-thread concurrency stress, burst cancellation & auto-reclaim, GLSL FBM constants & hash/grad parity | **PASS** |
+| `test_adversarial_m13_challenger2.gd` | 8,066 assertions | 0 | 0 | ColliderPoolManager 5,000 churn cycles & origin alignment, push constants & scheduler zero memory delta | **PASS** |
+| `test_adversarial_m13_reviewer2.gd` | 135 assertions | 0 | 0 | TerrainMeshBuilder slot index boundary clamping, scheduler cancellation edge cases & auto-reclaim | **PASS** |
 | `test_adversarial_m8_reviewer2.gd` | 1,677 assertions | 0 | 0 | Collider pool and quadtree reviewer checks | **PASS** |
-| `test_phase3_streaming_projectiles_headless.gd` | 2,626 assertions | 0 | 0 | 256-slot streaming, 30-frame async convergence, rebase alignment, 128-slot projectiles, std430 compute fallback, weapon/radar, memory and all-suite regression | **PASS** |
-| `test_phase4_simulation_autopilot_headless.gd` | 421 assertions | 0 | 0 | Unified simulation, collision isolation, camera coverage, 6-DOF guidance, shared material, telemetry, HUD/environment integration, memory, class/line guardrails, and all-suite regression | **PASS** |
-| `test_phase5_orbital_hud_environment_headless.gd` | 268 assertions | 0 | 0 | Keplerian mechanics, zero-tangent fallback, 64-point Velocity-Verlet prediction, manual-input preservation, prograde/circularization guidance, environment transition, input/HUD rebase, memory, 25-script guardrail, and 17-suite regression gate | **PASS** |
-| `test_phase6_targets_combat_mobile_headless.gd` | 362 assertions | 0 | 0 | Target/impact pools, same-frame transform sync, projectile damage/effects, exact lead lock, dual HUD reticles, lock refresh, dual-stick input, telemetry, memory, 25-script guardrail, and 18-suite regression gate | **PASS** |
-| `test_phase7_thermal_governor_encounters_headless.gd` | 163 assertions | 0 | 0 | Thermal/structural integrity, 120 FPS governor, quadtree topology response, deterministic encounter waves, HUD/telemetry sync, 1,000-tick memory, 28-script guardrail, and 19-suite regression gate | **PASS** |
-| `test_phase8_waypoints_evasion_hud_headless.gd` | 165 assertions | 0 | 0 | 16-slot waypoint/beacon ring, terrain-height beacon placement, deterministic evasion, live waypoint capture/rebase, HUD diamond projection, 1,000-tick memory, 29-script guardrail, and 20-suite regression gate | **PASS** |
-| `test_phase9_weapon_heat_autopilot_score_headless.gd` | 168 assertions | 0 | 0 | Immediate guidance-target rebase sync, weapon heat capacitor/cooldown/overheat, gravity-compensated autonomous intercept, kill and waypoint score telemetry, HUD sync, 1,000-tick memory, 38-script guardrail, and 21-suite regression gate | **PASS** |
-| `test_phase10_recorder_mission_release_headless.gd` | 245 assertions | 0 | 0 | 64-slot black-box recorder with unwritten-slot rejection and physics restore, deterministic three-stage mission plus hull failure, mission bonus/HUD sync, 1,000-tick zero growth, 38-script audit, and 22-suite master gate | **PASS** |
-| `test_phase11_propellant_gpws_headless.gd` | 167 assertions | 0 | 0 | Tsiolkovsky propellant/wet mass/delta-v, persistent controller cutoff and zero thruster force across two live depleted ticks, GPWS terrain caution/pull-up, target threat alerts, live telemetry/HUD sync, 1,000-tick zero growth, 38-script audit, and 23-suite master gate | **PASS** |
-| `test_phase12_wind_power_eclipse_headless.gd` | 180 assertions | 0 | 0 | Air-relative convective heating and brownout lock recovery, altitude-banded wind/turbulence and air-relative drag, eclipse solar bus and brownout weapon gate, live telemetry/HUD lockstep, 1,000-tick zero growth, 38-script audit, and 24-suite master gate | **PASS** |
-| `test_phase13_landing_gear_radar_los_headless.gd` | 166 assertions | 0 | 0 | Retractable gear actuator and drag interpolation, soft/hard/gear-up touchdown shock response, planetary horizon LOS and signal attenuation, live gear/radar telemetry and HUD lockstep, 1,000-tick zero growth, 38-script audit, and 25-suite master gate | **PASS** |
-| `test_phase14_release_export_touch_headless.gd` | 181 assertions | 0 | 0 | Mobile 120 Hz/landscape project settings, Android ARM64 `export_presets.cfg`, multi-touch dual-stick `MobileTouchOverlay` and live `_input(event)` routing, one-shot action consumption, 1,000-tick zero growth, 39-script audit, and 26-suite flat $O(N)$ master gate | **PASS** |
-| **Total Test Coverage** | **> 26,200 tests & assertions across 27 suites** | **0** | **0** | **Comprehensive Phase 1-14 Final Release Certification** | **100% PASS** |
+| **Total Test Coverage** | **> 28,150 tests & assertions across 28 suites** | **0** | **0** | **Comprehensive Phase 1-15 Final Release Certification** | **100% PASS** |
 
 ---
 
@@ -139,63 +143,66 @@ All 27 automated test suites execute headlessly on Godot Engine v4.7.2.stable.of
 | Script File | Verified Line Count | Headroom to 250 Limit | Status |
 | :--- | :---: | :---: | :---: |
 | `AtmosphereMath.gd` | 88 lines | 162 lines | **COMPLIANT** |
-| `SpaceshipController.gd` | 207 lines | 43 lines | **COMPLIANT** |
-| `FloatingOrigin.gd` | 145 lines | 105 lines | **COMPLIANT** |
-| `PlanetManager.gd` | 242 lines | 8 lines | **COMPLIANT** |
-| `PlanetMath.gd` | 91 lines | 159 lines | **COMPLIANT** |
-| `QuadtreeNode.gd` | 208 lines | 42 lines | **COMPLIANT** |
 | `ChunkPoolManager.gd` | 111 lines | 139 lines | **COMPLIANT** |
+| `ChunkTaskScheduler.gd` | 246 lines | 4 lines (limit 248) | **COMPLIANT** |
+| `CockpitHUD.gd` | 153 lines | 95 lines (limit 248) | **COMPLIANT** |
+| `CockpitHUDRenderer.gd` | 236 lines | 14 lines | **COMPLIANT** |
 | `ColliderPoolManager.gd` | 169 lines | 81 lines | **COMPLIANT** |
-| `ChunkTaskScheduler.gd` | 248 lines | 2 lines | **COMPLIANT** |
-| `TerrainMeshBuilder.gd` | 225 lines | 25 lines | **COMPLIANT** |
-| `PlanetStreamer.gd` | 240 lines | 10 lines | **COMPLIANT** |
-| `ProjectilePoolManager.gd` | 170 lines | 80 lines | **COMPLIANT** |
-| `ComputeChunkDispatcher.gd` | 214 lines | 36 lines | **COMPLIANT** |
-| `SpaceshipWeaponSystem.gd` | 159 lines | 91 lines | **COMPLIANT** |
-| `PlanetarySimulation.gd` | 248 lines | 2 lines | **COMPLIANT** |
-| `FlightGuidanceSystem.gd` | 245 lines | 5 lines | **COMPLIANT** |
-| `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
-| `SimulationTelemetry.gd` | 119 lines | 131 lines | **COMPLIANT** |
-| `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
-| `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
-| `CockpitHUD.gd` | 248 lines | 2 lines | **COMPLIANT** |
-| `FlightInputBindings.gd` | 38 lines | 212 lines | **COMPLIANT** |
-| `TargetPoolManager.gd` | 209 lines | 41 lines | **COMPLIANT** |
-| `ImpactEffectPoolManager.gd` | 128 lines | 122 lines | **COMPLIANT** |
-| `MobileTouchController.gd` | 55 lines | 195 lines | **COMPLIANT** |
-| `MobileTouchOverlay.gd` | 84 lines | 166 lines | **COMPLIANT** |
-| `ThermalStructuralModel.gd` | 61 lines | 189 lines | **COMPLIANT** |
+| `ComputeChunkDispatcher.gd` | 216 lines | 34 lines | **COMPLIANT** |
+| `EncounterDirector.gd` | 248 lines | 2 lines (limit 248) | **COMPLIANT** |
+| `EntityVisualsBuilder.gd` | 165 lines | 85 lines | **COMPLIANT** |
+| `FlightGuidanceSystem.gd` | 245 lines | 5 lines (limit 245) | **COMPLIANT** |
+| `FlightInputBindings.gd` | 40 lines | 210 lines | **COMPLIANT** |
+| `FlightRecorderRingBuffer.gd` | 130 lines | 120 lines | **COMPLIANT** |
+| `FloatingOrigin.gd` | 145 lines | 105 lines | **COMPLIANT** |
 | `FrameBudgetGovernor.gd` | 42 lines | 208 lines | **COMPLIANT** |
-| `EncounterDirector.gd` | 247 lines | 3 lines | **COMPLIANT** |
-| `WaypointRingBuffer.gd` | 103 lines | 147 lines | **COMPLIANT** |
-| `WeaponHeatCapacitor.gd` | 48 lines | 202 lines | **COMPLIANT** |
-| `FlightRecorderRingBuffer.gd` | 126 lines | 124 lines | **COMPLIANT** |
+| `ImpactEffectPoolManager.gd` | 129 lines | 121 lines | **COMPLIANT** |
+| `LandingGearModel.gd` | 74 lines | 176 lines | **COMPLIANT** |
+| `LiveSortieBootstrap.gd` | 106 lines | 144 lines | **COMPLIANT** |
 | `MissionScenarioRunner.gd` | 86 lines | 164 lines | **COMPLIANT** |
+| `MobileTouchController.gd` | 55 lines | 40 lines (limit 95) | **COMPLIANT** |
+| `MobileTouchOverlay.gd` | 87 lines | 38 lines (limit 125) | **COMPLIANT** |
+| `OrbitalMechanics.gd` | 129 lines | 121 lines | **COMPLIANT** |
+| `PlanetManager.gd` | 242 lines | 8 lines (limit 242) | **COMPLIANT** |
+| `PlanetMath.gd` | 94 lines | 156 lines | **COMPLIANT** |
+| `PlanetStreamer.gd` | 239 lines | 1 line (limit 240) | **COMPLIANT** |
+| `PlanetSurfaceMaterial.gd` | 90 lines | 160 lines | **COMPLIANT** |
+| `PlanetaryEnvironment.gd` | 80 lines | 170 lines | **COMPLIANT** |
+| `PlanetarySimulation.gd` | 233 lines | 15 lines (limit 248) | **COMPLIANT** |
+| `PlanetaryWindModel.gd` | 59 lines | 191 lines | **COMPLIANT** |
+| `ProjectilePoolManager.gd` | 186 lines | 64 lines | **COMPLIANT** |
 | `PropellantMassModel.gd` | 66 lines | 184 lines | **COMPLIANT** |
 | `ProximityWarningSystem.gd` | 57 lines | 193 lines | **COMPLIANT** |
-| `PlanetaryWindModel.gd` | 59 lines | 191 lines | **COMPLIANT** |
-| `ShipPowerBusModel.gd` | 76 lines | 174 lines | **COMPLIANT** |
-| `LandingGearModel.gd` | 74 lines | 176 lines | **COMPLIANT** |
+| `QuadtreeNode.gd` | 208 lines | 42 lines | **COMPLIANT** |
 | `RadarOcclusionModel.gd` | 73 lines | 177 lines | **COMPLIANT** |
-| **Total Production Lines** | **5,308 lines (39 scripts)** | **4,442 lines total headroom** | **100% COMPLIANT** |
+| `ShipPowerBusModel.gd` | 76 lines | 174 lines | **COMPLIANT** |
+| `SimulationTelemetry.gd` | 119 lines | 131 lines | **COMPLIANT** |
+| `SpaceshipController.gd` | 220 lines | 30 lines (limit 220) | **COMPLIANT** |
+| `SpaceshipWeaponSystem.gd` | 160 lines | 90 lines | **COMPLIANT** |
+| `TargetPoolManager.gd` | 208 lines | 42 lines | **COMPLIANT** |
+| `TerrainMeshBuilder.gd` | 233 lines | 17 lines | **COMPLIANT** |
+| `ThermalStructuralModel.gd` | 61 lines | 189 lines | **COMPLIANT** |
+| `WaypointRingBuffer.gd` | 103 lines | 147 lines | **COMPLIANT** |
+| `WeaponHeatCapacitor.gd` | 48 lines | 202 lines | **COMPLIANT** |
+| **Total Production Lines** | **5,755 lines (42 scripts)** | **4,745 lines total headroom** | **100% COMPLIANT** |
 
-*Note: Headless test suites (`test_phase2_terrain_gravity_headless.gd` through `test_phase14_release_export_touch_headless.gd`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
+*Note: Headless test suites (`test_phase2_...` through `test_phase15_...`, `test_floating_origin_headless.gd`, `test_quadtree_headless.gd`, `test_adversarial_*.gd`) are standalone verification harnesses, not production runtime scripts.*
 
 ---
 
 ## Verification Execution Commands
 
-To execute the Phase 14 final release master gate (which runs all 26 prior suites in flat $O(N)$ mode via `--direct-regression`):
+To execute the Phase 15 verification suite directly:
 ```bash
-godot --headless -s test_phase14_release_export_touch_headless.gd
+/opt/homebrew/bin/godot --headless -s res://test_phase15_live_gameplay_compute_hud_headless.gd -- --direct-regression
 ```
 
-To execute any individual headless test suite directly without nested regression cascades:
+To execute the Phase 14 master regression gate (coordinating all 27 prior suites):
 ```bash
-godot --headless -s test_phase14_release_export_touch_headless.gd -- --direct-regression
+/opt/homebrew/bin/godot --headless -s res://test_phase14_release_export_touch_headless.gd
 ```
 
-To verify all 39 production script line counts:
+To verify all 42 production script line counts:
 ```bash
-wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd LandingGearModel.gd MissionScenarioRunner.gd MobileTouchController.gd MobileTouchOverlay.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd PlanetaryWindModel.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd RadarOcclusionModel.gd ShipPowerBusModel.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
+wc -l AtmosphereMath.gd ChunkPoolManager.gd ChunkTaskScheduler.gd CockpitHUD.gd CockpitHUDRenderer.gd ColliderPoolManager.gd ComputeChunkDispatcher.gd EncounterDirector.gd EntityVisualsBuilder.gd FlightGuidanceSystem.gd FlightInputBindings.gd FlightRecorderRingBuffer.gd FloatingOrigin.gd FrameBudgetGovernor.gd ImpactEffectPoolManager.gd LandingGearModel.gd LiveSortieBootstrap.gd MissionScenarioRunner.gd MobileTouchController.gd MobileTouchOverlay.gd OrbitalMechanics.gd PlanetManager.gd PlanetMath.gd PlanetStreamer.gd PlanetSurfaceMaterial.gd PlanetaryEnvironment.gd PlanetarySimulation.gd PlanetaryWindModel.gd ProjectilePoolManager.gd PropellantMassModel.gd ProximityWarningSystem.gd QuadtreeNode.gd RadarOcclusionModel.gd ShipPowerBusModel.gd SimulationTelemetry.gd SpaceshipController.gd SpaceshipWeaponSystem.gd TargetPoolManager.gd TerrainMeshBuilder.gd ThermalStructuralModel.gd WaypointRingBuffer.gd WeaponHeatCapacitor.gd
 ```

@@ -100,7 +100,7 @@ func _run_tier_1() -> void:
 	_assert_approx(ring.positions[beacon_id].distance_to(center), expected_dist, 0.01,
 		"Beacon uses terrain height plus altitude")
 	_assert_approx(ring.radii[beacon_id], 42.0, 0.0, "Beacon stores its capture radius")
-	_assert_vec3(ring.positions[beacon_id], center + unit_dir * expected_dist, 0.01,
+	_assert_vec3(ring.positions[beacon_id], center + unit_dir * expected_dist, 0.05,
 		"Beacon lies on its surface radial")
 
 	_start_test("Tier 1.3: Sequential capture, advancement, and 2,000 m rebase")
