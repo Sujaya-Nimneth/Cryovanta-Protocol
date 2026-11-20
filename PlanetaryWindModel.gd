@@ -40,10 +40,8 @@ func sample_wind(
 		return Vector3.ZERO
 
 	var radial_up: Vector3 = radial / r_len
-	var zonal: Vector3 = Vector3.UP.cross(radial_up)
-	if zonal.length_squared() < 1e-12:
-		zonal = Vector3.RIGHT.cross(radial_up)
-	zonal = zonal.normalized()
+	var ref_axis: Vector3 = Vector3.BACK if absf(radial_up.z) < 0.99 else Vector3.RIGHT
+	var zonal: Vector3 = ref_axis.cross(radial_up).normalized()
 	var meridional: Vector3 = radial_up.cross(zonal).normalized()
 
 	var band_norm: float = (altitude - jetstream_altitude) / maxf(jetstream_half_width, 1.0)

@@ -27,6 +27,7 @@ static var _normals_pool: Array[PackedVector3Array] = []
 static var _uvs_pool: Array[PackedVector2Array] = []
 static var _mesh_arrays_pool: Array[Array] = []
 static var _faces_pool: Array[PackedVector3Array] = []
+static var _twx_pool: Array[PackedVector3Array] = []
 static var _push_buf: PackedByteArray
 static var _ready: bool = false
 
@@ -54,6 +55,9 @@ static func init_builder() -> void:
 		var arr: Array = []; arr.resize(Mesh.ARRAY_MAX)
 		arr[Mesh.ARRAY_VERTEX] = v; arr[Mesh.ARRAY_NORMAL] = n; arr[Mesh.ARRAY_TEX_UV] = u; arr[Mesh.ARRAY_INDEX] = _indices
 		_mesh_arrays_pool[w] = arr
+	_twx_pool.resize(64)
+	for s in range(64):
+		var tw: PackedVector3Array = PackedVector3Array(); tw.resize(GRID); _twx_pool[s] = tw
 	_push_buf = PackedByteArray(); _push_buf.resize(PUSH_CONSTANT_SIZE); _ready = true
 
 static func calculate_chunk_size(face_index: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float) -> float:
@@ -102,7 +106,7 @@ static func snoise(v: Vector3, seed_val: int) -> Vector4:
 	if x0.x >= x0.y:
 		if x0.y >= x0.z: i1x = 1; i2x = 1; i2y = 1
 		elif x0.x >= x0.z: i1x = 1; i2x = 1; i2z = 1
-		else: i1z = 1; i2x = 1; i2y = 1
+		else: i1z = 1; i2x = 1; i2z = 1
 	else:
 		if x0.y < x0.z: i1z = 1; i2y = 1; i2z = 1
 		elif x0.x < x0.z: i1y = 1; i2y = 1; i2z = 1
@@ -143,7 +147,7 @@ static func _fill_buffers(
 	face_index: int, uv_min: Vector2, uv_max: Vector2,
 	planet_radius: float, seed_val: int, freq: float, amp: float,
 	verts: PackedVector3Array, norms: PackedVector3Array, uvs: PackedVector2Array,
-	chunk_local: bool = true
+	chunk_local: bool = true, slot_idx: int = 0
 ) -> void:
 	var chunk_size_m: float = calculate_chunk_size(face_index, uv_min, uv_max, planet_radius)
 	var sea_origin: Vector3 = get_chunk_origin(face_index, uv_min, planet_radius)
@@ -151,7 +155,7 @@ static func _fill_buffers(
 	var skirt_dist: float = chunk_size_m * SKIRT_FRACTION
 	var n: Vector3 = PlanetMath.FACE_NORMALS[face_index]; var t: Vector3 = PlanetMath.FACE_TANGENTS[face_index]; var b: Vector3 = PlanetMath.FACE_BITANGENTS[face_index]
 	var amp_freq: float = amp * freq
-	var twx: Array[Vector3] = []; twx.resize(GRID)
+	var twx: PackedVector3Array = _twx_pool[clampi(slot_idx, 0, _twx_pool.size() - 1)]
 	for x in range(GRID): twx[x] = t * tan((uv_min.x + _inner_lut[x] * uv_range.x) * PlanetMath.QUARTER_PI)
 	var idx: int = 0
 	for y in range(GRID):
@@ -174,13 +178,14 @@ static func _fill_buffers(
 static func build_chunk_buffers(
 	face_index: int, _lod_level: int, uv_min: Vector2, uv_max: Vector2,
 	planet_radius: float, seed_val: int, freq: float, amp: float,
-	out_arrays: Array, out_faces: PackedVector3Array, has_collider: bool
+	out_arrays: Array, out_faces: PackedVector3Array, has_collider: bool,
+	slot_idx: int = 0
 ) -> void:
 	if not _ready: init_builder()
 	var verts: PackedVector3Array = out_arrays[Mesh.ARRAY_VERTEX]
 	var norms: PackedVector3Array = out_arrays[Mesh.ARRAY_NORMAL]
 	var uvs: PackedVector2Array = out_arrays[Mesh.ARRAY_TEX_UV]
-	_fill_buffers(face_index, uv_min, uv_max, planet_radius, seed_val, freq, amp, verts, norms, uvs, true)
+	_fill_buffers(face_index, uv_min, uv_max, planet_radius, seed_val, freq, amp, verts, norms, uvs, true, slot_idx)
 	out_arrays[Mesh.ARRAY_VERTEX] = verts; out_arrays[Mesh.ARRAY_NORMAL] = norms; out_arrays[Mesh.ARRAY_TEX_UV] = uvs
 	if has_collider and out_faces.size() == INDEX_COUNT:
 		var ind: PackedInt32Array = _indices
@@ -197,7 +202,7 @@ static func build_mesh_cpu(
 	var verts: PackedVector3Array = _vertices_pool[slot]
 	var norms: PackedVector3Array = _normals_pool[slot]
 	var uvs: PackedVector2Array = _uvs_pool[slot]
-	_fill_buffers(face_index, uv_min, uv_max, planet_radius, seed_val, freq, amp, verts, norms, uvs, chunk_local)
+	_fill_buffers(face_index, uv_min, uv_max, planet_radius, seed_val, freq, amp, verts, norms, uvs, chunk_local, slot)
 	_vertices_pool[slot] = verts; _normals_pool[slot] = norms; _uvs_pool[slot] = uvs
 	if skip_mesh: return null
 	var arr: Array = _mesh_arrays_pool[slot]

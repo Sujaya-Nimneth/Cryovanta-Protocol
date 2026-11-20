@@ -6,7 +6,7 @@ extends RefCounted
 
 const SHADER_CODE: String = """
 shader_type spatial;
-render_mode diffuse_burley, specular_schlick_ggx;
+render_mode diffuse_burley, specular_schlick_ggx, cull_disabled;
 
 uniform vec3 planet_center_offset = vec3(0.0);
 uniform float planet_radius = 100000.0;
@@ -24,9 +24,9 @@ void vertex() {
 void fragment() {
 	vec3 radial = normalize(world_position - planet_center_offset);
 	vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	float elevation = clamp((length(world_position - planet_center_offset) - planet_radius) / max(max_elevation, 0.001), 0.0, 1.0);
+	float elevation = clamp(((length(world_position - planet_center_offset) - planet_radius) / max(max_elevation, 0.001)) * 0.5 + 0.5, 0.0, 1.0);
 	float slope = clamp(1.0 - dot(world_normal, radial), 0.0, 1.0);
-	vec3 rock = mix(lowland_color.rgb, slope_color.rgb, smoothstep(0.08, 0.55, slope));
+	vec3 rock = mix(lowland_color.rgb, slope_color.rgb, smoothstep(0.03, 0.38, slope));
 	vec3 color = mix(rock, highland_ice_color.rgb, smoothstep(0.48, 0.92, elevation + slope * 0.28));
 	ALBEDO = color;
 	ROUGHNESS = mix(0.96, 0.72, elevation);
