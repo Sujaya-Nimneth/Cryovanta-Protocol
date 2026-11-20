@@ -38,6 +38,7 @@ func _run() -> void:
 	_test_proper_g_load_and_local_roll()
 	_test_sortie_pause_and_20_cycle_restart()
 	_test_procedural_cockpit_audio_synth()
+	_test_soak_endurance_and_step_telemetry()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -273,3 +274,36 @@ func _test_procedural_cockpit_audio_synth() -> void:
 		is_equal_approx(s_idle, 0.0) and absf(s_thrust) > 0.1 and absf(s_thrust) <= 0.85
 		and (mem_after - mem_before <= 0))
 	env.free()
+
+func _test_soak_endurance_and_step_telemetry() -> void:
+	var sim: PlanetarySimulation = _make_sim()
+	sim.ship.process_user_input = false
+	sim.planet_manager.max_lod = 2
+	LiveSortieBootstrap.activate_live_sortie(sim)
+	var mem_before: int = 0
+	var timings_ok: bool = true
+	var pools_ok: bool = true
+	for cycle in range(10):
+		sim.ship.set_thrust_input(Vector3(0.15, 0.4, 0.7))
+		sim.ship.linear_velocity = Vector3(220.0, 20.0, -140.0)
+		for tick in range(240):
+			if tick % 40 == 0:
+				sim.weapon_system.fire_projectile()
+			sim.step_simulation(1.0 / 120.0)
+			sim.hud._surface.queue_redraw()
+			var t_sum: int = sim.telemetry.step_physics_usec + sim.telemetry.step_streamer_usec + sim.telemetry.step_director_hud_usec
+			if sim.telemetry.step_total_usec != t_sum or sim.telemetry.peak_step_usec < sim.telemetry.step_total_usec:
+				timings_ok = false
+			if sim.planet_streamer.get_orphan_mesh_count() != 0 \
+					or sim.target_pool.active_count > TargetPoolManager.POOL_SIZE \
+					or sim.projectile_pool.active_count > ProjectilePoolManager.POOL_SIZE:
+				pools_ok = false
+			if tick == 180 and sim.encounter_director.recorder.count > 0:
+				LiveSortieBootstrap.trigger_rewind(sim)
+		LiveSortieBootstrap.restart_sortie(sim)
+		if cycle == 2:
+			mem_before = OS.get_static_memory_usage()
+	var mem_after: int = OS.get_static_memory_usage()
+	_check("2,400-tick multi-cycle soak keeps additive telemetry, zero orphans, and zero leaks",
+		timings_ok and pools_ok and sim.telemetry.peak_step_usec > 0 and (mem_after - mem_before <= 0))
+	_dispose(sim)
