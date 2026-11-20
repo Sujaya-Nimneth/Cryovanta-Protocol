@@ -1,10 +1,12 @@
 # E2E Test Infra: Cryovanta Protocol
 
 ## Test Philosophy
-- Opaque-box, requirement-driven test suite runnable headlessly via:
-  `godot --headless -s test_floating_origin_headless.gd`
-- Pass criteria: Exits with code 0 and all assertions passing.
-- Methodology: Category-Partition, Boundary Value Analysis, Pairwise Combinatorial, and Real-World Scenarios.
+- Opaque-box, requirement-driven suites remain at the repository root for compatibility with historical guardrails.
+- Complete corpus gate: `bash tools/run_tests.sh`.
+- `tests/manifest.txt` must contain every root-level `test_*.gd` suite exactly once.
+- The runner passes `--direct-regression` so historical suites do not recursively execute one another.
+- Pass criteria: every suite exits 0 and reports zero failed assertions.
+- Headless static-memory checks are stability evidence, not proof of zero transient allocation or Android Vulkan performance.
 
 ## Feature Inventory
 | # | Feature | Source | Tier 1 | Tier 2 | Tier 3 | Tier 4 |

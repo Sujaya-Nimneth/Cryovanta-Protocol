@@ -37,6 +37,10 @@ while IFS= read -r suite || [[ -n "$suite" ]]; do
     failed=1
     echo "FAIL: $suite exited $exit_code"
     tail -40 "$log"
+  elif [[ "$suite_failed" != "0" ]]; then
+    failed=1
+    echo "FAIL: $suite reported $suite_failed failed assertions"
+    tail -40 "$log"
   else
     echo "PASS: $suite (${suite_passed}/${suite_total} assertions)"
     total_assertions=$((total_assertions + suite_total))

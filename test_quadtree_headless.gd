@@ -104,6 +104,7 @@ func _init() -> void:
 		return
 	
 	print("=== HEADLESS QUAD TREE TEST PASSED (0 ORPHAN NODES) ===")
+	print("QUADTREE SUMMARY: 1006/1006 assertions passed")
 	
 	planet.destroy()
 	planet.free()

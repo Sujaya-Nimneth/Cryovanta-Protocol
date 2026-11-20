@@ -5,10 +5,10 @@ Godot 4.7, targeting Android ARM64 devices with the Vulkan Mobile renderer.
 The reference device is Snapdragon 8 Elite Gen 5 with Adreno 840 graphics,
 landscape 1920x1080 output, 120 Hz physics ticks, and a 120 FPS frame budget.
 
-The project is designed around fixed-capacity pools and reusable registers. All
-39 production GDScript files declare `class_name`, stay at or below 250 lines,
-and keep allocation-sensitive simulation paths free of `new()`, `.duplicate()`,
-and growing `Array` or `Dictionary` operations.
+The project is designed around fixed-capacity pools and reusable registers. The
+current production corpus contains 42 GDScript files. Allocation-sensitive paths
+are guarded by headless tests, but literal zero-allocation and mobile Vulkan
+performance remain subject to device profiling.
 
 ## Quick Start
 
@@ -173,8 +173,9 @@ mode-cycle and weapon-fire requests at the start of each simulation tick.
 
 `project.godot` configures landscape orientation, 1920x1080 reference viewport,
 VSync, mouse-to-touch emulation, 120 physics ticks per second, the Mobile
-renderer, and ETC2/ASTC VRAM compression. The renderer uses Vulkan on Android
-and is validated against a Vulkan 1.4 / Adreno 840 target.
+renderer, and ETC2/ASTC VRAM compression. The renderer is configured for Vulkan
+on Android. The Vulkan 1.4 / Adreno 840 target is a design target, not a
+completed hardware certification.
 
 `export_presets.cfg` contains the `Android` preset:
 
@@ -216,27 +217,21 @@ are ignored by Git; `export_presets.cfg` remains tracked.
 
 ## Headless Verification
 
-Refresh the global class cache after adding scripts, then run the final gate:
+Run the complete nonrecursive corpus:
 
 ```bash
-godot --headless --editor --quit --path .
-godot --headless -s test_phase14_release_export_touch_headless.gd
+bash tools/run_tests.sh
 ```
 
-The Phase 14 gate verifies project/export settings, overlay multi-touch routing,
-1,000 ticks with no static-memory growth, all 39 production script guardrails,
-and all 26 prior suites. To execute the complete 27-suite set directly:
+The runner imports the project, validates `tests/manifest.txt` against every
+root-level `test_*.gd` suite, runs each suite once with `--direct-regression`,
+and writes logs under `build/test-logs/`. Historical recursive gates remain
+available for compatibility, but they are not the complete-corpus gate.
 
-```bash
-set -e
-for suite in test_*.gd; do
-  godot --headless -s "$suite"
-done
-```
-
-The full gate can take several minutes because release suites recursively run
-their historical regression gates. The source of truth for assertion totals,
-feature coverage, and production line counts is `TEST_READY.md`.
+The Phase 14 suite is a historical compatibility gate for its explicit registry;
+it does not cover every adversarial suite. Headless CPU-fallback results are not
+Android Vulkan, thermal, or device-input certification. See `TEST_READY.md` for
+the current evidence boundary and `docs/implementation-plan.md` for repair work.
 
 ## Repository Map
 
@@ -244,10 +239,10 @@ feature coverage, and production line counts is `TEST_READY.md`.
 project.godot                 project and mobile renderer settings
 export_presets.cfg            Android ARM64 APK preset
 main.tscn                     playable simulation scene
-*.gd                         39 production scripts and headless suites
+*.gd                         42 production scripts and headless suites
 planet_chunk.glsl             std430 chunk compute shader
 rules.md                      architecture and memory guardrails
 PROJECT.md                    detailed subsystem and interface contracts
 TEST_INFRA.md                 test harness conventions
-TEST_READY.md                 final release certification and coverage matrix
+TEST_READY.md                 current verification status and evidence boundary
 ```

@@ -453,3 +453,15 @@ Defer full rewind implementation to Sprint 2 unless the semantics decision is al
 ## 11. Final recommendation
 
 Start with Phase 0 and Phase 1. The project does not need a rewrite; it needs truthful verification, coherent live wiring, and one playable sortie. After that, optimize from device measurements and polish the presentation. Release only when the current build—not the October APK—passes the device, stability, security, and playtest gates.
+
+---
+
+## 12. Execution log
+
+| Date | Phase | Commit / PR | Result |
+| :--- | :--- | :--- | :--- |
+| 2026-11-20 | Planning | `41ad985` | Evidence-backed implementation plan committed to `testing-main` |
+| 2026-11-20 | Phase 0 | `5d57f6d` | Project config, one-sortie brief, durable audit evidence, and bug records added |
+| 2026-11-20 | Phase 0 | `2b59cf6`, `ba21cbf` | Nonrecursive manifest/runner, CI, live-wiring regressions, and bytecode hygiene added |
+
+Phase 0 intentionally leaves the live-wiring regression suite red until Phase 1 fixes land. Historical suites remain green in direct mode; the complete gate is not relabeled as passing while known defects are open.

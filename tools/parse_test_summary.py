@@ -8,8 +8,8 @@ import sys
 
 def parse(text: str) -> tuple[int, int, int]:
     patterns = [
-        r"Total Assertions:\s*(\d+)\s+Passed Assertions:\s*(\d+)\s+Failed Assertions:\s*(\d+)",
         r"Total Tests Run:\s*(\d+)\s+Passed Assertions:\s*(\d+)\s+Failed Assertions:\s*(\d+)",
+        r"Total Assertions:\s*(\d+)\s+Passed Assertions:\s*(\d+)\s+Failed Assertions:\s*(\d+)",
         r"SUMMARY:\s*(\d+) total assertions,\s*(\d+) passed,\s*(\d+) failed",
         r"SUMMARY:\s*(\d+)/(\d+) assertions passed",
     ]
@@ -18,9 +18,7 @@ def parse(text: str) -> tuple[int, int, int]:
         if not matches:
             continue
         groups = matches[-1].groups()
-        if len(groups) == 3 and "total assertions," in pattern:
-            total, passed, failed = map(int, groups)
-        elif len(groups) == 3:
+        if len(groups) == 3:
             total, passed, failed = map(int, groups)
         else:
             passed, total = map(int, groups)

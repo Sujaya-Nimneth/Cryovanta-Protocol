@@ -1,4 +1,10 @@
-# Project: Cryovanta Protocol - Orbital Flight Simulation (Phases 1-15 Complete)
+# Project: Cryovanta Protocol — Production Repair & Improvement
+
+> **Status:** The technical foundation and historical headless suites exist, but
+> the project is not release-certified. Live wiring regressions currently expose
+> governor, rewind, touch-axis, and touchdown defects. Android/Vulkan performance,
+> thermal stability, and current-build device validation are NOT ASSESSED.
+> See `docs/implementation-plan.md` and `TEST_READY.md`.
 
 ## Architecture
 Cryovanta Protocol is a 64-bit precision procedural space simulation targeting high-performance mobile Vulkan 1.4 rendering (Godot 4.7).
