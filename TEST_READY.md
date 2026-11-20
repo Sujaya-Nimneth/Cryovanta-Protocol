@@ -4,40 +4,31 @@
 
 **Engine:** Godot `4.7.2.stable.official.ed1daf0bf`
 
-**Release status:** NOT READY
+**Release status:** HEADLESS RC VERIFIED (`36/36` suites) · PHYSICAL ANDROID/VULKAN `NOT ASSESSED`
 
 ## Current gate
 
 ```bash
-bash tools/run_tests.sh
+GODOT_BIN=/opt/homebrew/bin/godot bash tools/run_tests.sh
 ```
 
 The runner validates `tests/manifest.txt`, imports the project, executes every registered root-level suite once with `--direct-regression`, parses final counters, and stores logs in `build/test-logs/`.
 
-The historical Phase 14 master is retained for compatibility. Its explicit registry covers 27 suites and is not the complete corpus. Recursive historical gates are not used to inflate coverage totals.
-
-## Baseline evidence
+## Verified Phase 1–4 Evidence (`testing-main`)
 
 | Check | Result | Boundary |
 | :--- | :--- | :--- |
-| Phase 14 historical master | 190/190, exit 0 | Only its explicit registry ran |
-| Seven omitted adversarial suites | Pass individually | Now included in the complete manifest |
-| Live wiring regression | 5 expected failures before Phase 1 fixes | Governor ownership, rewind fuel/stage, touch heave/roll, airborne completion |
-| Async steady-state probe | 120 visuals, 0 pending jobs, 64 staging slots free, static delta 0 | CPU-fallback pool stability, not GPU certification |
-| Production guardrails | 42 scripts at baseline, all ≤250 lines | Rechecked by the corpus after changes |
-| Android device/Vulkan | NOT ASSESSED | No current device run or profile |
-| Thermal/soak | NOT ASSESSED | No endurance evidence |
-| Current APK | NOT ASSESSED | Existing artifact predates latest baseline code |
+| Full 36-suite nonrecursive gate | **PASS (`36/36`, `45,296` assertions)** | macOS `--headless` CPU simulation (`tools/run_tests.sh`) |
+| Seven formerly omitted adversarial suites | **PASS** | Registered and executed inside `tests/manifest.txt` |
+| Live wiring & soak suite (`test_live_wiring_regression.gd`) | **PASS (`29/29`)** | Governor ownership, coherent rewind, 6-axis touch, 0.15 s touchdown, 20-cycle restart, 2,400-tick soak |
+| Production guardrails | **PASS (`43` scripts, all `<= 250` lines)** | Frozen line ceilings verified after every phase |
+| Android device / Vulkan Mobile GPU compute & draw calls | **NOT ASSESSED** | No physical Snapdragon 8 Elite Gen 5 / Adreno 840 profiler capture |
+| 30-minute physical hardware thermal soak | **NOT ASSESSED** | Automated 2,400-tick headless soak ran; hardware endurance pending |
+| Play Store signed AAB & human playtest | **NOT ASSESSED** | Debug preset hardened (`min_sdk="26"`, `target_sdk="35"`); store AAB deferred ([release-checklist-1.0.0.md](production/releases/release-checklist-1.0.0.md)) |
 
-## Known open defects
+## Resolved Baseline Bugs
 
-- BUG-0001: frame governor double-sampling.
-- BUG-0002: partial rewind state.
-- BUG-0003: touch cannot command heave or roll.
-- BUG-0004: mission completion without touchdown.
-- BUG-0005: scheduler shutdown nested mutex lock.
-
-These are tracked under `production/qa/bugs/`. The live regression suite is intentionally red until the corresponding Phase 1 fixes land.
+- **BUG-0001..0005** (`production/qa/bugs/`): Verified Fixed across Phases 1–2 (`frame governor double-sampling`, `partial rewind`, `touch missing heave/roll`, `airborne mission completion`, and `scheduler nested lock`).
 
 ## Evidence rules
 

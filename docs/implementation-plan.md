@@ -486,11 +486,15 @@ Start with Phase 0 and Phase 1. The project does not need a rewrite; it needs tr
 | 2026-11-20 | Phase 3 | `6f74de4` | Reclaimed retired staging slots before capacity check in `PlanetStreamer._cancel_slot_job()` |
 | 2026-11-20 | Phase 3 | `439aa7d` | Added `ADR-0007` (terrain backend/allocations), `docs/architecture/control-manifest.md`, and `production/polish/perf-profile-20261120.md` |
 | 2026-11-20 | Phase 3 | `tools/run_tests.sh` | Expanded 2,400-tick multi-cycle soak test; 36-suite gate passed (`45,295` assertions, 0 failures); recorded `production/qa/soak-test-20261120-30m.md` |
+| 2026-11-20 | Phase 3 | PR #4, merge `06ba48e` | Phase 3 merged into `main` |
+| 2026-11-20 | Phase 4 | `16f5dc2`, `3ba187a` | Authored `design/art/art-bible.md`, `design/accessibility-requirements.md`, gamepad fallbacks, and `[!]`/`[!!]` HUD alert prefixes |
+| 2026-11-20 | Phase 4 | `82c0183`, `2015cf7` | Authored analytical balance check, hardened `export_presets.cfg`, cleaned stale local `build/` binaries, recorded security audit |
+| 2026-11-20 | Phase 4 | `tools/run_tests.sh` | Authored release checklist, `CHANGELOG.md`, `1.0.0` patch notes, synced root docs; final 36-suite gate passed (`45,296` assertions, 0 failures) |
 
-Phase 0 intentionally left the live-wiring regression suite red until Phase 1 fixes landed. Phase 1 resolved BUG-0001 through BUG-0005 (`45,287` assertions). Phase 2 resolved terrain culling, allocation/parity issues, mission wave pacing, pause/restart loop, HUD/touch ergonomics, and procedural audio synthesis (`45,291` assertions, `36/36` suites). Phase 3 instrumented microsecond per-subsystem step timings, hardened staging slot reclamation, benchmarked headless steps/chunk builds, and verified 2,400-tick multi-cycle soak endurance (`45,295` assertions, `36/36` suites). Physical Snapdragon 8 Elite Gen 5 / Vulkan profiler & 30-minute thermal device tests remain `NOT ASSESSED`.
+Phase 0 through Phase 4 are complete across `43` production scripts and `36` nonrecursive headless suites (`45,296` reported assertions, `0` failures). Physical Snapdragon 8 Elite Gen 5 / Adreno 840 Vulkan profiling, 30-minute thermal soak, live human playtesting, and signed Play Store AAB packaging remain explicitly marked `NOT ASSESSED` in `production/releases/release-checklist-1.0.0.md`.
 
 ---
 
-## 13. Phase 3 Completion Checkpoint
+## 13. Phase 4 Completion Checkpoint
 
-Phase 3 is complete and verified across all 36 headless test suites on `testing-main`. Next milestone: **Phase 4 — Art bible, accessibility, analytical balance check, Android export hardening, security audit, and release 1.0.0 gate**.
+Phases 0–4 of the Cryovanta Protocol stabilization and improvement roadmap are complete and verified across all 36 headless test suites on `testing-main`.
