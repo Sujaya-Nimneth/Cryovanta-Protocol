@@ -37,6 +37,23 @@ var displayed_gear_progress: float = 1.0
 var displayed_target_los: bool = true
 var last_drawn_waypoint_markers: int = 0
 var displayed_thrust: float = 0.0
+var displayed_weapon_overheated: bool = false
+var displayed_paused: bool = false
+var displayed_traffic_alert: bool = false
+var text_altitude: String = "0 m"
+var text_radar_alt: String = "0 m"
+var text_vs: String = "+0 m/s"
+var text_spd: String = "0 m/s"
+var text_g_load: String = "0.0 G"
+var text_fuel: String = "100%"
+var text_score: String = "SCORE: 0"
+var _cache_alt_i: int = -999999
+var _cache_rad_i: int = -999999
+var _cache_vs_i: int = -999999
+var _cache_spd_i: int = -999999
+var _cache_g_10: int = -999999
+var _cache_fuel_pct: int = -1
+var _cache_score_i: int = -1
 var touch_controller: MobileTouchController = null
 var hud_warning_color: Color = Color(1.0, 0.48, 0.22, 0.95)
 var hud_alert_color: Color = Color(0.38, 0.88, 1.0, 0.92)
@@ -94,6 +111,10 @@ func update_hud(sim: PlanetarySimulation, predict_dt: float = 0.5) -> void:
 	displayed_gear_progress = telemetry.gear_deploy_progress
 	displayed_target_los = telemetry.target_los_clear
 	displayed_thrust = clampf(ship.thrust_input.z, 0.0, 1.0)
+	displayed_paused = sim.sortie_paused
+	displayed_weapon_overheated = sim.weapon_system.capacitor.overheated if (is_instance_valid(sim.weapon_system) and is_instance_valid(sim.weapon_system.capacitor)) else false
+	displayed_traffic_alert = sim.encounter_director != null and is_instance_valid(sim.encounter_director.proximity) and sim.encounter_director.proximity.threat_active
+	_sync_cached_text()
 	touch_controller = sim.touch_controller if is_instance_valid(sim.touch_controller) else null
 	if sim.encounter_director != null and sim.encounter_director.waypoints.current_waypoint_id >= 0:
 		active_waypoint_id = sim.encounter_director.waypoints.current_waypoint_id
@@ -151,3 +172,18 @@ func _draw_cockpit() -> void:
 
 func _draw_bar(position: Vector2, width: float, height: float, fill: float, color: Color) -> void:
 	CockpitHUDRenderer.draw_bar(_surface, position, width, height, fill, color)
+
+func _sync_cached_text() -> void:
+	var alt_i: int = int(round(displayed_altitude))
+	if alt_i != _cache_alt_i: _cache_alt_i = alt_i; text_altitude = "%d m" % alt_i
+	var rad_i: int = int(round(displayed_radar_altitude))
+	if rad_i != _cache_rad_i: _cache_rad_i = rad_i; text_radar_alt = "%d m" % rad_i
+	var vs_i: int = int(round(displayed_vertical_speed))
+	if vs_i != _cache_vs_i: _cache_vs_i = vs_i; text_vs = "%+d m/s" % vs_i
+	var spd_i: int = int(round(displayed_horizontal_speed))
+	if spd_i != _cache_spd_i: _cache_spd_i = spd_i; text_spd = "%d m/s" % spd_i
+	var g_10: int = int(round(displayed_g_load * 10.0))
+	if g_10 != _cache_g_10: _cache_g_10 = g_10; text_g_load = "%.1f G" % (float(g_10) * 0.1)
+	var fuel_pct: int = int(round(clampf(displayed_fuel_fraction, 0.0, 1.0) * 100.0))
+	if fuel_pct != _cache_fuel_pct: _cache_fuel_pct = fuel_pct; text_fuel = "%d%%" % fuel_pct
+	if displayed_combat_score != _cache_score_i: _cache_score_i = displayed_combat_score; text_score = "SCORE: %d" % displayed_combat_score

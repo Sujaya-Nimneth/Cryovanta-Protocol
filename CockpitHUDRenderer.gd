@@ -17,7 +17,13 @@ const STR_GEAR: String = "GEAR"
 const STR_WPN: String = "WPN"
 
 const STR_CAUTION: String = "CAUTION - TERRAIN"
+const STR_CAUTION_TRAFFIC: String = "CAUTION - TRAFFIC"
 const STR_PULL_UP: String = "PULL UP - TERRAIN"
+const STR_OVERHEAT: String = "OVERHEAT"
+const STR_PAUSED: String = "SORTIE PAUSED [P/ESC RESUME | BKSP RESTART]"
+const STR_COMPLETE_BANNER: String = "MISSION COMPLETE [BKSP NEW SORTIE]"
+const STR_FAILED_BANNER: String = "MISSION FAILED [R REWIND | BKSP RESTART]"
+const MODE_NAMES: Array[String] = ["MANUAL", "SAS HOLD", "RADIAL UP", "RETRO", "HOVER", "SOFT LAND", "PROGRADE", "CIRCULARIZE", "INTERCEPT"]
 
 const STR_STAGE_CRUISE: String = "MISSION: CRUISE"
 const STR_STAGE_RECON: String = "MISSION: RECON"
@@ -56,29 +62,35 @@ static func _render_telemetry_panel(surface: Control, hud: CockpitHUD) -> void:
 
 	var font: Font = ThemeDB.fallback_font
 	var bx: float = margin + 46.0
-	var bw: float = pw - 56.0
+	var bw: float = pw - 122.0
+	var rx: float = bx + bw + 6.0
 	var y: float = margin + 12.0
 
 	_draw_labeled_bar(surface, font, STR_ALT, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_altitude / 20000.0, 0.0, 1.0), hud._line_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_altitude, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._line_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_RAD, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_radar_altitude / 5000.0, 0.0, 1.0), hud._trajectory_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_radar_alt, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._trajectory_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_VS, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(absf(hud.displayed_vertical_speed) / 100.0, 0.0, 1.0), hud._warning_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_vs, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._warning_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_SPD, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_horizontal_speed / 2000.0, 0.0, 1.0), hud._line_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_spd, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._line_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_G, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_g_load / 10.0, 0.0, 1.0), hud._warning_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_g_load, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._warning_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_THR, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_thrust, 0.0, 1.0), hud._trajectory_color)
 	y += 15.0
 
-	var half_bw: float = (bw - 28.0) * 0.5
+	var half_bw: float = (bw - 8.0) * 0.5
 	_draw_labeled_bar(surface, font, STR_HULL, Vector2(margin + 10.0, y), Vector2(bx, y), half_bw, 7.0,
 		clampf(hud.displayed_hull_integrity / 100.0, 0.0, 1.0), hud._line_color)
 	hud.last_drawn_thermal_bars = 1
@@ -89,6 +101,7 @@ static func _render_telemetry_panel(surface: Control, hud: CockpitHUD) -> void:
 
 	_draw_labeled_bar(surface, font, STR_FUEL, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_fuel_fraction, 0.0, 1.0), hud._line_color)
+	surface.draw_string(font, Vector2(rx, y + 7.0), hud.text_fuel, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._line_color)
 	y += 15.0
 	_draw_labeled_bar(surface, font, STR_BAT, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_battery_fraction, 0.0, 1.0), hud._trajectory_color)
@@ -96,13 +109,16 @@ static func _render_telemetry_panel(surface: Control, hud: CockpitHUD) -> void:
 	_draw_labeled_bar(surface, font, STR_GEAR, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
 		clampf(hud.displayed_gear_progress, 0.0, 1.0), hud._line_color)
 	y += 15.0
+	var wpn_hot: bool = hud.displayed_weapon_overheated or hud.displayed_weapon_heat >= 1.0
 	_draw_labeled_bar(surface, font, STR_WPN, Vector2(margin + 10.0, y), Vector2(bx, y), bw, 7.0,
-		clampf(hud.displayed_weapon_heat, 0.0, 1.0),
-		hud._warning_color if hud.displayed_weapon_heat >= 1.0 else hud._trajectory_color)
+		clampf(hud.displayed_weapon_heat, 0.0, 1.0), hud._warning_color if wpn_hot else hud._trajectory_color)
+	if hud.displayed_weapon_overheated:
+		surface.draw_string(font, Vector2(rx, y + 7.0), STR_OVERHEAT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, hud._warning_color)
 	y += 17.0
 
 	var mode_slot: int = clampi(hud.displayed_mode, 0, 8)
-	surface.draw_rect(Rect2(Vector2(margin + 10.0 + mode_slot * 20.0, y), Vector2(12.0, 12.0)), hud._line_color)
+	surface.draw_rect(Rect2(Vector2(margin + 10.0, y), Vector2(10.0, 10.0)), hud._line_color)
+	surface.draw_string(font, Vector2(margin + 26.0, y + 9.0), MODE_NAMES[mode_slot], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 10, hud._line_color)
 
 static func _draw_labeled_bar(surface: Control, font: Font, label: String, lp: Vector2, bp: Vector2, w: float, h: float, fill: float, color: Color) -> void:
 	surface.draw_string(font, Vector2(lp.x, lp.y + 7.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, color)
@@ -120,20 +136,25 @@ static func _render_boresight(surface: Control, center: Vector2, color: Color) -
 	surface.draw_line(Vector2(center.x, center.y + 5.0), Vector2(center.x, center.y + 14.0), color, 1.5)
 
 static func _render_gpws_banner(surface: Control, hud: CockpitHUD) -> void:
-	if hud.displayed_proximity_alert == 0:
-		return
 	var font: Font = ThemeDB.fallback_font
 	var cx: float = hud._viewport_size.x * 0.5
 	if hud.displayed_proximity_alert == 1:
-		var r := Rect2(Vector2(cx - 90.0, 44.0), Vector2(180.0, 26.0))
+		var r := Rect2(Vector2(cx - 95.0, 126.0), Vector2(190.0, 26.0))
+		var msg: String = STR_CAUTION_TRAFFIC if hud.displayed_traffic_alert else STR_CAUTION
 		surface.draw_rect(r, Color(0.25, 0.12, 0.02, 0.85))
 		surface.draw_rect(r, Color(1.0, 0.55, 0.1, 0.95), false, 2.0)
-		surface.draw_string(font, Vector2(cx - 65.0, 62.0), STR_CAUTION, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 11, Color(1.0, 0.7, 0.2, 1.0))
+		surface.draw_string(font, Vector2(cx - 72.0, 144.0), msg, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 11, Color(1.0, 0.7, 0.2, 1.0))
 	elif hud.displayed_proximity_alert == 2:
-		var r := Rect2(Vector2(cx - 95.0, 44.0), Vector2(190.0, 28.0))
+		var r := Rect2(Vector2(cx - 95.0, 126.0), Vector2(190.0, 28.0))
 		surface.draw_rect(r, Color(0.4, 0.03, 0.03, 0.9))
 		surface.draw_rect(r, Color(1.0, 0.15, 0.15, 1.0), false, 2.5)
-		surface.draw_string(font, Vector2(cx - 70.0, 63.0), STR_PULL_UP, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 12, Color(1.0, 0.25, 0.25, 1.0))
+		surface.draw_string(font, Vector2(cx - 70.0, 145.0), STR_PULL_UP, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 12, Color(1.0, 0.25, 0.25, 1.0))
+	var state_msg: String = STR_PAUSED if hud.displayed_paused else (STR_COMPLETE_BANNER if hud.displayed_mission_stage == 4 else (STR_FAILED_BANNER if hud.displayed_mission_stage == 5 else ""))
+	if state_msg != "":
+		var sr := Rect2(Vector2(cx - 170.0, 160.0), Vector2(340.0, 26.0))
+		surface.draw_rect(sr, hud._panel_color)
+		surface.draw_rect(sr, hud._line_color, false, 1.5)
+		surface.draw_string(font, Vector2(cx - 160.0, 178.0), state_msg, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 11, hud._line_color)
 
 static func _render_mission_panel(surface: Control, hud: CockpitHUD) -> void:
 	var pw: float = 180.0
@@ -149,14 +170,7 @@ static func _render_mission_panel(surface: Control, hud: CockpitHUD) -> void:
 		4: stage_str = STR_STAGE_COMPLETE
 		5: stage_str = STR_STAGE_FAILED
 	surface.draw_string(ThemeDB.fallback_font, Vector2(px + 8.0, 39.0), stage_str, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 10, hud._line_color)
-
-	var p: int = 0
-	while p < 4:
-		var pr := Rect2(Vector2(px + 8.0 + p * 15.0, 47.0), Vector2(10.0, 7.0))
-		var active: bool = hud.displayed_combat_score >= (p + 1) * 100
-		surface.draw_rect(pr, hud._warning_color if active else hud._panel_color)
-		surface.draw_rect(pr, hud._line_color, false, 1.0)
-		p += 1
+	surface.draw_string(ThemeDB.fallback_font, Vector2(px + 8.0, 58.0), hud.text_score, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, hud._warning_color)
 
 static func _render_trajectory(surface: Control, hud: CockpitHUD, camera: Camera3D) -> void:
 	if camera == null or hud.trajectory_count < 2:
