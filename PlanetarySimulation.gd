@@ -161,6 +161,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:
 	if not is_setup:
 		return
+	var _t0: int = Time.get_ticks_usec()
 	if ship.process_user_input:
 		if Input.is_action_just_pressed(&"pause_sortie"): LiveSortieBootstrap.toggle_pause(self)
 		if Input.is_action_just_pressed(&"restart_sortie"): LiveSortieBootstrap.restart_sortie(self)
@@ -186,14 +187,10 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 			or not target_pool.is_in_use[locked_id]:
 		weapon_system.acquire_nearest_target(ship.global_position, target_pool)
 	impact_pool.step_effects(delta)
-	projectile_pool.step_projectiles(
-		delta,
-		space_state,
-		planet_manager.planet_center_offset,
-		planet_manager.planet_radius,
-		ship.surface_gravity
-	)
+	projectile_pool.step_projectiles(delta, space_state, planet_manager.planet_center_offset, planet_manager.planet_radius, ship.surface_gravity)
+	var _t1: int = Time.get_ticks_usec()
 	planet_streamer.update_streamer(camera.global_position)
+	var _t2: int = Time.get_ticks_usec()
 	telemetry.sample(self, space_state)
 	environment.update_environment(
 		ship.global_position, planet_manager.planet_center_offset,
@@ -203,6 +200,7 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	if encounter_director != null:
 		encounter_director.step_director(self, delta)
 	hud.update_hud(self)
+	telemetry.record_step_timings(_t0, _t1, _t2, Time.get_ticks_usec())
 
 func _get_space_state() -> PhysicsDirectSpaceState3D:
 	if is_inside_tree():
