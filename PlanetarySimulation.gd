@@ -196,11 +196,9 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	planet_streamer.update_streamer(camera.global_position)
 	telemetry.sample(self, space_state)
 	environment.update_environment(
-		ship.global_position,
-		planet_manager.planet_center_offset,
-		planet_manager.planet_radius,
-		ship.atmosphere_ceiling,
-		ship.surface_air_density
+		ship.global_position, planet_manager.planet_center_offset,
+		planet_manager.planet_radius, ship.atmosphere_ceiling, ship.surface_air_density,
+		clampf(ship.thrust_input.length(), 0.0, 1.0), telemetry.proximity_alert, telemetry.weapon_heat, delta
 	)
 	if encounter_director != null:
 		encounter_director.step_director(self, delta)

@@ -37,6 +37,7 @@ func _run() -> void:
 	_test_scheduler_shutdown()
 	_test_proper_g_load_and_local_roll()
 	_test_sortie_pause_and_20_cycle_restart()
+	_test_procedural_cockpit_audio_synth()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -258,3 +259,17 @@ func _test_sortie_pause_and_20_cycle_restart() -> void:
 	_check("20 consecutive restart_sortie cycles reset all subsystems with zero leaks",
 		all_reset_ok and (mem_after - mem_before <= 0))
 	_dispose(sim)
+
+func _test_procedural_cockpit_audio_synth() -> void:
+	var env := PlanetaryEnvironment.new()
+	_check("procedural audio automatically skips AudioStreamPlayer in headless runs", not env.audio_enabled)
+	var s_idle: float = PlanetaryEnvironment.synthesize_cockpit_sample(0.0, 1.0, 0.0, 0, false, 0.25, 0.25, 0.25)
+	var s_thrust: float = PlanetaryEnvironment.synthesize_cockpit_sample(1.0, 1.0, 0.8, 2, true, 0.25, 0.25, 0.25)
+	var mem_before: int = OS.get_static_memory_usage()
+	for i in range(1000):
+		env.update_cockpit_audio(1.0 / 120.0, 0.75, 1, 0.5)
+	var mem_after: int = OS.get_static_memory_usage()
+	_check("cockpit sample synthesis is active, bounded, and zero-alloc in headless",
+		is_equal_approx(s_idle, 0.0) and absf(s_thrust) > 0.1 and absf(s_thrust) <= 0.85
+		and (mem_after - mem_before <= 0))
+	env.free()
