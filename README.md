@@ -6,9 +6,10 @@ The reference device is Snapdragon 8 Elite Gen 5 with Adreno 840 graphics,
 landscape 1920x1080 output, 120 Hz physics ticks, and a 120 FPS frame budget.
 
 The project is designed around fixed-capacity pools and reusable registers. The
-current production corpus contains 42 GDScript files. Allocation-sensitive paths
-are guarded by headless tests, but literal zero-allocation and mobile Vulkan
-performance remain subject to device profiling.
+current production corpus contains 43 GDScript files and 36 manifest test
+suites. Allocation-sensitive paths are guarded by headless tests, while
+mobile Vulkan rendering, audio output, and device performance remain
+`NOT ASSESSED` pending hardware profiling.
 
 ## Quick Start
 
@@ -137,6 +138,11 @@ while preserving linear velocity, angular velocity, and orbital continuity.
 | `U` / `O` | Roll left / right |
 | `Space` | Fire weapon |
 | `Tab` | Cycle guidance mode |
+| `R` | Coherent flight rewind |
+| `P` / `Esc` | Toggle sortie pause |
+| `Backspace` | Restart sortie |
+
+Full 17-action keyboard + gamepad fallback definitions live in [docs/architecture/control-manifest.md](docs/architecture/control-manifest.md).
 
 ### Android touch
 
@@ -239,7 +245,7 @@ the current evidence boundary and `docs/implementation-plan.md` for repair work.
 project.godot                 project and mobile renderer settings
 export_presets.cfg            Android ARM64 APK preset
 main.tscn                     playable simulation scene
-*.gd                         42 production scripts and headless suites
+*.gd                         43 production scripts and 36 headless test suites
 planet_chunk.glsl             std430 chunk compute shader
 rules.md                      architecture and memory guardrails
 PROJECT.md                    detailed subsystem and interface contracts

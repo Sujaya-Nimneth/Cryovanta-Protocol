@@ -342,46 +342,47 @@ The architecture decouples planetary terrain generation from local physics via c
 - `sample(sim, space_state = null) -> void`: O(1) update from the unified simulation.
 
 ## Code Layout
-All 42 production scripts reside in the root project folder and strictly conform to `class_name` declarations and the global `<= 250` line limit:
+All 43 production scripts reside in the root project folder and strictly conform to `class_name` declarations and the global `<= 250` line limit (validated across all 36 suites in `tests/manifest.txt` via `tools/run_tests.sh`):
 - `AtmosphereMath.gd`: Barometric density and drag math (88 lines).
 - `ChunkPoolManager.gd`: Pre-allocated mesh resource pool (111 lines).
-- `ChunkTaskScheduler.gd`: 4-worker concurrent task scheduler (246 lines <= 248 frozen ceiling).
-- `CockpitHUD.gd`: Telemetry registers, trajectory buffer, invariant counters (153 lines <= 248 frozen ceiling).
-- `CockpitHUDRenderer.gd`: Zero-allocation CanvasItem HUD delegate renderer (236 lines).
-- `ColliderPoolManager.gd`: 64-slot concave collider pool (169 lines).
+- `ChunkTaskScheduler.gd`: 4-worker concurrent task scheduler (247 lines <= 248 frozen ceiling).
+- `CockpitHUD.gd`: Telemetry registers, trajectory buffer, invariant counters (189 lines <= 248 frozen ceiling).
+- `CockpitHUDRenderer.gd`: Zero-allocation CanvasItem HUD delegate renderer (226 lines).
+- `ColliderPoolManager.gd`: 64-slot concave collider pool (177 lines).
 - `ComputeChunkDispatcher.gd`: Vulkan compute shader bridge and std430 fallback (216 lines).
-- `EncounterDirector.gd`: Orbital drone waves and subsystem coordination (248 lines <= 248 frozen ceiling).
-- `EntityVisualsBuilder.gd`: Procedural 3D spacecraft visual rig and shared pool meshes/materials (165 lines).
-- `FlightGuidanceSystem.gd`: 6-DOF SAS, hover, prograde, circularization guidance (245 lines <= 245 frozen ceiling).
-- `FlightInputBindings.gd`: Idempotent cockpit input action registration (40 lines).
-- `FlightRecorderRingBuffer.gd`: 64-slot black-box telemetry ring buffer (130 lines).
+- `EncounterDirector.gd`: Orbital drone waves and subsystem coordination (239 lines <= 248 frozen ceiling).
+- `EntityVisualsBuilder.gd`: Procedural 3D spacecraft visual rig and shared pool meshes/materials (172 lines).
+- `FlightGuidanceSystem.gd`: 6-DOF SAS, hover, prograde, circularization guidance (242 lines <= 245 frozen ceiling).
+- `FlightInputBindings.gd`: Idempotent keyboard & gamepad cockpit input registration (81 lines).
+- `FlightRecorderRingBuffer.gd`: 64-slot black-box telemetry ring buffer (239 lines).
 - `FloatingOrigin.gd`: 2,000m floating origin rebasing with dual 64-bit sector math (145 lines).
 - `FrameBudgetGovernor.gd`: 120 FPS adaptive frame governor (42 lines).
 - `ImpactEffectPoolManager.gd`: 32-slot shared burst impact pool (129 lines).
-- `LandingGearModel.gd`: Retractable landing gear actuator and shock model (74 lines).
-- `LiveSortieBootstrap.gd`: Live auto_step sortie bootstrap and rewind coordinator (106 lines).
-- `MissionScenarioRunner.gd`: Deterministic 3-stage mission state machine (86 lines).
+- `LandingGearModel.gd`: Retractable landing gear actuator and shock model (94 lines).
+- `LiveSortieBootstrap.gd`: Live auto_step sortie bootstrap, pause, rewind, and restart coordinator (154 lines).
+- `MissionScenarioRunner.gd`: Deterministic 3-stage mission state machine (89 lines).
 - `MobileTouchController.gd`: Mobile dual-stick virtual axes (55 lines <= 95 limit).
-- `MobileTouchOverlay.gd`: Multi-touch router and touch/mouse coexistence (87 lines <= 125 limit).
-- `OrbitalMechanics.gd`: Keplerian mechanics and Velocity-Verlet prediction (129 lines).
-- `PlanetManager.gd`: Quadtree LOD and planetary bounds manager (242 lines <= 242 frozen ceiling).
+- `MobileTouchLayout.gd`: Touch layout geometry, drawing, and simulation action routing (141 lines).
+- `MobileTouchOverlay.gd`: Multi-touch router and touch/mouse coexistence (125 lines <= 125 limit).
+- `OrbitalMechanics.gd`: Keplerian mechanics and Velocity-Verlet prediction (132 lines).
+- `PlanetManager.gd`: Quadtree LOD and planetary bounds manager (241 lines <= 242 frozen ceiling).
 - `PlanetMath.gd`: Cube-face basis and terrain height functions (94 lines).
-- `PlanetStreamer.gd`: 256-slot chunk streaming orchestrator (239 lines <= 240 frozen ceiling).
+- `PlanetStreamer.gd`: 256-slot chunk streaming orchestrator (240 lines <= 240 frozen ceiling).
 - `PlanetSurfaceMaterial.gd`: Rebase-aware cryo planetary shader material (90 lines).
-- `PlanetaryEnvironment.gd`: Lighting, fog, and celestial environment (80 lines).
-- `PlanetarySimulation.gd`: Unified simulation root (233 lines <= 248 frozen ceiling).
-- `PlanetaryWindModel.gd`: Altitude-banded wind and turbulence (59 lines).
+- `PlanetaryEnvironment.gd`: Lighting, fog, celestial environment, and procedural audio synth (148 lines).
+- `PlanetarySimulation.gd`: Unified simulation root (243 lines <= 248 frozen ceiling).
+- `PlanetaryWindModel.gd`: Altitude-banded wind and turbulence (57 lines).
 - `ProjectilePoolManager.gd`: 128-slot velocity-aligned projectile pool (186 lines).
 - `PropellantMassModel.gd`: Tsiolkovsky propellant consumption and wet mass (66 lines).
-- `ProximityWarningSystem.gd`: GPWS terrain caution/pull-up warning system (57 lines).
+- `ProximityWarningSystem.gd`: GPWS terrain caution/pull-up and traffic warning system (57 lines).
 - `QuadtreeNode.gd`: Quadtree spatial subdivision node (208 lines).
 - `RadarOcclusionModel.gd`: Horizon line-of-sight occlusion model (73 lines).
 - `ShipPowerBusModel.gd`: Solar power bus and eclipse battery model (76 lines).
-- `SimulationTelemetry.gd`: O(1) telemetry sampling registers (119 lines).
+- `SimulationTelemetry.gd`: O(1) telemetry sampling and microsecond timing registers (139 lines).
 - `SpaceshipController.gd`: 6-DOF spaceship flight controller (220 lines <= 220 target limit).
-- `SpaceshipWeaponSystem.gd`: Ballistic firing and radar altimeter (160 lines).
+- `SpaceshipWeaponSystem.gd`: Ballistic firing and radar altimeter (163 lines).
 - `TargetPoolManager.gd`: 32-slot shared emissive drone target pool with 3.0m hitbox parity (208 lines).
-- `TerrainMeshBuilder.gd`: 34x34 mesh and std430 push constants builder (233 lines).
+- `TerrainMeshBuilder.gd`: 34x34 mesh and std430 push constants builder (238 lines).
 - `ThermalStructuralModel.gd`: Aerodynamic heating and hull integrity (61 lines).
 - `WaypointRingBuffer.gd`: 16-slot waypoint and beacon ring buffer (103 lines).
 - `WeaponHeatCapacitor.gd`: Weapon thermal capacitor and cooldown gating (48 lines).
