@@ -58,15 +58,41 @@ func _test_rewind_contract() -> void:
 	var director: EncounterDirector = sim.encounter_director
 	director.propellant.enabled = true
 	director.propellant.propellant_mass = 600.0
+	director.power_bus.enabled = true
+	director.power_bus.battery_wh = 420.0
+	sim.weapon_system.capacitor.enabled = true
+	sim.weapon_system.capacitor.heat = 25.0
+	var saved_basis := Basis(Vector3.UP, 0.5)
+	sim.ship.global_transform = Transform3D(saved_basis, Vector3(100.0, 0.0, 0.0))
+	director.waypoints.add_waypoint(Vector3(0.0, 0.0, -300.0), 60.0)
+	var tgt_id: int = sim.target_pool.spawn_target(Vector3(50.0, 0.0, -200.0), Vector3.RIGHT * 10.0, 75.0)
 	director.mission.stage = MissionScenarioRunner.STAGE_ORBITAL_INTERCEPT
 	director.recorder.record_snapshot(Vector3(100.0, 0.0, 0.0), Vector3.ONE,
 		1.0, 300.0, 80.0, FlightGuidanceSystem.MODE_SAS_HOLD)
+	director.recorder.rebase_origin(Vector3(50.0, 0.0, 0.0))
 	director.propellant.propellant_mass = 100.0
+	director.power_bus.battery_wh = 10.0
+	sim.weapon_system.capacitor.heat = 95.0
+	sim.ship.global_transform = Transform3D(Basis.IDENTITY, Vector3(999.0, 50.0, 0.0))
+	sim.target_pool.apply_damage(tgt_id, 100.0)
+	director.waypoints.clear()
 	director.mission.stage = MissionScenarioRunner.STAGE_FAILED
 	_check("rewind restores fuel", LiveSortieBootstrap.trigger_rewind(sim)
 		and is_equal_approx(director.propellant.propellant_mass, 600.0))
 	_check("rewind restores mission stage",
 		director.mission.stage == MissionScenarioRunner.STAGE_ORBITAL_INTERCEPT)
+	_check("rewind restores attitude, battery, and weapon heat",
+		sim.ship.global_transform.basis.is_equal_approx(saved_basis)
+		and is_equal_approx(director.power_bus.battery_wh, 420.0)
+		and is_equal_approx(sim.weapon_system.capacitor.heat, 25.0))
+	_check("rewind preserves rebase shift and restores waypoints and targets",
+		sim.ship.global_position.is_equal_approx(Vector3(50.0, 0.0, 0.0))
+		and director.waypoints.active_count == 1
+		and sim.target_pool.active_count == 1)
+	_check("repeated rewind remains idempotent",
+		LiveSortieBootstrap.trigger_rewind(sim)
+		and is_equal_approx(director.propellant.propellant_mass, 600.0)
+		and sim.target_pool.active_count == 1)
 	_dispose(sim)
 
 func _test_touch_six_dof() -> void:

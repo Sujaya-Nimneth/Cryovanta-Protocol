@@ -35,11 +35,13 @@ func setup_director(sim: PlanetarySimulation) -> void:
 		return
 	governor.reset(sim.planet_manager.lod_split_scale)
 	_guidance = sim.guidance
+	recorder.bind_context(sim, self)
 	bind_floating_origin(sim.floating_origin)
 
 func shutdown_director(sim: PlanetarySimulation) -> void:
 	if sim != null:
 		unbind_floating_origin(sim.floating_origin)
+	recorder.unbind_context()
 	_guidance = null
 
 func bind_floating_origin(origin: FloatingOrigin) -> void:
