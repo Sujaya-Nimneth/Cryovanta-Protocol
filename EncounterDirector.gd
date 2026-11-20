@@ -35,11 +35,13 @@ func setup_director(sim: PlanetarySimulation) -> void:
 		return
 	governor.reset(sim.planet_manager.lod_split_scale)
 	_guidance = sim.guidance
+	recorder.bind_context(sim, self)
 	bind_floating_origin(sim.floating_origin)
 
 func shutdown_director(sim: PlanetarySimulation) -> void:
 	if sim != null:
 		unbind_floating_origin(sim.floating_origin)
+	recorder.unbind_context()
 	_guidance = null
 
 func bind_floating_origin(origin: FloatingOrigin) -> void:
@@ -92,15 +94,7 @@ func spawn_drone_ring(
 func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	if sim == null or sim.telemetry == null:
 		return
-	if sim.touch_controller != null and sim.touch_controller.overlay != null:
-		if sim.touch_controller.overlay.cycle_mode_requested:
-			sim.touch_controller.overlay.cycle_mode_requested = false
-			if is_instance_valid(sim.guidance):
-				sim.guidance.set_mode((sim.guidance.mode + 1) % 9)
-		if sim.touch_controller.overlay.fire_requested:
-			sim.touch_controller.overlay.fire_requested = false
-			if is_instance_valid(sim.weapon_system):
-				sim.weapon_system.fire_projectile()
+	MobileTouchLayout.consume_actions(sim)
 	if is_instance_valid(sim.weapon_system):
 		sim.weapon_system.step_weapon(delta)
 	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):
@@ -146,7 +140,7 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			)
 		landing_gear.step_gear(
 			delta, sim.telemetry.radar_altitude_agl, sim.telemetry.vertical_speed,
-			sim.ship, thermal
+			sim.ship, thermal, 1 if sim.telemetry.has_terrain_contact else 0, sim.telemetry.surface_clearance
 		)
 		radar_los.step_radar_los(
 			sim.ship.global_position, sim.planet_manager.planet_center_offset,
@@ -167,7 +161,6 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	sim.telemetry.surface_temperature_k = thermal.surface_temperature_k
 	sim.telemetry.heat_shield_load = thermal.heat_shield_load
 	sim.telemetry.hull_integrity = thermal.hull_integrity
-	governor.sample_frame_time(delta * 1000.0, sim.planet_manager)
 	sim.telemetry.ema_frame_ms = governor.ema_frame_ms
 	sim.telemetry.governor_split_scale = governor.recommended_split_scale
 	if is_instance_valid(sim.ship):

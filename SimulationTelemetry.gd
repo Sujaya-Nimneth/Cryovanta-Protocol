@@ -49,6 +49,8 @@ var in_eclipse: bool = false
 var power_brownout: bool = false
 var gear_deploy_progress: float = 1.0
 var weight_on_wheels: bool = false
+var surface_clearance: float = INF
+var has_terrain_contact: bool = false
 var target_los_clear: bool = true
 var waypoint_signal_strength: float = 0.0
 
@@ -86,12 +88,17 @@ func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = n
 	drag_magnitude = ship.get_current_drag().length()
 	_gravity_accel = ship.get_current_gravity() / maxf(ship.mass, 0.001)
 	gravity_magnitude = _gravity_accel.length()
-	_net_force = ship.get_current_net_force()
+	_net_force = ship.get_current_net_force() - ship.get_current_gravity()
 	g_load = _net_force.length() / maxf(ship.mass * 9.80665, 0.001)
 	if space_state != null and is_instance_valid(sim.weapon_system):
 		radar_altitude_agl = sim.weapon_system.measure_radar_altitude(space_state, 5_000.0)
+		var hit_ok: bool = sim.weapon_system.last_radar_hit
+		surface_clearance = maxf(radar_altitude_agl - 2.0, 0.0) if hit_ok else INF
+		has_terrain_contact = hit_ok and radar_altitude_agl <= 4.0
 	else:
 		radar_altitude_agl = altitude_asl
+		surface_clearance = maxf(radar_altitude_agl - 2.0, 0.0)
+		has_terrain_contact = radar_altitude_agl <= 4.0
 	active_leaves = sim.planet_manager.chunk_pool.active_count
 	active_visuals = sim.planet_streamer.get_active_visual_count()
 	active_colliders = sim.planet_manager.collider_pool.active_count

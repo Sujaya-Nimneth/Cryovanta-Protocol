@@ -243,6 +243,7 @@ func _run_tier_3() -> void:
 	sim.floating_origin.rebase_threshold = 1.0e12
 	sim.encounter_director.desired_active_targets = 4
 	sim.encounter_director.auto_spawn_waves = true
+	sim.encounter_director.governor.sample_frame_time(12.0, sim.planet_manager)
 	sim.step_simulation(DT)
 	_assert_int(sim.target_pool.active_count, 4, "First wave auto-spawns")
 	_assert_int(sim.encounter_director.wave_counter, 1, "First wave is recorded")

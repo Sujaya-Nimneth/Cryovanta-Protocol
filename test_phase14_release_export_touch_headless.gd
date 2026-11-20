@@ -4,7 +4,7 @@ extends SceneTree
 
 const DT: float = 1.0 / 120.0
 const REQUIRED_SUITE_COUNT: int = 27
-const REQUIRED_PRODUCTION_COUNT: int = 42
+const REQUIRED_PRODUCTION_COUNT: int = 43
 
 var total_assertions: int = 0
 var passed_assertions: int = 0
@@ -20,7 +20,7 @@ func _run_all() -> void:
 	print("==================================================================")
 	await process_frame
 	_run_tier_1()
-	_run_tier_2()
+	await _run_tier_2()
 	await _run_tier_3()
 	await _run_tier_4()
 	_print_summary()
@@ -106,6 +106,8 @@ func _run_tier_1() -> void:
 
 func _run_tier_2() -> void:
 	print("\n--- Tier 2: Multi-Touch Overlay and InputEvent Routing ---")
+	get_root().size = Vector2i(1920, 1080)
+	await process_frame
 	_start_test("Tier 2.1: Left-stick translation and upward forward thrust")
 	var controller: MobileTouchController = MobileTouchController.new()
 	var overlay: MobileTouchOverlay = controller.overlay
@@ -161,7 +163,7 @@ func _run_tier_2() -> void:
 	await process_frame
 	_configure_sim(sim)
 	var live_viewport: Vector2 = get_root().get_visible_rect().size
-	var touch_start: Vector2 = Vector2(live_viewport.x * 0.2, live_viewport.y * 0.75)
+	var touch_start: Vector2 = MobileTouchLayout.left_stick_origin(live_viewport)
 	var touch_drag: Vector2 = touch_start + Vector2(0.0, -90.0)
 	var touch_event: InputEventScreenTouch = InputEventScreenTouch.new()
 	touch_event.index = 4
@@ -243,7 +245,7 @@ func _run_tier_4() -> void:
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			production_files.append(file)
 	_assert_int(production_files.size(), REQUIRED_PRODUCTION_COUNT,
-		"Discovered all 42 production scripts")
+		"Discovered all 43 production scripts")
 	for file in production_files:
 		var text: String = FileAccess.get_file_as_string("res://" + file)
 		var line_count: int = _count_lines("res://" + file)

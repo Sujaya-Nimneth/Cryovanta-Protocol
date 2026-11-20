@@ -392,13 +392,13 @@ func _test_seam_continuity_probe() -> void:
 # -----------------------------------------------------------------------------
 func _test_production_script_architecture() -> void:
 	print("\n--- Suite 6: Production Script Architecture Audit ---")
-	_start_test("Suite 6.1: All 42 scripts declare class_name and stay <= 250 lines")
+	_start_test("Suite 6.1: All 43 scripts declare class_name and stay <= 250 lines")
 	var prod_files: Array[String] = []
 	for file in DirAccess.get_files_at("res://"):
 		if file.ends_with(".gd") and not file.begins_with("test_"):
 			prod_files.append(file)
 
-	_assert_int(prod_files.size(), 42, "Exactly 42 production scripts present")
+	_assert_int(prod_files.size(), 43, "Exactly 43 production scripts present")
 
 	var ceilings: Dictionary = {
 		"PlanetarySimulation.gd": 248,

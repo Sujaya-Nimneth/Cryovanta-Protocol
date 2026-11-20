@@ -149,8 +149,7 @@ func cancel_job(job_id: int, auto_reclaim: bool = false) -> bool:
 		_mutex.unlock(); return true
 	_mutex.unlock(); return false
 
-func cancel_all_jobs() -> void:
-	_mutex.lock()
+func _cancel_all_unlocked() -> void:
 	while _queue_count > 0:
 		var slot: int = _queue[_queue_head]
 		_queue_head = (_queue_head + 1) % BUFFER_CAPACITY
@@ -159,7 +158,9 @@ func cancel_all_jobs() -> void:
 	for i in BUFFER_CAPACITY:
 		if _job_status[i] != STATUS_EMPTY:
 			_job_cancelled[i] = 1; _auto_reclaim[i] = 1
-	_mutex.unlock()
+
+func cancel_all_jobs() -> void:
+	_mutex.lock(); _cancel_all_unlocked(); _mutex.unlock()
 
 func is_job_completed(job_id: int) -> bool:
 	if job_id <= 0: return false
@@ -240,7 +241,7 @@ func shutdown() -> void:
 	if not _is_running:
 		_mutex.unlock(); return
 	_is_running = false
-	cancel_all_jobs()
+	_cancel_all_unlocked()
 	_mutex.unlock()
 	for i in MAX_CONCURRENT_WORKERS: _semaphore.post()
 	for thread in _threads: if thread != null and thread.is_started(): thread.wait_to_finish()
