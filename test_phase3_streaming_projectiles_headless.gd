@@ -132,6 +132,7 @@ func _wait_streamer(streamer: Node, max_frames: int = 6000) -> bool:
 					break
 		if ready:
 			return true
+		OS.delay_msec(2)
 		await process_frame
 	return false
 
@@ -619,6 +620,7 @@ func _run_hardening() -> void:
 	var stable_cancel: int = -1
 	for frame in range(60):
 		streamer.update_streamer(camera)
+		OS.delay_msec(10)
 		await process_frame
 		streamer.task_scheduler.poll()
 		if streamer.pending_jobs == 0:

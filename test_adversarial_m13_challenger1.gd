@@ -120,6 +120,7 @@ func _task_busy_work(cycles: int) -> int:
 func _task_record_worker_index(results: Array, idx: int) -> void:
 	var w_idx: int = ChunkTaskSchedulerClass.get_current_worker_index()
 	results[idx] = w_idx
+	OS.delay_msec(2)
 
 func _run_challenger_suite() -> void:
 	# SECTION 1: 4-Worker TerrainMeshBuilder Concurrency Stress

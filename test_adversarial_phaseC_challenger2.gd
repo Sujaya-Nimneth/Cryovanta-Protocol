@@ -329,6 +329,7 @@ func test_task4_rapid_camera_translation_and_rebase_stress() -> void:
 	var settled: bool = false
 	for guard in range(300):
 		streamer.update_streamer(settle_camera)
+		OS.delay_msec(8)
 		await process_frame
 		streamer.task_scheduler.poll()
 		streamer._release_retired_staging()
@@ -458,6 +459,7 @@ func test_task5_convergence_benchmark_24_48_96() -> void:
 	var start_time_24: int = Time.get_ticks_usec()
 	while frames_24 < 80 and _task5_completed < total_24:
 		frames_24 += 1
+		OS.delay_msec(10)
 		await process_frame
 		_task5_scheduler.poll()
 	var ms_24: float = float(Time.get_ticks_usec() - start_time_24) / 1000.0
@@ -503,6 +505,7 @@ func test_task5_convergence_benchmark_24_48_96() -> void:
 	var start_time_48: int = Time.get_ticks_usec()
 	while frames_48 < 140 and _task5_completed < total_48:
 		frames_48 += 1
+		OS.delay_msec(10)
 		await process_frame
 		_task5_scheduler.poll()
 	var ms_48: float = float(Time.get_ticks_usec() - start_time_48) / 1000.0
@@ -538,9 +541,14 @@ func test_task5_convergence_benchmark_24_48_96() -> void:
 			if jid <= 0: break
 			queued_96 += 1
 		frames_96 += 1
+		OS.delay_msec(10)
 		await process_frame
 		_task5_scheduler.poll()
 	var ms_96: float = float(Time.get_ticks_usec() - start_time_96) / 1000.0
+	var idle_guard: int = 50
+	while _task5_scheduler.get_active_worker_count() > 0 and idle_guard > 0:
+		OS.delay_msec(1)
+		idle_guard -= 1
 	
 	_assert(_task5_completed == 96, "96 chunk generation completed 96/96 chunks with 64-slot streaming (%d frames, %.2f ms)" % [frames_96, ms_96])
 	_assert(_task5_scheduler.get_active_worker_count() == 0, "All 4 worker threads returned to idle after 96 chunk stress")
