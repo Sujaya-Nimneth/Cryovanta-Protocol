@@ -8,7 +8,7 @@
 
 **Primary target:** Android ARM64, Vulkan Mobile, Snapdragon 8 Elite Gen 5 / Adreno 840, 120 Hz physics
 
-**Status:** Planning only. No production code was changed by this audit.
+**Status:** Phase 0 complete; Phase 1 implementation in progress. Release remains NOT READY.
 
 ---
 
@@ -463,5 +463,6 @@ Start with Phase 0 and Phase 1. The project does not need a rewrite; it needs tr
 | 2026-11-20 | Planning | `41ad985` | Evidence-backed implementation plan committed to `testing-main` |
 | 2026-11-20 | Phase 0 | `5d57f6d` | Project config, one-sortie brief, durable audit evidence, and bug records added |
 | 2026-11-20 | Phase 0 | `2b59cf6`, `ba21cbf` | Nonrecursive manifest/runner, CI, live-wiring regressions, and bytecode hygiene added |
+| 2026-11-20 | Phase 0 | `7b49795`, `21834ee` | Truthful documentation, complete CI setup, and full Git history for provenance checks |
 
-Phase 0 intentionally leaves the live-wiring regression suite red until Phase 1 fixes land. Historical suites remain green in direct mode; the complete gate is not relabeled as passing while known defects are open.
+Phase 0 intentionally leaves the live-wiring regression suite red until Phase 1 fixes land. CI run `44713207261` executed all 36 suites once and failed only the five documented live-wiring assertions. Historical suites remain green in direct mode; the complete gate is not relabeled as passing while known defects are open.
