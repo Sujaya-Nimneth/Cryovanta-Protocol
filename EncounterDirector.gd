@@ -92,15 +92,7 @@ func spawn_drone_ring(
 func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	if sim == null or sim.telemetry == null:
 		return
-	if sim.touch_controller != null and sim.touch_controller.overlay != null:
-		if sim.touch_controller.overlay.cycle_mode_requested:
-			sim.touch_controller.overlay.cycle_mode_requested = false
-			if is_instance_valid(sim.guidance):
-				sim.guidance.set_mode((sim.guidance.mode + 1) % 9)
-		if sim.touch_controller.overlay.fire_requested:
-			sim.touch_controller.overlay.fire_requested = false
-			if is_instance_valid(sim.weapon_system):
-				sim.weapon_system.fire_projectile()
+	MobileTouchLayout.consume_actions(sim)
 	if is_instance_valid(sim.weapon_system):
 		sim.weapon_system.step_weapon(delta)
 	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):

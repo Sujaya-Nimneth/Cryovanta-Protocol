@@ -75,10 +75,21 @@ func _test_touch_six_dof() -> void:
 	controller.set_virtual_sticks(Vector2.ZERO, Vector2.ZERO, 1.0, 1.0)
 	_check("controller supports heave and roll registers",
 		controller.thrust_output.y > 0.0 and controller.torque_output.z > 0.0)
-	controller.overlay.handle_touch_point(true, 2, Vector2(960.0, 900.0), Vector2(1920.0, 1080.0), controller)
-	controller.overlay.handle_drag_point(2, Vector2(960.0, 810.0), controller)
-	_check("touch gestures can command heave or roll",
-		absf(controller.thrust_output.y) > 0.0 or absf(controller.torque_output.z) > 0.0)
+	var viewport_size: Vector2 = Vector2(1920.0, 1080.0)
+	var heave_origin: Vector2 = MobileTouchLayout.heave_rect(viewport_size).get_center()
+	controller.overlay.handle_touch_point(true, 2, heave_origin, viewport_size, controller)
+	controller.overlay.handle_drag_point(2, heave_origin + Vector2(0.0, -90.0), controller)
+	_check("touch gestures command heave", controller.thrust_output.y > 0.0)
+	var roll_origin: Vector2 = MobileTouchLayout.roll_rect(viewport_size).get_center()
+	controller.overlay.handle_touch_point(true, 3, roll_origin, viewport_size, controller)
+	controller.overlay.handle_drag_point(3, roll_origin + Vector2(0.0, -90.0), controller)
+	_check("touch gestures preserve heave while commanding roll",
+		controller.thrust_output.y > 0.0 and controller.torque_output.z > 0.0)
+	controller.overlay.handle_touch_point(false, 2, heave_origin, viewport_size, controller)
+	_check("heave release preserves roll",
+		is_zero_approx(controller.thrust_output.y) and controller.torque_output.z > 0.0)
+	controller.overlay.handle_touch_point(false, 3, roll_origin, viewport_size, controller)
+	_check("final control release disables touch", not controller.enabled)
 
 func _test_landing_contact() -> void:
 	var sim: PlanetarySimulation = _make_sim()

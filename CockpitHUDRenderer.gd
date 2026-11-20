@@ -51,7 +51,7 @@ static func render_cockpit(surface: Control, hud: CockpitHUD, camera: Camera3D) 
 static func _render_telemetry_panel(surface: Control, hud: CockpitHUD) -> void:
 	var margin: float = 22.0
 	var pw: float = minf(310.0, hud._viewport_size.x * 0.42)
-	surface.draw_rect(Rect2(Vector2(margin, margin), Vector2(pw, 248.0)), hud._panel_color)
+	surface.draw_rect(Rect2(Vector2(margin, margin), Vector2(pw, MobileTouchLayout.PANEL_HEIGHT)), hud._panel_color)
 	surface.draw_line(Vector2(margin, margin), Vector2(margin + pw, margin), hud._line_color, 2.0)
 
 	var font: Font = ThemeDB.fallback_font
@@ -209,28 +209,4 @@ static func _render_waypoints(surface: Control, hud: CockpitHUD, camera: Camera3
 	hud.last_drawn_waypoint_markers = 1
 
 static func _render_touch_overlay(surface: Control, hud: CockpitHUD) -> void:
-	if hud.touch_controller == null or not hud.touch_controller.enabled:
-		return
-	var font: Font = ThemeDB.fallback_font
-	var top_h: float = maxf(hud._viewport_size.y * 0.2, 1.0)
-	var half_w: float = hud._viewport_size.x * 0.5
-
-	surface.draw_rect(Rect2(Vector2.ZERO, Vector2(half_w, top_h)), Color(0.2, 0.95, 0.86, 0.05))
-	surface.draw_line(Vector2(half_w, 0.0), Vector2(half_w, top_h), Color(0.2, 0.95, 0.86, 0.2), 1.0)
-	surface.draw_string(font, Vector2(half_w * 0.5 - 18.0, top_h * 0.5 + 4.0), STR_TOUCH_MODE, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 11, Color(0.2, 0.95, 0.86, 0.5))
-
-	surface.draw_rect(Rect2(Vector2(half_w, 0.0), Vector2(half_w, top_h)), Color(1.0, 0.48, 0.22, 0.05))
-	surface.draw_string(font, Vector2(half_w * 1.5 - 16.0, top_h * 0.5 + 4.0), STR_TOUCH_FIRE, HORIZONTAL_ALIGNMENT_CENTER, -1.0, 11, Color(1.0, 0.48, 0.22, 0.5))
-
-	var overlay: MobileTouchOverlay = hud.touch_controller.overlay
-	var r: float = overlay.joystick_radius if overlay != null else 90.0
-
-	var l_origin: Vector2 = overlay.left_origin if (overlay != null and overlay.left_touch_index != -1) else Vector2(130.0, hud._viewport_size.y - 130.0)
-	surface.draw_arc(l_origin, r, 0.0, TAU, 24, Color(0.2, 0.95, 0.86, 0.3), 1.5)
-	var l_knob: Vector2 = l_origin + Vector2(hud.touch_controller.left_stick.x, -hud.touch_controller.left_stick.y) * r
-	surface.draw_circle(l_knob, 18.0, Color(0.2, 0.95, 0.86, 0.45))
-
-	var r_origin: Vector2 = overlay.right_origin if (overlay != null and overlay.right_touch_index != -1) else Vector2(hud._viewport_size.x - 130.0, hud._viewport_size.y - 130.0)
-	surface.draw_arc(r_origin, r, 0.0, TAU, 24, Color(0.38, 0.88, 1.0, 0.3), 1.5)
-	var r_knob: Vector2 = r_origin + Vector2(hud.touch_controller.right_stick.y, -hud.touch_controller.right_stick.x) * r
-	surface.draw_circle(r_knob, 18.0, Color(0.38, 0.88, 1.0, 0.45))
+	MobileTouchLayout.render(surface, hud)
