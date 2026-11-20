@@ -473,11 +473,19 @@ Start with Phase 0 and Phase 1. The project does not need a rewrite; it needs tr
 | 2026-11-20 | Phase 1 | `8d07a5d` | Eliminated nested recursive mutex lock in `ChunkTaskScheduler.shutdown()` (ADR-0006) |
 | 2026-11-20 | Phase 1 | `d7aec32` | Implemented proper non-gravitational G-load and local visual roll with cached plumes (ADR-0005) |
 | 2026-11-20 | Phase 1 | `tools/run_tests.sh` | Complete 36-suite nonrecursive gate passed (45,287 assertions, 0 failures) |
+| 2026-11-20 | Phase 1 | PR #2, merge `ce90dcd` | Phase 1 merged into `main` |
+| 2026-11-20 | Phase 2 | `473a675` | Added `design/gdd/systems-index.md`, `design/gdd/core-sortie.md`, and `design/ux/hud.md` |
+| 2026-11-20 | Phase 2 | `54dbbe3` | Fixed terrain culling (`cull_disabled`), `i2z` simplex parity, 64-slot `_twx_pool`, polar wind, bound radial apsides, and rebase collider transform sync |
+| 2026-11-20 | Phase 2 | `8496c51` | Gated mission wave spawning (`STAGE_INACTIVE` / `STAGE_ORBITAL_INTERCEPT`), leashed target evasion, and scaled `MODE_SOFT_LAND` decel by wet mass |
+| 2026-11-20 | Phase 2 | `1513761` | Added `pause_sortie` and 20-cycle zero-leak `LiveSortieBootstrap.restart_sortie()` flow |
+| 2026-11-20 | Phase 2 | `abeb1bb` | Configured `canvas_items`/`expand` stretch, numeric HUD readouts, traffic vs terrain caution distinction, overheat badge, and non-overlapping touch action band |
+| 2026-11-20 | Phase 2 | `d73f8e5` | Added zero-allocation procedural `AudioStreamGenerator` cockpit audio synthesis in `PlanetaryEnvironment.gd` |
+| 2026-11-20 | Phase 2 | `tools/run_tests.sh` | Complete 36-suite nonrecursive gate passed (45,291 assertions, 0 failures); recorded `production/qa/playtests/playtest-20261120-phase2.md` |
 
-Phase 0 intentionally left the live-wiring regression suite red until Phase 1 fixes landed. Phase 1 resolved BUG-0001 through BUG-0005 and achieved 36/36 suites passing (`45,287` reported assertions). Android/Vulkan device hardware validation remains `NOT ASSESSED` until Phase 3.
+Phase 0 intentionally left the live-wiring regression suite red until Phase 1 fixes landed. Phase 1 resolved BUG-0001 through BUG-0005 (`45,287` assertions). Phase 2 resolved terrain culling, allocation/parity issues, mission wave pacing, pause/restart loop, HUD/touch ergonomics, and procedural audio synthesis (`45,291` assertions, `36/36` suites). Physical Android/Vulkan rendering, audio playback, and device profiler validation remain `NOT ASSESSED`.
 
 ---
 
-## 13. Phase 1 Completion Checkpoint
+## 13. Phase 2 Completion Checkpoint
 
-Phase 1 (ADR-0001 through ADR-0006 and BUG-0001 through BUG-0005) is complete and verified across all 36 suites on `testing-main`. Next milestone: **Phase 2 — Playable vertical slice, terrain rendering fix, HUD, and audio feedback**.
+Phase 2 is complete and verified across all 36 headless test suites on `testing-main`. Next milestone: **Phase 3 — Performance telemetry, streaming hardening, compute ADR, and soak verification**.
