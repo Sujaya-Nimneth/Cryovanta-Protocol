@@ -27,7 +27,7 @@ var camera: Camera3D = null
 var is_setup: bool = false
 
 var _rebase_callables: Array[Callable] = []
-var _last_tick_usec: int = 0
+var _last_render_usec: int = 0
 var _ship_collision_shape: CollisionShape3D = null
 var _ship_sphere: SphereShape3D = null
 var _space_state: PhysicsDirectSpaceState3D = null
@@ -38,12 +38,22 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if auto_step and is_setup:
-		var now_usec: int = Time.get_ticks_usec()
-		var wall_ms: float = float(now_usec - _last_tick_usec) * 0.001 if _last_tick_usec > 0 else delta * 1000.0
-		_last_tick_usec = now_usec
 		step_simulation(delta, _get_space_state())
-		if encounter_director != null and encounter_director.governor != null:
-			encounter_director.governor.sample_frame_time(clampf(wall_ms, 0.1, 100.0), planet_manager)
+
+func _process(_delta: float) -> void:
+	if not auto_step or not is_setup:
+		return
+	var now_usec: int = Time.get_ticks_usec()
+	if _last_render_usec > 0:
+		sample_render_frame(float(now_usec - _last_render_usec) * 0.001)
+	_last_render_usec = now_usec
+
+func sample_render_frame(frame_ms: float) -> void:
+	if encounter_director == null or encounter_director.governor == null:
+		return
+	encounter_director.governor.sample_frame_time(clampf(frame_ms, 0.1, 100.0), planet_manager)
+	telemetry.ema_frame_ms = encounter_director.governor.ema_frame_ms
+	telemetry.governor_split_scale = encounter_director.governor.recommended_split_scale
 
 func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 	if is_setup:
@@ -144,6 +154,7 @@ func setup_simulation(synchronous_streaming_mode: bool = false) -> void:
 		floating_origin.origin_rebased.connect(cb)
 	encounter_director.setup_director(self)
 	is_setup = true
+	_last_render_usec = 0
 	if auto_step:
 		LiveSortieBootstrap.activate_live_sortie(self)
 func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null) -> void:

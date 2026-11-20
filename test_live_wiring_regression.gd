@@ -33,6 +33,7 @@ func _run() -> void:
 	_test_rewind_contract()
 	_test_touch_six_dof()
 	_test_landing_contact()
+	_test_render_governor_adaptation()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -89,4 +90,19 @@ func _test_landing_contact() -> void:
 	director.mission.step_mission(1.0 / 120.0, sim, director)
 	_check("airborne ship cannot complete landing mission",
 		director.mission.stage != MissionScenarioRunner.STAGE_COMPLETED)
+	_dispose(sim)
+
+func _test_render_governor_adaptation() -> void:
+	var sim: PlanetarySimulation = _make_sim()
+	var governor: FrameBudgetGovernor = sim.encounter_director.governor
+	governor.reset(2.0)
+	for frame in range(20):
+		sim.sample_render_frame(16.0)
+	_check("render overload lowers detail", governor.recommended_split_scale < 2.0)
+	var overloaded_scale: float = governor.recommended_split_scale
+	for frame in range(40):
+		sim.sample_render_frame(4.0)
+	_check("render recovery raises detail within bounds",
+		governor.recommended_split_scale > overloaded_scale
+		and governor.recommended_split_scale <= FrameBudgetGovernor.MAX_SPLIT_SCALE)
 	_dispose(sim)

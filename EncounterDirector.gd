@@ -167,7 +167,6 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	sim.telemetry.surface_temperature_k = thermal.surface_temperature_k
 	sim.telemetry.heat_shield_load = thermal.heat_shield_load
 	sim.telemetry.hull_integrity = thermal.hull_integrity
-	governor.sample_frame_time(delta * 1000.0, sim.planet_manager)
 	sim.telemetry.ema_frame_ms = governor.ema_frame_ms
 	sim.telemetry.governor_split_scale = governor.recommended_split_scale
 	if is_instance_valid(sim.ship):
