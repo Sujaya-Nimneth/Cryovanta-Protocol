@@ -77,8 +77,11 @@ func step_mission(
 			if kills - _start_destroyed_targets >= intercept_kills_required:
 				stage = STAGE_SOFT_LANDING
 		STAGE_SOFT_LANDING:
-			if sim.telemetry.radar_altitude_agl <= landing_altitude_threshold \
-				and sim.telemetry.total_speed <= landing_speed_threshold:
+			var gear_ok: bool = director.landing_gear != null and director.landing_gear.deployed \
+				and director.landing_gear.weight_on_wheels \
+				and director.landing_gear.surface_clearance <= 0.5
+			var sink_rate: float = maxf(-sim.telemetry.vertical_speed, 0.0)
+			if gear_ok and sim.telemetry.total_speed <= landing_speed_threshold and sink_rate <= 3.0:
 				stage = STAGE_COMPLETED
 	return stage
 

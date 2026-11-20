@@ -101,6 +101,30 @@ func _test_landing_contact() -> void:
 	director.mission.step_mission(1.0 / 120.0, sim, director)
 	_check("airborne ship cannot complete landing mission",
 		director.mission.stage != MissionScenarioRunner.STAGE_COMPLETED)
+	var gear: LandingGearModel = director.landing_gear
+	var thermal: ThermalStructuralModel = director.thermal
+	gear.enabled = true
+	gear.deployed = true
+	gear.deploy_progress = 1.0
+	gear.step_gear(0.2, 1.5, -2.0, sim.ship, thermal, 0, 0.0)
+	_check("radar-only contact without physical hit rejects weight-on-wheels", not gear.weight_on_wheels)
+	gear.step_gear(0.05, 2.0, -2.0, sim.ship, thermal, 1, 0.0)
+	_check("brief contact under 0.15s does not grant weight-on-wheels", not gear.weight_on_wheels)
+	gear.step_gear(0.12, 2.0, -2.0, sim.ship, thermal, 1, 0.0)
+	_check("sustained contact >= 0.15s establishes weight-on-wheels", gear.weight_on_wheels)
+	sim.telemetry.radar_altitude_agl = 2.0
+	sim.telemetry.vertical_speed = -1.0
+	sim.telemetry.total_speed = 2.0
+	director.mission.step_mission(1.0 / 120.0, sim, director)
+	_check("stable contact completes soft-landing mission",
+		director.mission.stage == MissionScenarioRunner.STAGE_COMPLETED)
+	gear.reset()
+	thermal.reset()
+	gear.step_gear(0.05, 2.0, -15.0, sim.ship, thermal, 1, 0.0)
+	var hull_after_first: float = thermal.hull_integrity
+	gear.step_gear(0.05, 2.0, -15.0, sim.ship, thermal, 1, 0.0)
+	_check("hard landing damage applies once per touchdown episode",
+		hull_after_first < 100.0 and is_equal_approx(thermal.hull_integrity, hull_after_first))
 	_dispose(sim)
 
 func _test_render_governor_adaptation() -> void:

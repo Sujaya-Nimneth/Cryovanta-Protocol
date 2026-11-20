@@ -11,6 +11,7 @@ extends Node3D
 var target_pool: Node = null
 var locked_target_id: int = -1
 var capacitor: WeaponHeatCapacitor = WeaponHeatCapacitor.new()
+var last_radar_hit: bool = false
 
 var _radar_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
 var _muzzle_world: Vector3 = Vector3.ZERO
@@ -125,6 +126,7 @@ func acquire_nearest_target(override_pool: Variant = null, origin_override: Vari
 
 ## Returns the distance from the ship to the nearest baked terrain surface.
 func measure_radar_altitude(space_state: PhysicsDirectSpaceState3D, max_range: float = 5000.0) -> float:
+	last_radar_hit = false
 	if not is_instance_valid(ship) or space_state == null or max_range <= 0.0:
 		return INF
 	var ship_pos: Vector3 = ship.global_position
@@ -146,6 +148,7 @@ func measure_radar_altitude(space_state: PhysicsDirectSpaceState3D, max_range: f
 	var hit: Dictionary = space_state.intersect_ray(_radar_query)
 	if hit.is_empty():
 		return max_range
+	last_radar_hit = true
 	var distance: float = ship_pos.distance_to(hit["position"])
 	return minf(distance, max_range)
 

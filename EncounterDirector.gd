@@ -138,7 +138,7 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			)
 		landing_gear.step_gear(
 			delta, sim.telemetry.radar_altitude_agl, sim.telemetry.vertical_speed,
-			sim.ship, thermal
+			sim.ship, thermal, 1 if sim.telemetry.has_terrain_contact else 0, sim.telemetry.surface_clearance
 		)
 		radar_los.step_radar_los(
 			sim.ship.global_position, sim.planet_manager.planet_center_offset,
