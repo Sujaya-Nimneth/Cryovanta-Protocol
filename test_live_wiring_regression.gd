@@ -34,6 +34,7 @@ func _run() -> void:
 	_test_touch_six_dof()
 	_test_landing_contact()
 	_test_render_governor_adaptation()
+	_test_scheduler_shutdown()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -167,3 +168,20 @@ func _test_render_governor_adaptation() -> void:
 		governor.recommended_split_scale > overloaded_scale
 		and governor.recommended_split_scale <= FrameBudgetGovernor.MAX_SPLIT_SCALE)
 	_dispose(sim)
+
+func _test_scheduler_shutdown() -> void:
+	var sched: ChunkTaskScheduler = ChunkTaskScheduler.new()
+	var task := func() -> int:
+		OS.delay_usec(100)
+		return 7
+	var j1: int = sched.submit_job(task)
+	var j2: int = sched.submit_job(task)
+	sched.cancel_job(j2, true)
+	sched.poll()
+	sched.shutdown()
+	sched.poll()
+	_check("scheduler shutdown stops workers and rejects subsequent submit",
+		not sched.is_running() and sched.get_active_worker_count() == 0
+		and sched.submit_job(task) == -1 and (j1 > 0 or j2 > 0))
+	sched.shutdown()
+	sched.free()
