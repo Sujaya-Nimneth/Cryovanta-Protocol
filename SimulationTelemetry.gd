@@ -53,6 +53,11 @@ var surface_clearance: float = INF
 var has_terrain_contact: bool = false
 var target_los_clear: bool = true
 var waypoint_signal_strength: float = 0.0
+var step_total_usec: int = 0
+var step_physics_usec: int = 0
+var step_streamer_usec: int = 0
+var step_director_hud_usec: int = 0
+var peak_step_usec: int = 0
 
 var _radial_up: Vector3 = Vector3.UP
 var _tangential_velocity: Vector3 = Vector3.ZERO
@@ -123,4 +128,12 @@ func sample(sim: PlanetarySimulation, space_state: PhysicsDirectSpaceState3D = n
 	specific_orbital_energy = OrbitalMechanics.get_specific_orbital_energy(
 		_ship_position, ship.linear_velocity, _planet_center, _planet_radius, _surface_gravity
 	)
+
+func record_step_timings(t0: int, t1: int, t2: int, t3: int) -> void:
+	step_physics_usec = maxi(t1 - t0, 0)
+	step_streamer_usec = maxi(t2 - t1, 0)
+	step_director_hud_usec = maxi(t3 - t2, 0)
+	step_total_usec = step_physics_usec + step_streamer_usec + step_director_hud_usec
+	if step_total_usec > peak_step_usec:
+		peak_step_usec = step_total_usec
 
