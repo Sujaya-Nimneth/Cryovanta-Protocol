@@ -158,6 +158,7 @@ func _cancel_slot_job(mesh_id: int) -> void:
 	var staging_id: int = job_state[job_base + JOB_STAGING]
 	if task_scheduler.cancel_job(job_id, true):
 		cancelled_job_count += 1
+		if retired_count >= JOB_CAPACITY: _release_retired_staging()
 		if retired_count < JOB_CAPACITY: retired_jobs[retired_count] = job_id; retired_staging[retired_count] = staging_id; retired_count += 1
 	elif task_scheduler.reclaim_job(job_id): _return_staging(staging_id)
 	job_state[job_base + JOB_ID] = 0; job_state[job_base + JOB_MESH] = -1; job_state[job_base + JOB_GENERATION] = 0; job_state[job_base + JOB_STAGING] = -1
