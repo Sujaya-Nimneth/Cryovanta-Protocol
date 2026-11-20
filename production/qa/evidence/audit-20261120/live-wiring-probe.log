@@ -1,0 +1,15 @@
+ASYNC visuals=120->120 pending=0 staging_free=64 static_delta=0
+PASS: async steady state has no pending jobs
+PASS: async steady state returns all staging slots
+PASS: async steady state has zero static memory growth
+REWIND restored=true pos=(100.0, 0.0, 0.0) hull=80.0 fuel=100.0 mission_stage=5
+PASS: rewind restores ship position
+PASS: rewind restores hull
+FAIL: rewind restores fuel
+FAIL: rewind restores mission stage
+TOUCH thrust=(0.0, 0.0, 1.0) torque=(0.707107, 0.707107, 0.0)
+FAIL: touch overlay can command vertical thrust
+FAIL: touch overlay can command roll torque
+FAIL: mission completion requires weight-on-wheels
+LANDING hard_touchdown_single_tick_hull=99.6
+PROBE_FAILURES=5

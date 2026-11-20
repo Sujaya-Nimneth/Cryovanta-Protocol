@@ -6,3 +6,5 @@ build/
 *.apk
 *.aab
 skills-lock.json
+__pycache__/
+*.pyc

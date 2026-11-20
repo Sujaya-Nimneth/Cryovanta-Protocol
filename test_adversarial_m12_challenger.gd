@@ -556,7 +556,7 @@ func _test_scheduler_predelete_notification() -> void:
 	# If shutdown() is called explicitly, worker threads terminate and free() succeeds cleanly
 	sched.shutdown()
 	sched.free()
-	_pass()
+	_assert(true, "Explicit shutdown and teardown completed")
 
 func _test_scheduler_steady_state_zero_alloc() -> void:
 	_start_test("SCHEDULER 1.12: Zero Steady-State Heap Allocation Across 1,000 Polls")

@@ -1,0 +1,55 @@
+project:
+  name: Cryovanta Protocol
+  stage: Production
+  workflow: standard
+  team_size: individual
+  review_mode: solo
+
+engine:
+  name: Godot
+  version: 4.7.2
+  language: GDScript
+  path: /opt/homebrew/bin/godot
+
+code_root: .
+test_root: tests
+asset_root: assets
+
+platform:
+  targets:
+    - Android
+  multiplayer: false
+  online: false
+  reference_device: Snapdragon 8 Elite Gen 5 / Adreno 840
+  renderer: Vulkan Mobile
+  orientation: landscape
+  physics_hz: 120
+
+performance:
+  enforce: block
+  target_framerate: 120
+  frame_budget_ms: 8.333333
+  memory_ceiling_mb: 1024
+  draw_call_limit: 400
+  startup_load_seconds: 5
+  steady_state_allocation_bytes_per_tick: 0
+  soak_minutes: 60
+
+qa:
+  level: standard
+  testing_strict: true
+
+commands:
+  import: godot --headless --editor --quit --path .
+  test: bash tools/run_tests.sh
+  smoke: bash tools/run_tests.sh
+  build: godot --headless --path . --export-debug "Android" build/CryovantaProtocol.apk
+
+scope:
+  mvp: One complete recon/intercept/landing sortie with pause, restart, and readable touch controls.
+  deferred:
+    - multiplayer
+    - economy
+    - save progression
+    - additional planets
+    - engine migration
