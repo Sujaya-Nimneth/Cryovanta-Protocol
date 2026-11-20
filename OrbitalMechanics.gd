@@ -70,8 +70,11 @@ static func get_apsides_altitudes(
 	)
 	var semi_latus_rectum: float = h2 / maxf(mu, 0.001)
 	var periapsis: float = semi_latus_rectum / maxf(1.0 + eccentricity, 0.001) - planet_radius
-	if eccentricity >= 1.0 or energy >= 0.0:
+	if energy >= 0.0:
 		return Vector2(periapsis, INF)
+	if eccentricity >= 1.0 - 1e-6:
+		var radial_sma: float = -mu / (2.0 * energy)
+		return Vector2(periapsis, radial_sma * (1.0 + eccentricity) - planet_radius)
 	return Vector2(
 		periapsis,
 		semi_latus_rectum / maxf(1.0 - eccentricity, 0.001) - planet_radius

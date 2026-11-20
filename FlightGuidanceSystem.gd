@@ -199,11 +199,8 @@ func _apply_soft_land(space_state: PhysicsDirectSpaceState3D, _delta: float) -> 
 	_radial_speed = ship.linear_velocity.dot(_radial_up)
 	if _altitude > touchdown_margin:
 		var clearance: float = maxf(_altitude - touchdown_margin, 0.0)
-		_target_radial_speed = -clampf(
-			sqrt(2.0 * max_descent_decel * clearance),
-			min_descent_speed,
-			max_descent_speed
-		)
+		var eff_decel: float = minf(max_descent_decel, maxf(ship.vertical_thrust / _mass - _gravity_accel.length(), 1.0) * 0.85)
+		_target_radial_speed = -clampf(sqrt(2.0 * eff_decel * clearance), min_descent_speed, max_descent_speed)
 	else:
 		_target_radial_speed = 0.0
 	var vertical_accel: float = (_target_radial_speed - _radial_speed) * hover_speed_gain

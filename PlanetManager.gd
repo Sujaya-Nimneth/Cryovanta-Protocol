@@ -74,10 +74,9 @@ func rebase_origin(offset: Vector3) -> void:
 		planet_center_local -= Vector3(s_vec) * SECTOR_SIZE
 	
 	floating_origin_offset = planet_center_offset
-	if is_inside_tree():
-		global_position = planet_center_offset
-	else:
-		position = planet_center_offset
+	if is_inside_tree(): global_position = planet_center_offset
+	else: position = planet_center_offset
+	if collider_pool: collider_pool.sync_body_transforms()
 
 ## Updates LOD across all 6 cube faces according to camera position relative to planet center.
 ## Strictly zero runtime allocation during update.

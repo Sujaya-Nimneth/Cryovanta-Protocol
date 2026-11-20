@@ -85,6 +85,14 @@ func set_collider_origin(collider_id: int, chunk_origin: Vector3) -> void:
 	if collider_id >= 0 and collider_id < POOL_SIZE and is_in_use[collider_id]:
 		bodies[collider_id].position = chunk_origin
 
+## Synchronizes PhysicsServer3D transforms for active bodies after floating-origin rebasing.
+func sync_body_transforms() -> void:
+	for i in range(POOL_SIZE):
+		if is_in_use[i] and bodies[i] != null and bodies[i].is_inside_tree():
+			PhysicsServer3D.body_set_state(
+				bodies[i].get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, bodies[i].global_transform
+			)
+
 func get_collider_origin(collider_id: int) -> Vector3:
 	return bodies[collider_id].position if (collider_id >= 0 and collider_id < POOL_SIZE and is_in_use[collider_id]) else Vector3.ZERO
 

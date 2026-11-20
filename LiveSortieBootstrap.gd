@@ -104,3 +104,51 @@ static func trigger_rewind(sim: PlanetarySimulation) -> bool:
 				sim.ship.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO
 			)
 	return ok
+
+static func toggle_pause(sim: PlanetarySimulation) -> bool:
+	if sim == null or not is_instance_valid(sim):
+		return false
+	sim.sortie_paused = not sim.sortie_paused
+	if is_instance_valid(sim.ship):
+		sim.ship.freeze = sim.sortie_paused
+	return sim.sortie_paused
+
+static func restart_sortie(sim: PlanetarySimulation) -> bool:
+	if sim == null or not is_instance_valid(sim) or not sim.is_setup:
+		return false
+	sim.sortie_paused = false
+	if is_instance_valid(sim.planet_manager):
+		var target_center := Vector3(0.0, -(sim.planet_manager.planet_radius + sim.initial_altitude), 0.0)
+		var shift: Vector3 = sim.planet_manager.planet_center_offset - target_center
+		if shift != Vector3.ZERO and is_instance_valid(sim.floating_origin):
+			sim.floating_origin.rebase(shift)
+	if is_instance_valid(sim.floating_origin):
+		sim.floating_origin.accumulated_offset = Vector3.ZERO
+		sim.floating_origin.origin_sector = Vector3i.ZERO
+		sim.floating_origin.origin_local = Vector3.ZERO
+	if is_instance_valid(sim.ship):
+		sim.ship.freeze = false
+		sim.ship.global_transform = Transform3D(Basis.IDENTITY, Vector3.ZERO)
+		sim.ship.linear_velocity = Vector3.ZERO; sim.ship.angular_velocity = Vector3.ZERO
+		sim.ship.thrust_input = Vector3.ZERO; sim.ship.torque_input = Vector3.ZERO
+		sim.ship.thrust_cutoff = false
+		if sim.ship.is_inside_tree():
+			var rid: RID = sim.ship.get_rid()
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, sim.ship.global_transform)
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+			PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+	if is_instance_valid(sim.target_pool): sim.target_pool.clear()
+	if is_instance_valid(sim.projectile_pool): sim.projectile_pool.clear()
+	if is_instance_valid(sim.impact_pool): sim.impact_pool.clear()
+	if is_instance_valid(sim.weapon_system): sim.weapon_system.locked_target_id = -1
+	if is_instance_valid(sim.guidance): sim.guidance.set_mode(FlightGuidanceSystem.MODE_MANUAL)
+	if sim.encounter_director != null:
+		var dir: EncounterDirector = sim.encounter_director
+		if is_instance_valid(dir.thermal): dir.thermal.reset()
+		if is_instance_valid(dir.recorder): dir.recorder.clear()
+		if is_instance_valid(dir.waypoints): dir.waypoints.clear()
+		dir.combat_score = 0; dir.wave_counter = 0; dir.elapsed_time = 0.0
+	activate_live_sortie(sim)
+	if sim.telemetry != null: sim.telemetry.sample(sim, null)
+	if is_instance_valid(sim.hud): sim.hud.update_hud(sim)
+	return true

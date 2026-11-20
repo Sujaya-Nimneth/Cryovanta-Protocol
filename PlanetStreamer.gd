@@ -123,7 +123,7 @@ func _build_sync(node: RefCounted, mesh_id: int, collider_id: int) -> void:
 	_apply_completed(node, mesh_id, collider_id, faces)
 
 func _build_chunk_job(_mesh_id: int, _generation: int, staging_id: int, face_index: int, lod_level: int, uv_min: Vector2, uv_max: Vector2, planet_radius: float, seed_val: int, freq: float, amp: float, has_collider: bool) -> bool:
-	TerrainMeshBuilder.build_chunk_buffers(face_index, lod_level, uv_min, uv_max, planet_radius, seed_val, freq, amp, staging_arrays[staging_id], staging_faces[staging_id], has_collider)
+	TerrainMeshBuilder.build_chunk_buffers(face_index, lod_level, uv_min, uv_max, planet_radius, seed_val, freq, amp, staging_arrays[staging_id], staging_faces[staging_id], has_collider, staging_id)
 	return has_collider
 
 func _on_job_completed(job_id: int, _result: Variant) -> void:

@@ -36,6 +36,8 @@ func _run() -> void:
 	_test_render_governor_adaptation()
 	_test_scheduler_shutdown()
 	_test_proper_g_load_and_local_roll()
+	_test_sortie_pause_and_20_cycle_restart()
+	_test_procedural_cockpit_audio_synth()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -207,3 +209,67 @@ func _test_proper_g_load_and_local_roll() -> void:
 		absf(sim.ship.visual_rig.rotation.z) > 0.05
 		and sim.ship.visual_rig.get_meta(&"plume_left", null) != null)
 	_dispose(sim)
+
+func _test_sortie_pause_and_20_cycle_restart() -> void:
+	var sim: PlanetarySimulation = _make_sim()
+	sim.ship.process_user_input = false
+	sim.planet_manager.max_lod = 1
+	sim.floating_origin.rebase_threshold = 1.0e12
+	LiveSortieBootstrap.activate_live_sortie(sim)
+	sim.ship.linear_velocity = Vector3(120.0, 0.0, 0.0)
+	for i in range(15):
+		sim.step_simulation(1.0 / 120.0)
+	var paused: bool = LiveSortieBootstrap.toggle_pause(sim)
+	var elapsed_paused: float = sim.encounter_director.elapsed_time
+	var pos_paused: Vector3 = sim.ship.global_position
+	for i in range(15):
+		sim.step_simulation(1.0 / 120.0)
+	_check("pause freezes elapsed simulation and ship motion",
+		paused and sim.sortie_paused
+		and is_equal_approx(sim.encounter_director.elapsed_time, elapsed_paused)
+		and sim.ship.global_position.is_equal_approx(pos_paused))
+	LiveSortieBootstrap.toggle_pause(sim)
+	for i in range(10):
+		sim.step_simulation(1.0 / 120.0)
+	_check("unpause resumes simulation advance",
+		not sim.sortie_paused and sim.encounter_director.elapsed_time > elapsed_paused)
+
+	var mem_before: int = 0
+	var all_reset_ok: bool = true
+	for cycle in range(20):
+		sim.ship.global_position = Vector3(250.0, 40.0, -180.0)
+		sim.ship.linear_velocity = Vector3(60.0, -25.0, 30.0)
+		sim.encounter_director.thermal.hull_integrity = 42.0
+		sim.weapon_system.fire_projectile()
+		for s in range(10):
+			sim.step_simulation(1.0 / 120.0)
+		var ok: bool = LiveSortieBootstrap.restart_sortie(sim)
+		if not ok or sim.sortie_paused or sim.ship.global_position != Vector3.ZERO \
+				or sim.ship.linear_velocity != Vector3.ZERO \
+				or not is_equal_approx(sim.encounter_director.thermal.hull_integrity, 100.0) \
+				or sim.encounter_director.recorder.count != 0 \
+				or sim.target_pool.active_count != 0 \
+				or sim.projectile_pool.active_count != 0 \
+				or sim.encounter_director.mission.stage != MissionScenarioRunner.STAGE_WAYPOINT_RECON:
+			all_reset_ok = false
+			break
+		if cycle == 4:
+			mem_before = OS.get_static_memory_usage()
+	var mem_after: int = OS.get_static_memory_usage()
+	_check("20 consecutive restart_sortie cycles reset all subsystems with zero leaks",
+		all_reset_ok and (mem_after - mem_before <= 0))
+	_dispose(sim)
+
+func _test_procedural_cockpit_audio_synth() -> void:
+	var env := PlanetaryEnvironment.new()
+	_check("procedural audio automatically skips AudioStreamPlayer in headless runs", not env.audio_enabled)
+	var s_idle: float = PlanetaryEnvironment.synthesize_cockpit_sample(0.0, 1.0, 0.0, 0, false, 0.25, 0.25, 0.25)
+	var s_thrust: float = PlanetaryEnvironment.synthesize_cockpit_sample(1.0, 1.0, 0.8, 2, true, 0.25, 0.25, 0.25)
+	var mem_before: int = OS.get_static_memory_usage()
+	for i in range(1000):
+		env.update_cockpit_audio(1.0 / 120.0, 0.75, 1, 0.5)
+	var mem_after: int = OS.get_static_memory_usage()
+	_check("cockpit sample synthesis is active, bounded, and zero-alloc in headless",
+		is_equal_approx(s_idle, 0.0) and absf(s_thrust) > 0.1 and absf(s_thrust) <= 0.85
+		and (mem_after - mem_before <= 0))
+	env.free()

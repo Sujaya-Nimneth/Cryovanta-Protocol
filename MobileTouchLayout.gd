@@ -26,24 +26,35 @@ const COLOR_PANEL: Color = Color(0.02, 0.08, 0.1, 0.45)
 static func top_band_height(viewport_size: Vector2) -> float:
 	return clampf(viewport_size.y * 0.12, 64.0, 120.0)
 
+static func _action_band(viewport_size: Vector2) -> Vector2:
+	var left: float = minf(344.0, viewport_size.x * 0.22)
+	var right: float = maxf(viewport_size.x - 214.0, left + 120.0)
+	return Vector2(left, right)
+
 static func action_rect(action: int, viewport_size: Vector2) -> Rect2:
 	var height: float = top_band_height(viewport_size)
-	var left: float = 0.0
-	var width: float = viewport_size.x * 0.35
+	var band: Vector2 = _action_band(viewport_size)
+	var span: float = band.y - band.x
+	var left: float = band.x
+	var width: float = span * 0.35
 	if action == ACTION_REWIND:
-		left = viewport_size.x * 0.35
-		width = viewport_size.x * 0.3
+		left = band.x + span * 0.35
+		width = span * 0.3
 	elif action == ACTION_FIRE:
-		left = viewport_size.x * 0.65
-		width = viewport_size.x * 0.35
+		left = band.x + span * 0.65
+		width = span * 0.35
 	return Rect2(Vector2(left, 0.0), Vector2(width, height))
 
 static func action_at(pos: Vector2, viewport_size: Vector2) -> int:
 	if pos.y > top_band_height(viewport_size):
 		return -1
-	if pos.x < viewport_size.x * 0.35:
+	var band: Vector2 = _action_band(viewport_size)
+	if pos.x < band.x or pos.x > band.y:
+		return -1
+	var rel: float = (pos.x - band.x) / maxf(band.y - band.x, 1.0)
+	if rel < 0.35:
 		return ACTION_MODE
-	if pos.x < viewport_size.x * 0.65:
+	if rel < 0.65:
 		return ACTION_REWIND
 	return ACTION_FIRE
 
