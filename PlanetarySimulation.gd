@@ -25,6 +25,7 @@ var environment: PlanetaryEnvironment = null
 var hud: CockpitHUD = null
 var camera: Camera3D = null
 var is_setup: bool = false
+var sortie_paused: bool = false
 
 var _rebase_callables: Array[Callable] = []
 var _last_render_usec: int = 0
@@ -161,10 +162,12 @@ func step_simulation(delta: float, space_state: PhysicsDirectSpaceState3D = null
 	if not is_setup:
 		return
 	if ship.process_user_input:
-		if Input.is_action_just_pressed(&"rewind_flight"):
-			LiveSortieBootstrap.trigger_rewind(self)
-		if Input.is_action_just_pressed(&"cycle_guidance_mode"):
-			guidance.set_mode((guidance.mode + 1) % 9)
+		if Input.is_action_just_pressed(&"pause_sortie"): LiveSortieBootstrap.toggle_pause(self)
+		if Input.is_action_just_pressed(&"restart_sortie"): LiveSortieBootstrap.restart_sortie(self)
+	if sortie_paused: hud.update_hud(self); return
+	if ship.process_user_input:
+		if Input.is_action_just_pressed(&"rewind_flight"): LiveSortieBootstrap.trigger_rewind(self)
+		if Input.is_action_just_pressed(&"cycle_guidance_mode"): guidance.set_mode((guidance.mode + 1) % 9)
 		if guidance.mode == FlightGuidanceSystem.MODE_MANUAL:
 			if touch_controller.enabled:
 				touch_controller.apply_to_ship(ship)
