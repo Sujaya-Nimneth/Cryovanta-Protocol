@@ -8,7 +8,7 @@
 
 **Primary target:** Android ARM64, Vulkan Mobile, Snapdragon 8 Elite Gen 5 / Adreno 840, 120 Hz physics
 
-**Status:** Phase 0 complete; Phase 1 implementation in progress. Release remains NOT READY.
+**Status:** Phase 1 complete on `testing-main` (all 36 nonrecursive suites / 45,287 reported assertions passing); ready to merge Phase 1 PR and proceed to Phase 2. Release remains NOT READY until Phases 2–4 and Android hardware checks complete.
 
 ---
 
@@ -464,5 +464,20 @@ Start with Phase 0 and Phase 1. The project does not need a rewrite; it needs tr
 | 2026-11-20 | Phase 0 | `5d57f6d` | Project config, one-sortie brief, durable audit evidence, and bug records added |
 | 2026-11-20 | Phase 0 | `2b59cf6`, `ba21cbf` | Nonrecursive manifest/runner, CI, live-wiring regressions, and bytecode hygiene added |
 | 2026-11-20 | Phase 0 | `7b49795`, `21834ee` | Truthful documentation, complete CI setup, and full Git history for provenance checks |
+| 2026-11-20 | Phase 0 | PR #1, merge `6cb0ad4` | Baseline merged into `main` with the five live-wiring regressions explicitly documented as Phase 1 work |
+| 2026-11-20 | Phase 1 | `435bb13` | Accepted ADR-0001 through ADR-0006 for governor, touch, touchdown, rewind, loads/visuals, and scheduler teardown |
+| 2026-11-20 | Phase 1 | `3fd5e3b` | Governor sampling moved to one rendered-frame owner; targeted governor regressions pass |
+| 2026-11-20 | Phase 1 | `60ee055` | Committed six-axis touch overlay/layout (`MobileTouchLayout.gd`, fixed right-stick knob deflection) |
+| 2026-11-20 | Phase 1 | `9f43868` | Implemented contact-gated touchdown and episode-gated impact damage (ADR-0003) |
+| 2026-11-20 | Phase 1 | `a732131` | Implemented coherent fixed-capacity sortie rewind across ship/resources/mission/pools (ADR-0004) |
+| 2026-11-20 | Phase 1 | `8d07a5d` | Eliminated nested recursive mutex lock in `ChunkTaskScheduler.shutdown()` (ADR-0006) |
+| 2026-11-20 | Phase 1 | `d7aec32` | Implemented proper non-gravitational G-load and local visual roll with cached plumes (ADR-0005) |
+| 2026-11-20 | Phase 1 | `tools/run_tests.sh` | Complete 36-suite nonrecursive gate passed (45,287 assertions, 0 failures) |
 
-Phase 0 intentionally leaves the live-wiring regression suite red until Phase 1 fixes land. CI run `44713207261` executed all 36 suites once and failed only the five documented live-wiring assertions. Historical suites remain green in direct mode; the complete gate is not relabeled as passing while known defects are open.
+Phase 0 intentionally left the live-wiring regression suite red until Phase 1 fixes landed. Phase 1 resolved BUG-0001 through BUG-0005 and achieved 36/36 suites passing (`45,287` reported assertions). Android/Vulkan device hardware validation remains `NOT ASSESSED` until Phase 3.
+
+---
+
+## 13. Phase 1 Completion Checkpoint
+
+Phase 1 (ADR-0001 through ADR-0006 and BUG-0001 through BUG-0005) is complete and verified across all 36 suites on `testing-main`. Next milestone: **Phase 2 — Playable vertical slice, terrain rendering fix, HUD, and audio feedback**.

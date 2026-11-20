@@ -2,7 +2,7 @@
 
 **Severity:** S2-High  
 **Priority:** P1  
-**Status:** Open  
+**Status:** Verified Fixed (Phase 1 `3fd5e3b`)  
 **Build:** `624b68e`
 
 ## Reproduction
