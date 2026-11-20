@@ -134,6 +134,8 @@ static func build_ship_visual_rig(parent: Node3D = null) -> Node3D:
 	pl.visible = false; rig.add_child(pl)
 	var pr := _make_mesh_inst("PlumeRight", plm, _plume_mat, Vector3(0.42, 0.0, 2.1))
 	pr.visible = false; rig.add_child(pr)
+	rig.set_meta(&"plume_left", pl)
+	rig.set_meta(&"plume_right", pr)
 
 	if parent != null:
 		parent.add_child(rig)
@@ -148,8 +150,9 @@ static func update_flight_visuals(rig: Node3D, ship: Node3D) -> void:
 		var ti: Vector3 = ship.torque_input
 		roll_target -= ti.z * 0.25; pitch_target += ti.x * 0.12
 	if "angular_velocity" in ship:
-		var av: Vector3 = ship.angular_velocity
-		roll_target -= av.z * 0.08
+		var b: Basis = ship.global_transform.basis if ship.is_inside_tree() else ship.transform.basis
+		var local_av: Vector3 = b.inverse() * ship.angular_velocity
+		roll_target -= local_av.z * 0.08
 	rig.rotation.z = clampf(roll_target, -0.35, 0.35)
 	rig.rotation.x = clampf(pitch_target, -0.20, 0.20)
 
@@ -157,9 +160,13 @@ static func update_flight_visuals(rig: Node3D, ship: Node3D) -> void:
 	if "thrust_input" in ship:
 		var ti: Vector3 = ship.thrust_input
 		throttle = clampf(ti.z, 0.0, 1.0)
-	var pl: Node3D = rig.get_node_or_null("PlumeLeft") as Node3D
+	var pl: Node3D = rig.get_meta(&"plume_left", null) as Node3D
+	if pl == null:
+		pl = rig.get_node_or_null("PlumeLeft") as Node3D
 	if pl != null:
 		pl.visible = throttle > 0.01; pl.scale.z = 0.3 + throttle * 1.5
-	var pr: Node3D = rig.get_node_or_null("PlumeRight") as Node3D
+	var pr: Node3D = rig.get_meta(&"plume_right", null) as Node3D
+	if pr == null:
+		pr = rig.get_node_or_null("PlumeRight") as Node3D
 	if pr != null:
 		pr.visible = throttle > 0.01; pr.scale.z = 0.3 + throttle * 1.5

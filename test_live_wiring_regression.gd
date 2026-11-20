@@ -35,6 +35,7 @@ func _run() -> void:
 	_test_landing_contact()
 	_test_render_governor_adaptation()
 	_test_scheduler_shutdown()
+	_test_proper_g_load_and_local_roll()
 	print("LIVE WIRING REGRESSION SUMMARY")
 	print("  Total Assertions:   %d" % total_assertions)
 	print("  Passed Assertions:  %d" % passed_assertions)
@@ -185,3 +186,24 @@ func _test_scheduler_shutdown() -> void:
 		and sched.submit_job(task) == -1 and (j1 > 0 or j2 > 0))
 	sched.shutdown()
 	sched.free()
+
+func _test_proper_g_load_and_local_roll() -> void:
+	var sim: PlanetarySimulation = _make_sim()
+	sim.ship.process_user_input = false
+	sim.floating_origin.rebase_threshold = 1.0e12
+	sim.planet_manager.max_lod = 1
+	sim.ship.linear_velocity = Vector3.ZERO
+	sim.ship.set_thrust_input(Vector3.ZERO)
+	sim.step_simulation(1.0 / 120.0)
+	_check("gravity-only freefall reports ~0 proper G-load", sim.telemetry.g_load < 0.01)
+	sim.ship.set_thrust_input(Vector3(0.0, sim.ship.mass * sim.ship.surface_gravity / sim.ship.vertical_thrust, 0.0))
+	sim.step_simulation(1.0 / 120.0)
+	_check("vertical hover reports ~1 proper G-load", absf(sim.telemetry.g_load - 1.0) < 0.05)
+	sim.ship.global_transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3.ZERO)
+	sim.ship.angular_velocity = Vector3(1.0, 0.0, 0.0)
+	sim.ship.torque_input = Vector3.ZERO
+	EntityVisualsBuilder.update_flight_visuals(sim.ship.visual_rig, sim.ship)
+	_check("visual roll uses local angular velocity at arbitrary heading",
+		absf(sim.ship.visual_rig.rotation.z) > 0.05
+		and sim.ship.visual_rig.get_meta(&"plume_left", null) != null)
+	_dispose(sim)
