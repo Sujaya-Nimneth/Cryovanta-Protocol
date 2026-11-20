@@ -97,16 +97,6 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 	MobileTouchLayout.consume_actions(sim)
 	if is_instance_valid(sim.weapon_system):
 		sim.weapon_system.step_weapon(delta)
-	if auto_spawn_waves and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship):
-		if sim.target_pool.active_count == 0:
-			spawn_drone_ring(
-				sim.ship.global_position,
-				sim.planet_manager.planet_center_offset,
-				sim.target_pool,
-				desired_active_targets
-			)
-			if is_instance_valid(sim.weapon_system):
-				sim.weapon_system.acquire_nearest_target()
 	if is_instance_valid(sim.ship):
 		sim.ship.ambient_wind_velocity = wind.sample_wind(
 			delta,
@@ -147,6 +137,10 @@ func step_director(sim: PlanetarySimulation, delta: float) -> void:
 			sim.planet_manager.planet_radius, sim.weapon_system, sim.target_pool, waypoints
 		)
 	mission.step_mission(delta, sim, self)
+	var allow_wave: bool = mission.stage == MissionScenarioRunner.STAGE_INACTIVE or mission.stage == MissionScenarioRunner.STAGE_ORBITAL_INTERCEPT
+	if auto_spawn_waves and allow_wave and is_instance_valid(sim.target_pool) and is_instance_valid(sim.ship) and sim.target_pool.active_count == 0:
+		spawn_drone_ring(sim.ship.global_position, sim.planet_manager.planet_center_offset, sim.target_pool, desired_active_targets)
+		if is_instance_valid(sim.weapon_system): sim.weapon_system.acquire_nearest_target()
 	sim.telemetry.active_waypoints = waypoints.active_count
 	sim.telemetry.completed_waypoints = waypoints.completed_waypoints
 	sim.telemetry.waypoint_distance = waypoints.distance_to_current
@@ -233,9 +227,13 @@ func step_evasion(
 					lateral = velocity.cross(Vector3.RIGHT)
 				lateral = lateral.normalized()
 				var phase: float = elapsed_time * evasion_frequency + float(id) * 1.5707963
-				var weave: Vector3 = (
-					lateral * cos(phase) + radial_up * sin(phase)
-				) * evasion_amplitude * dt
+				var weave: Vector3 = (lateral * cos(phase) + radial_up * sin(phase)) * evasion_amplitude * dt
 				velocity += weave
+				var to_ship: Vector3 = ship_pos - target_pool.positions[id]
+				if to_ship.length_squared() > 3_240_000.0:
+					velocity += to_ship.normalized() * (evasion_amplitude * 1.5 * dt)
+				var alt_err: float = (target_pool.positions[id] - planet_center).length() - (ship_pos - planet_center).length()
+				if absf(alt_err) > 600.0:
+					velocity -= radial_up * (clampf(alt_err / 600.0, -2.0, 2.0) * evasion_amplitude * dt)
 				target_pool.velocities[id] = velocity.normalized() * target_orbital_speed
 		id += 1
